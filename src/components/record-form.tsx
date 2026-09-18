@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, Minus, Plus, ScanLine } from 'lucide-react';
 import { calculate, createRewardSnapshot, isValidDate, type WorkRecord } from '@/lib/core';
 import type { AppData } from '@/lib/storage';
@@ -8,6 +8,7 @@ import { AREAS, dateLabel, money, newRecordId, Sheet, typeLabel } from './ui';
 
 interface Props { data: AppData; today: string; type: WorkRecord['type']; record?: WorkRecord; onSave: (record: WorkRecord) => Promise<boolean>; }
 export default function RecordForm({ data, today, type, record, onSave }: Props) {
+  const areaGuideId = useId();
   const [quantity, setQuantity] = useState(String(record?.quantity ?? (type === 'adjustment' ? '' : 1)));
   const [date, setDate] = useState(record?.date ?? today);
   const [area, setArea] = useState(record?.area ?? data.lastArea ?? data.settings.defaultArea);
@@ -61,7 +62,17 @@ export default function RecordForm({ data, today, type, record, onSave }: Props)
     <div className="quantity-stepper"><button type="button" className="step-button" aria-label="本数を1減らす" disabled={!count || count <= (type === 'adjustment' ? 0 : 1)} onClick={() => setQuantity(String(Math.max(type === 'adjustment' ? 0 : 1, count - 1)))}><Minus/></button><div><input id="record-quantity" type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" maxLength={5} value={quantity} onFocus={e => e.target.select()} onChange={e => setQuantity(e.target.value.replace(/[^0-9]/g, ''))} required aria-label="本数"/><span>本</span></div><button type="button" className="step-button" aria-label="本数を1増やす" disabled={count >= 99999} onClick={() => setQuantity(String(Math.min(99999, count + 1)))}><Plus/></button></div>
     <div className="quick-amounts" aria-label="本数を加算">{[1, 2, 3, 5, 10].map(n => <button type="button" key={n} onClick={() => setQuantity(String(Math.min(99999, count + n)))}>+{n}</button>)}</div>
     {type === 'refill' && <>
-      <fieldset className="area-field"><legend>補充した地域</legend><div className="area-options">{AREAS.map(id => <button key={id} type="button" aria-pressed={area === id} className={area === id ? 'selected' : ''} onClick={() => setArea(id)}><strong>{data.settings.regionNames[id]}</strong><span>{data.settings.regionRates[id]}円</span></button>)}</div><p className="field-hint">{data.settings.regionDescriptions[area]}</p></fieldset>
+      <fieldset className="area-field">
+        <legend>補充した地域</legend>
+        <div className="area-options">{AREAS.map(id => <button key={id} type="button" aria-pressed={area === id} aria-describedby={`${areaGuideId}-${id}`} className={area === id ? 'selected' : ''} onClick={() => setArea(id)}><strong>{data.settings.regionNames[id]}</strong><span>{data.settings.regionRates[id]}円</span></button>)}</div>
+        <div className="area-guide">
+          <p className="area-guide-title">地域の目安</p>
+          <dl aria-label="地域ごとの説明">{AREAS.map(id => <div key={id} className={area === id ? 'selected' : ''}>
+            <dt>{data.settings.regionNames[id]}</dt><dd id={`${areaGuideId}-${id}`}>{data.settings.regionDescriptions[id]}</dd>
+          </div>)}</dl>
+          <p className="field-hint">補充した場所に合わせて選んでください。「{data.settings.regionNames.omitted}」は地域を指定しないときの単価です。区分・説明・単価は設定で変更できます。</p>
+        </div>
+      </fieldset>
       <fieldset className="early-field"><legend>早期補充</legend><div className="segmented early-options">{[['auto', '自動判定'], ['all', 'すべて対象'], ['none', '対象外'], ['count', '本数指定']].map(([id, label]) => <button key={id} type="button" aria-pressed={early === id} className={early === id ? 'selected' : ''} onClick={() => setEarly(id)}>{label}</button>)}</div>{early === 'count' && <label className="field">早期対象の本数<input type="number" inputMode="numeric" min="0" max={count} step="1" value={manual} onChange={e => setManual(e.target.value)}/></label>}<p className="field-hint">{early === 'auto' ? `取出日を含む${snapshot.earlyDays}日以内の在庫から自動判定。取出日が不明な分は対象外です。` : `公式の作業条件を確認し、対象本数を指定します。＋${snapshot.earlyRate}円/本。`}</p></fieldset>
     </>}
     {type === 'adjustment' && <div className="stocktake-preview"><div><span>記録上の在庫</span><strong>{valid ? money(count - (own?.discrepancy ?? 0)) : '—'} 本</strong></div><div><span>棚卸差異</span><strong className={own?.discrepancy ? 'warning-text' : ''}>{valid ? `${(own?.discrepancy ?? 0) > 0 ? '+' : ''}${own?.discrepancy ?? 0}` : '—'} 本</strong></div><label className="check-field"><input type="checkbox" checked={applyStock} onChange={e => setApplyStock(e.target.checked)}/>棚卸数を在庫に反映する</label><p className="field-hint">オフなら確認記録だけを保存します。在庫への反映は次の確認画面で確定します。</p></div>}

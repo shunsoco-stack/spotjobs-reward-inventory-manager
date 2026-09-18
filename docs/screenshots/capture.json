@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-18T10:19:19.248Z",
+  "capturedAt": "2026-09-18T10:25:33.279Z",
   "deploymentURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
   "browser": "Playwright Chromium in isolated headless contexts",
   "browserVersion": "153.0.8010.12",
@@ -40,8 +40,8 @@
     },
     {
       "filename": "02-replenishment.png",
-      "description": "7本・エリアA・早期自動判定を入力した補充画面（保存前）",
-      "capturedAt": "2026-09-18T10:19:15.483Z",
+      "description": "7本・エリアA・地域の目安・早期自動判定を入力した補充画面（保存前）",
+      "capturedAt": "2026-09-18T10:25:33.277Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -50,11 +50,11 @@
       },
       "viewport": {
         "width": 390,
-        "height": 1671
+        "height": 1934
       },
       "imageSize": {
         "width": 390,
-        "height": 1671
+        "height": 1934
       },
       "fullPage": true,
       "mode": "Demo explicitly selected through the application UI",
@@ -62,9 +62,10 @@
         "quantity": 7,
         "area": "A",
         "earlyMode": "auto",
-        "saved": false
+        "saved": false,
+        "regionGuide": true
       },
-      "sha256": "6b005dea20ce5ff0ba10a907f3da32849ad894a6008ce25d64e1da26c9922b06"
+      "sha256": "36994d2678061ab4886f5084d0f1ee39da87c9d3fdb6af774bf7d45b97e6c8d5"
     },
     {
       "filename": "03-weekly-reward.png",

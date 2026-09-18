@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Battery, Check, ChevronRight, Download, History, House, RotateCcw, ScanLine, Settings2, ShieldCheck, Smartphone, TrendingUp, Trash2, WifiOff, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Battery, Check, ChevronRight, Download, ExternalLink, History, House, RotateCcw, ScanLine, Settings2, ShieldCheck, Smartphone, TrendingUp, Trash2, WifiOff, X } from 'lucide-react';
 import { addDays, adjacentWeekStart, calculate, createDemoRecords, createRewardSnapshot, defaultSettings, todayLocal, type WorkRecord } from '@/lib/core';
 import { exportCsv, inspectBackup, loadData, saveData, serializeBackup, MAX_BACKUP_BYTES, type AppData } from '@/lib/storage';
 import SettingsPanel from './settings-panel';
@@ -126,7 +126,7 @@ export default function SpotlogApp() {
   if (!ready) return <div className="loading-screen"><Brand/><p>記録を開いています…</p></div>;
   return <div className="app-shell">
     <aside className="desktop-sidebar"><Brand/><p className="sidebar-caption">日々の活動を、手のひらで。</p><nav aria-label="メインナビゲーション">{nav.map(n => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><n.icon size={21}/>{n.label}</button>)}<div className="nav-divider"/>{[{ id: 'inventory' as const, label: '在庫・棚卸', icon: Battery }, { id: 'weekly' as const, label: '週次報酬', icon: History }, { id: 'simulator' as const, label: 'シミュレーター', icon: TrendingUp }].map(n => <button key={n.id} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><n.icon size={21}/>{n.label}</button>)}</nav><div className="sidebar-bottom"><ShieldCheck size={23}/><strong>記録はこの端末に。</strong><p>ログイン不要。<br/>電波がなくても、いつも通り。</p><span className="pill">個人制作・非公式ツール</span></div></aside>
-    <div className="main-shell"><header className="app-header"><div className="mobile-brand"><Brand/></div><span className="desktop-header">SPOTJOBSワーカーのための管理ツール</span><span className={`connection-status ${!online ? 'offline' : ''}`}>{online ? <ShieldCheck size={16}/> : <WifiOff size={16}/>}<span>{!online ? 'オフライン' : saving ? '保存中' : '端末に保存'}</span></span></header>
+    <div className="main-shell"><header className="app-header"><div className="mobile-brand"><Brand/></div><span className="desktop-header">SPOTJOBSワーカーのための管理ツール</span><div className="header-actions"><span className={`connection-status ${!online ? 'offline' : ''}`}>{online ? <ShieldCheck size={16}/> : <WifiOff size={16}/>}<span>{!online ? 'オフライン' : saving ? '保存中' : '端末に保存'}</span></span><a className="official-service-link" href="https://app.spot.jobs/" target="_blank" rel="noopener noreferrer external" aria-label="SPOTJOBSを開く（外部ブラウザ・別タブ）" title="SPOTJOBSを外部ブラウザで開く"><span>SPOTJOBSを開く</span><ExternalLink size={16} aria-hidden="true"/></a></div></header>
       <main id="main-content">
         {demo && <div className="demo-banner"><div><strong>デモデータでお試し中</strong><span>自分の記録には影響しません</span></div><button onClick={() => switchDemo(false)}>終了<X size={17}/></button></div>}
         {storageError && <div className="warning" role="alert"><div><strong>保存データを開けませんでした</strong><p>{storageError}</p><button className="text-button" onClick={() => changeView('settings')}>設定からバックアップを復元</button></div></div>}

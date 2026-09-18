@@ -142,10 +142,10 @@ function SettingsForm({ settings, onSave }: Pick<SettingsPanelProps, "settings" 
     <fieldset className="settings-section">
       <legend>早期補充ボーナス</legend>
       <div className="field-grid">
-        <label className="field" htmlFor="early-days">抜き取り日を含む対象日数（日）<input id="early-days" name="early-days" type="number" inputMode="numeric" min={1} max={365} step={1} required defaultValue={settings.earlyDays} /></label>
+        <label className="field" htmlFor="early-days">取出日を含む対象日数（日）<input id="early-days" name="early-days" type="number" inputMode="numeric" min={1} max={365} step={1} required defaultValue={settings.earlyDays} /></label>
         <label className="field" htmlFor="early-rate">追加単価（円／本）<input id="early-rate" name="early-rate" type="number" inputMode="numeric" min={0} max={10_000} step={1} required defaultValue={settings.earlyRate} /></label>
       </div>
-      <p className="muted">抜き取り日の分かる在庫から、古い順に自動判定します。対象本数は補充の記録で手入力もできます。</p>
+      <p className="muted">取出日の分かる在庫から、古い順に自動判定します。対象本数は補充の記録で手入力もできます。</p>
     </fieldset>
 
     <fieldset className="settings-section" aria-describedby={tierError ? "tier-error" : "tier-help"}>
@@ -199,7 +199,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     <section className="panel settings-section" aria-labelledby="calculation-heading">
       <div className="section-heading"><h2 id="calculation-heading">計算について</h2></div>
       <p className="muted">表示する報酬は、記録と設定に基づく目安です。最終的な条件・金額はSPOTJOBS公式アプリで確認してください。初期値は参考用で、単価や条件は変更できます。</p>
-      <p className="muted">早期補充は、抜き取り日を含む3日間を初期設定としています。抜き取り日が不明な在庫は自動判定の対象に含めません。実際の対象本数に合わせて、補充記録で手入力できます。</p>
+      <p className="muted">早期補充は、取出日を含む3日間を初期設定としています。取出日が不明な在庫は自動判定の対象に含めません。実際の対象本数に合わせて、補充記録で手入力できます。</p>
       <p className="muted">本アプリは個人制作の非公式アプリです。SPOTJOBS、ChargeSPOT、株式会社INFORICHとの提携・関係はありません。</p>
     </section>
     <section className="panel settings-section" aria-labelledby="install-heading">

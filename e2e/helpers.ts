@@ -26,7 +26,7 @@ export async function boot(page: Page) {
   await expect(page.getByRole('heading', { name: 'ホーム', exact: true })).toBeVisible();
 }
 
-export async function navigate(page: Page, label: 'ホーム' | '補充' | '抜取' | '履歴' | '設定') {
+export async function navigate(page: Page, label: 'ホーム' | '補充' | '取出' | '履歴' | '設定') {
   await expect(page.locator('.app-shell')).toBeVisible();
   const mobile = page.getByRole('navigation', { name: 'モバイルナビゲーション' });
   const navigation = await mobile.isVisible() ? mobile : page.getByRole('navigation', { name: 'メインナビゲーション' });
@@ -39,10 +39,10 @@ export async function closeNotice(page: Page) {
 }
 
 export async function pickup(page: Page, quantity: number) {
-  await navigate(page, '抜取');
+  await navigate(page, '取出');
   await page.getByRole('textbox', { name: '本数', exact: true }).fill(String(quantity));
-  await page.getByRole('button', { name: `${quantity}本を抜取として保存`, exact: true }).click();
-  await expect(page.getByRole('status')).toContainText(`${quantity}本を抜取として登録しました`);
+  await page.getByRole('button', { name: `${quantity}本を取出として保存`, exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(`${quantity}本を取出として登録しました`);
   await closeNotice(page);
 }
 

@@ -70,7 +70,7 @@ function quantity(text: string, allowZero: boolean): number {
   const normalized = text.trim().replace(/^(\d{1,3}(?:,\d{3})+)$/, (match) => match.replaceAll(",", ""));
   if (!/^\d+$/.test(normalized)) throw new Error("本数は整数で入力してください。");
   const value = Number(normalized);
-  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1) || value > 99_999) throw new Error("本数は補充・抜取が1〜99,999本、棚卸しが0〜99,999本です。");
+  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1) || value > 99_999) throw new Error("本数は補充・取出が1〜99,999本、棚卸しが0〜99,999本です。");
   return value;
 }
 function recordType(text: string): WorkRecord["type"] {
@@ -78,7 +78,7 @@ function recordType(text: string): WorkRecord["type"] {
   if (["", "refill", "補充", "補充した"].includes(value)) return "refill";
   if (["pickup", "抜取", "抜き取り", "抜取った", "抜き取った", "回収", "取出", "取り出し"].includes(value)) return "pickup";
   if (["adjustment", "棚卸", "棚卸し", "在庫調整"].includes(value)) return "adjustment";
-  throw new Error(`作業の種類「${text}」を判別できません。補充・抜き取り・棚卸しを指定してください。`);
+  throw new Error(`作業の種類「${text}」を判別できません。補充・取出・棚卸しを指定してください。`);
 }
 function csvArea(text: string, settings: Settings): Area {
   const value = text.trim();

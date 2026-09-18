@@ -29,7 +29,7 @@ describe("CSV parsing", () => {
 });
 describe("spreadsheet import", () => {
   it("converts aliases, flexible full dates and omitted areas while snapshotting current conditions", () => {
-    const text = "日付,作業,本数,エリア,早期対象本数,メモ\n2026/9/14,抜取,8,,,駅前\n2026年9月15日,補充,5,,3,補充済み\n2026-9-16,棚卸,2,,,確認のみ";
+    const text = "日付,作業,本数,エリア,早期対象本数,メモ\n2026/9/14,取出,8,,,駅前\n2026年9月15日,補充,5,,3,補充済み\n2026-9-16,棚卸,2,,,確認のみ";
     const result = previewCsvImport(text, suggestCsvMapping(parseCsv(text).headers), settings, []);
     expect(result.errors).toEqual([]);
     expect(result.records).toHaveLength(3);

@@ -247,7 +247,7 @@ function csvCell(value: string | number): string {
 export function exportCsv(records: WorkRecord[], settings: Settings): string {
   const safeRecords = validateRecords(records);
   validateSettings(settings);
-  const labels = { pickup: "抜き取り", refill: "補充", adjustment: "棚卸し" };
+  const labels = { pickup: "取出", refill: "補充", adjustment: "棚卸し" };
   const rows: (string | number)[][] = [["日付", "作業", "本数", "エリア", "早期判定", "早期対象本数", "メモ", "記録ID", "登録日時", "記録時地域単価", "記録時早期単価", "記録時早期日数", "集計週開始日", "記録時本数ボーナス", "棚卸反映", "棚卸時想定在庫", "棚卸差分", "記録データ（JSON）"],
     ...safeRecords.map((record): (string | number)[] => {
       const snap = record.type === "refill" ? record.snapshot : undefined;

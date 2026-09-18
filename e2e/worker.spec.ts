@@ -160,7 +160,7 @@ test('JSON downloads and confirmed restore, UTF-8 CSV preview and invalid-row pr
   await closeNotice(page);
 
   const date = jstDate();
-  const custom = `日付,作業,本数,エリア,早期対象本数,メモ\r\n${date},抜取,7,,,CSV抜取\r\n${date},補充,3,B,3,CSV補充\r\n`;
+  const custom = `日付,作業,本数,エリア,早期対象本数,メモ\r\n${date},取出,7,,,CSV取出\r\n${date},補充,3,B,3,CSV補充\r\n`;
   await chooseFile(page, '作業記録を取り込む（CSV）', { name: 'custom-utf8.csv', mimeType: 'text/csv', buffer: Buffer.from(custom, 'utf8') });
   const importer = page.getByRole('dialog', { name: 'CSVから記録を取り込む', exact: true });
   await expect(importer.getByRole('heading', { name: '取り込みプレビュー · 2件' })).toBeVisible();

@@ -9,7 +9,7 @@ export const money = (n: number) => new Intl.NumberFormat('ja-JP').format(n);
 export const shortDate = (date: string) => `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
 export const weekday = (date: string) => new Intl.DateTimeFormat('ja-JP', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
 export const dateLabel = (date: string) => `${shortDate(date)}（${weekday(date)}）`;
-export const typeLabel = (type: string) => type === 'refill' ? '補充' : type === 'pickup' ? '抜取' : '棚卸';
+export const typeLabel = (type: string) => type === 'refill' ? '補充' : type === 'pickup' ? '取出' : '棚卸';
 export function newRecordId() {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('');

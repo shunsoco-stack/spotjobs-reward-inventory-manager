@@ -2,7 +2,7 @@
   "id": "/",
   "name": "SPOTJOBS報酬・在庫管理アプリ",
   "short_name": "SPOTJOBS管理",
-  "description": "補充と抜き取りを記録し、週間報酬の目安と手元の在庫を確認する非公式アプリ。",
+  "description": "補充と取出を記録し、週間報酬の目安と手元の在庫を確認する非公式アプリ。",
   "lang": "ja",
   "start_url": "/",
   "scope": "/",

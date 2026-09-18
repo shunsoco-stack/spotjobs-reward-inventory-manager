@@ -289,7 +289,7 @@ export function calculate(records: WorkRecord[], settings: Settings, weekStart: 
         if (!Number.isSafeInteger(manual) || manual < 0 || manual > record.quantity) issue("早期補充の本数を 0 から補充本数の範囲で確認してください。");
         result.earlyCount = Number.isFinite(manual) ? Math.max(0, Math.min(record.quantity, Math.floor(manual))) : 0;
       }
-      if (consumed.untrackedCount > 0) issue(`抜取の記録が ${consumed.untrackedCount} 本不足し、理論在庫は ${stockCount} 本です。${record.earlyMode === "auto" ? "不足分の早期ボーナスは自動判定できません。" : "抜取記録を確認してください。"}`);
+      if (consumed.untrackedCount > 0) issue(`取出の記録が ${consumed.untrackedCount} 本不足し、理論在庫は ${stockCount} 本です。${record.earlyMode === "auto" ? "不足分の早期ボーナスは自動判定できません。" : "取出記録を確認してください。"}`);
       result.base = record.quantity * Math.max(0, snapshot.regionRate || 0);
       result.earlyBonus = result.earlyCount * Math.max(0, snapshot.earlyRate || 0);
     }
@@ -408,6 +408,6 @@ export function createDemoRecords(today: string): WorkRecord[] {
       createdAt: sampleTimestamp(date, 2), note: index === dayCount - 1 ? "駅前エリアで補充" : "通勤途中に補充" });
   }
   records.push({ id: "demo-aging-stock", type: "pickup", date: agingDate, quantity: agedStock, createdAt: sampleTimestamp(agingDate, 0), note: "早期補充の対象在庫" });
-  records.push({ id: "demo-fresh-stock", type: "pickup", date: today, quantity: 8, createdAt: sampleTimestamp(today, 3), note: "次の補充に向けて抜取" });
+  records.push({ id: "demo-fresh-stock", type: "pickup", date: today, quantity: 8, createdAt: sampleTimestamp(today, 3), note: "次の補充に向けて取出" });
   return records;
 }

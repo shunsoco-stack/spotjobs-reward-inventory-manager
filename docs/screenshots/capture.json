@@ -1,0 +1,156 @@
+{
+  "capturedAt": "2026-09-18T07:51:52.306Z",
+  "deploymentURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
+  "browser": "Playwright Chromium in isolated headless contexts",
+  "browserVersion": "153.0.8010.12",
+  "locale": "ja-JP",
+  "timezone": "Asia/Tokyo",
+  "colorScheme": "light",
+  "deviceScaleFactor": 1,
+  "source": "Actual deployed application UI; no DOM/style changes, data injection, clock mocking, image generation, cropping, or retouching.",
+  "runtimeErrors": [],
+  "captures": [
+    {
+      "filename": "01-dashboard.png",
+      "description": "週間報酬・週間補充・現在庫・次のボーナスを確認するホーム",
+      "capturedAt": "2026-09-18T07:51:47.688Z",
+      "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
+      "title": "SPOTJOBS報酬・在庫管理アプリ",
+      "interactionViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "imageSize": {
+        "width": 390,
+        "height": 844
+      },
+      "fullPage": false,
+      "mode": "Demo explicitly selected through the application UI",
+      "verifiedUI": {
+        "weeklyReward": 3010,
+        "weeklyRefills": 43,
+        "inventory": 14,
+        "remainingToNextTier": 7
+      },
+      "sha256": "fcac50546ae8ed0194bfdacd0d101f822d3326e7205e2b2a8cc4c535ede401a0"
+    },
+    {
+      "filename": "02-replenishment.png",
+      "description": "7本・エリアA・早期自動判定を入力した補充画面（保存前）",
+      "capturedAt": "2026-09-18T07:51:48.951Z",
+      "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
+      "title": "SPOTJOBS報酬・在庫管理アプリ",
+      "interactionViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewport": {
+        "width": 390,
+        "height": 1671
+      },
+      "imageSize": {
+        "width": 390,
+        "height": 1671
+      },
+      "fullPage": true,
+      "mode": "Demo explicitly selected through the application UI",
+      "verifiedUI": {
+        "quantity": 7,
+        "area": "A",
+        "earlyMode": "auto",
+        "saved": false
+      },
+      "sha256": "10a5cdc5c14249ed031ccc8b48d4917f306613ddbeb0cfa7e2b21d74a6412f34"
+    },
+    {
+      "filename": "03-weekly-reward.png",
+      "description": "週次の報酬内訳・日別実績・地域別補充の集計",
+      "capturedAt": "2026-09-18T07:51:50.086Z",
+      "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
+      "title": "SPOTJOBS報酬・在庫管理アプリ",
+      "interactionViewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "imageSize": {
+        "width": 1440,
+        "height": 2203
+      },
+      "fullPage": true,
+      "mode": "Demo explicitly selected through the application UI",
+      "verifiedUI": {
+        "weeklyReward": 3010,
+        "weeklyRefills": 43,
+        "dailyTable": true,
+        "regionalTable": true
+      },
+      "sha256": "dc9f244aaf86bcdb4de2ecb067d313b1b4cabcb985fae2c90e964b327d823295"
+    },
+    {
+      "filename": "04-inventory.png",
+      "description": "現在庫14本、実棚卸12本を確認記録として保存した在庫・棚卸画面",
+      "capturedAt": "2026-09-18T07:51:51.260Z",
+      "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
+      "title": "SPOTJOBS報酬・在庫管理アプリ",
+      "interactionViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewport": {
+        "width": 390,
+        "height": 1701
+      },
+      "imageSize": {
+        "width": 390,
+        "height": 1701
+      },
+      "fullPage": true,
+      "mode": "Demo explicitly selected through the application UI",
+      "verifiedUI": {
+        "inventory": 14,
+        "countedStock": 12,
+        "difference": -2,
+        "adjustmentApplied": false
+      },
+      "sha256": "213c59481c2d680529830c1e395fb4c76e18466bab9240e17af801b6227400b1"
+    },
+    {
+      "filename": "05-simulator.png",
+      "description": "エリアA・早期対象20本を追加した報酬シミュレーション",
+      "capturedAt": "2026-09-18T07:51:52.304Z",
+      "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
+      "title": "SPOTJOBS報酬・在庫管理アプリ",
+      "interactionViewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "imageSize": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "mode": "Demo explicitly selected through the application UI",
+      "verifiedUI": {
+        "additional": 20,
+        "area": "A",
+        "allEarly": true,
+        "projectedCount": 63,
+        "projectedReward": 4725,
+        "increase": 1715
+      },
+      "sha256": "4a4c7a6c2997e8778df5145f93c2e2243dab5aea68a6e086b2132cd3ed061013"
+    }
+  ]
+}

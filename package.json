@@ -1,0 +1,35 @@
+{
+  "name": "spotjobs-reward-inventory-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SPOTJOBSワーカー向け、報酬と在庫の記録アプリ",
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0 --port 3058",
+    "build": "next build && node scripts/build-offline.mjs",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "lint": "eslint . --max-warnings 0",
+    "preview": "node scripts/preview.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "lucide-react": "1.28.0",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.5",
+    "fake-indexeddb": "^6.2.5",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

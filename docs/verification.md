@@ -43,6 +43,8 @@
 | `npm run build` | PASS、静的配信ファイルとオフライン資産を生成 |
 | 本番E2E | 14件成功、1件理由付きスキップ |
 | 本番コンソール・ページ例外 | 実行した14件で0件 |
+| GitHub Actions | [初回公開コミットの全チェック成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/35321833126) |
+| Secret Scan | Gitleaks 8.30.0で公開直前の全ステージ差分および配信ファイルを検査、検出0件 |
 | 54本すべて早期補充 | 基本2,970円＋早期540円＋本数540円＝**4,050円** |
 | 段階の境界 | 0/1/19/20/49/50/99/100/149/150本・大量本数を確認 |
 | その他ドメイン | 地域A〜D・省略、日付・週跨ぎ、早期・通常、在庫、棚卸差異、目標、編集・削除 |
@@ -69,6 +71,22 @@
 5. [報酬シミュレーター](screenshots/05-simulator.png)
 
 READMEの`Screenshots`へ5枚すべて相対パスで埋め込み。[撮影元・日時・画面サイズ・SHA256](screenshots/capture.json)
+
+## GitHub公開後の確認
+
+2026年9月18日16:57 JSTに、未ログインのGitHub Web UIで[README](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/blob/main/README.md#screenshots)を実際に開き、公開状態と5枚すべての画像表示を確認しました。
+
+| README内の画像 | 読み込み完了 | 画像の実寸 |
+| --- | --- | --- |
+| `01-dashboard.png` | 成功 | 390 × 844 |
+| `02-replenishment.png` | 成功 | 390 × 1671 |
+| `03-weekly-reward.png` | 成功 | 1440 × 2203 |
+| `04-inventory.png` | 成功 | 390 × 1701 |
+| `05-simulator.png` | 成功 | 1440 × 1000 |
+
+5枚ともGitHubリポジトリ内のファイルを参照し、ブラウザで`complete = true`かつ画像幅・高さが正数であることを確認しました。一時URLや外部画像ホスティングへ依存していません。
+
+公開した49ファイルには`.env`、Vercelの接続情報、APIキー、個人の実作業履歴、提供された参考画像を含めていません。秘密情報の除外設定とSecret Scanを確認してから公開しました。Vercelの本番URLも認証なしでHTTP 200とアプリ本体を取得できています。
 
 ## 既知の制約・未検証事項
 

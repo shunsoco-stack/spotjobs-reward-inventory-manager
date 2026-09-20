@@ -116,7 +116,7 @@ READMEの`Screenshots`へ5枚すべて相対パスで埋め込み。[撮影元�
 
 ## GitHub公開後の確認
 
-2026年9月21日02:45 JSTに、GitHub Web UIで[README](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/blob/main/README.md#screenshots)を実際に再読み込みし、スクショ取り込みの説明と5枚すべての画像表示を確認しました。確認対象は公開`main`のコミット`2e89203`です。
+2026年9月21日03:06 JSTに、GitHub Web UIで[README](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/blob/main/README.md#screenshots)を実際に再読み込みし、X共有の説明と5枚すべての画像表示を確認しました。各画像は読み込み完了かつ自然寸法が390×844、390×2020、1440×2204、390×1718、1440×1000でした。確認対象は公開`main`のコミット`feea735`です。
 
 | README内の画像 | 読み込み完了 | 画像の実寸 |
 | --- | --- | --- |

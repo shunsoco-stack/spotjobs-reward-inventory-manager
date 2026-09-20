@@ -31,6 +31,58 @@ test('fresh dashboard, explicit demo separation, and responsive screens', async 
   }
 });
 
+test('today and current-week results can be previewed and handed to X safely', async ({ page, context }) => {
+  await boot(page);
+  await seedReferenceThroughUI(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await noHorizontalOverflow(page);
+  await page.getByRole('button', { name: '成績をXで共有', exact: true }).click();
+
+  const dialog = page.getByRole('dialog', { name: '成績をXで共有', exact: true });
+  const preview = dialog.getByTestId('share-preview');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: '今日', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(preview).toContainText('今日のSPOTJOBS成績');
+  await expect(preview).toContainText('補充 54本・取出 60本');
+  await expect(preview).toContainText('見込み報酬 4,050円');
+  await expect(preview).toContainText('個人制作の非公式管理ツール');
+  await expect(preview).toContainText('https://spotjobs-reward-inventory-manager.vercel.app/');
+
+  let shareLink = dialog.getByTestId('x-share-link');
+  await expect(shareLink).toHaveAttribute('target', '_blank');
+  await expect(shareLink).toHaveAttribute('rel', /noopener/);
+  const todayIntent = new URL((await shareLink.getAttribute('href'))!);
+  expect(`${todayIntent.origin}${todayIntent.pathname}`).toBe('https://x.com/intent/tweet');
+  expect(todayIntent.searchParams.get('text')).toContain('今日のSPOTJOBS成績');
+  expect(todayIntent.searchParams.get('url')).toBe('https://spotjobs-reward-inventory-manager.vercel.app/');
+
+  await dialog.getByRole('button', { name: '1週間', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: '1週間', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(preview).toContainText('1週間のSPOTJOBS成績');
+  await expect(preview).toContainText('次の本数ボーナスまであと46本');
+  shareLink = dialog.getByTestId('x-share-link');
+  const weekIntent = new URL((await shareLink.getAttribute('href'))!);
+  expect(weekIntent.searchParams.get('text')).toContain('1週間のSPOTJOBS成績');
+  expect(weekIntent.searchParams.get('text')).toContain('次の本数ボーナスまであと46本');
+  await noHorizontalOverflow(page);
+
+  await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('button', { name: '前の週', exact: true }).click();
+  await page.getByRole('button', { name: '成績をXで共有', exact: true }).click();
+  await expect(preview).toContainText('今日のSPOTJOBS成績');
+  await expect(preview).toContainText('補充 54本・取出 60本');
+  await dialog.getByRole('button', { name: '1週間', exact: true }).click();
+  await expect(preview).toContainText('補充 0本・取出 0本');
+  await expect(preview).not.toContainText('補充 54本・取出 60本');
+
+  await context.setOffline(true);
+  await expect(dialog.getByRole('button', { name: 'Xへの共有には通信が必要です', exact: true })).toBeDisabled();
+  await expect(preview).toContainText('1週間のSPOTJOBS成績');
+  await context.setOffline(false);
+  await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+});
+
 test('reference rewards, simulator, editing, delete undo, stocktake, snapshots and themes', async ({ page }) => {
   await boot(page);
   await seedReferenceThroughUI(page);

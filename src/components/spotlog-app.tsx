@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Battery, Check, ChevronRight, Download, ExternalLink, History, House, ImagePlus, RotateCcw, ScanLine, Settings2, ShieldCheck, Smartphone, TrendingUp, Trash2, WifiOff, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Battery, Check, ChevronRight, Download, ExternalLink, History, House, ImagePlus, RotateCcw, ScanLine, Settings2, Share2, ShieldCheck, Smartphone, TrendingUp, Trash2, WifiOff, X } from 'lucide-react';
 import { addDays, adjacentWeekStart, calculate, createDemoRecords, createRewardSnapshot, defaultSettings, todayLocal, type WorkRecord } from '@/lib/core';
 import { exportCsv, inspectBackup, loadData, saveData, serializeBackup, MAX_BACKUP_BYTES, type AppData } from '@/lib/storage';
 import SettingsPanel from './settings-panel';
 import RecordForm from './record-form';
 import CsvImportPanel from './csv-import-panel';
 import ScreenshotImportPanel from './screenshot-import-panel';
+import SharePanel from './share-panel';
 import { parseCsv } from '@/lib/csv';
 import { dateLabel, Sheet, typeLabel } from './ui';
 import { HistoryView, HomeView, InventoryView, SimulatorView, WeeklyView, type View } from './work-views';
@@ -38,6 +39,7 @@ export default function SpotlogApp() {
   const [backup, setBackup] = useState<ReturnType<typeof inspectBackup> | null>(null);
   const [csvText, setCsvText] = useState<string | null>(null);
   const [screenshotImport, setScreenshotImport] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [entryVersion, setEntryVersion] = useState(0);
   const [online, setOnline] = useState(true);
   const [offlineReady, setOfflineReady] = useState(false);
@@ -53,6 +55,7 @@ export default function SpotlogApp() {
   const currentWeek = useMemo(() => createRewardSnapshot(today, data.settings.defaultArea, data.settings, data.records).weekStart, [today, data]);
   const week = selectedWeek ?? currentWeek;
   const summary = useMemo(() => calculate(data.records, data.settings, week, today), [data, week, today]);
+  const currentWeekSummary = useMemo(() => !shareOpen || week === currentWeek ? summary : calculate(data.records, data.settings, currentWeek, today), [shareOpen, week, currentWeek, summary, data, today]);
 
   useEffect(() => {
     let active = true;
@@ -133,7 +136,7 @@ export default function SpotlogApp() {
         {demo && <div className="demo-banner"><div><strong>デモデータでお試し中</strong><span>自分の記録には影響しません</span></div><button onClick={() => switchDemo(false)}>終了<X size={17}/></button></div>}
         {storageError && <div className="warning" role="alert"><div><strong>保存データを開けませんでした</strong><p>{storageError}</p><button className="text-button" onClick={() => changeView('settings')}>設定からバックアップを復元</button></div></div>}
         <div className="page-heading"><div>{['inventory', 'weekly', 'simulator'].includes(view) && <button className="text-button back-link" onClick={() => changeView('home')}><ArrowLeft size={17}/>ホーム</button>}<h1>{titles[view]}</h1></div><span>{dateLabel(today)}</span></div>
-        {view === 'home' && <><HomeView summary={summary} settings={data.settings} today={today} week={week} currentWeek={currentWeek} onWeek={changeWeek} onView={changeView} onDemo={() => switchDemo(true)} empty={!data.records.length}/><div className="home-tools"><button onClick={() => changeView('inventory')}><ScanLine size={21}/>在庫・棚卸<ChevronRight size={18}/></button><button onClick={() => changeView('simulator')}><TrendingUp size={21}/>報酬シミュレーター<ChevronRight size={18}/></button><button className="screenshot-home-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={21}/>スクショから取り込む<ChevronRight size={18}/></button></div></>}
+        {view === 'home' && <><HomeView summary={summary} settings={data.settings} today={today} week={week} currentWeek={currentWeek} onWeek={changeWeek} onView={changeView} onDemo={() => switchDemo(true)} empty={!data.records.length}/><div className="home-tools"><button onClick={() => changeView('inventory')}><ScanLine size={21}/>在庫・棚卸<ChevronRight size={18}/></button><button onClick={() => changeView('simulator')}><TrendingUp size={21}/>報酬シミュレーター<ChevronRight size={18}/></button><button className="screenshot-home-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={21}/>スクショから取り込む<ChevronRight size={18}/></button><button className="share-home-action" onClick={() => setShareOpen(true)}><Share2 size={21}/>成績をXで共有<ChevronRight size={18}/></button></div></>}
         {(view === 'refill' || view === 'pickup') && <div className="entry-layout"><section className="panel entry-panel"><button className="button button-secondary screenshot-entry-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={19}/>スクショから取り込む</button><RecordForm key={`${view}-${demo}-${entryVersion}`} data={data} today={today} type={view} onSave={saveRecord}/></section><aside className="entry-side"><div className="panel"><Battery size={26}/><h2>いまの手元在庫</h2><strong className="side-number">{summary.inventory.total}<small>本</small></strong><p>早期対象の見込み {summary.inventory.eligibleCount}本</p><button className="text-button" onClick={() => changeView('inventory')}>在庫の内訳を見る<ChevronRight size={17}/></button></div><p className="muted">{view === 'refill' ? '取出を先に記録すると、早期補充を自動判定できます。' : '取出時には報酬は発生しません。補充を記録すると報酬が加算されます。'}</p></aside></div>}
         {view === 'weekly' && <WeeklyView summary={summary} settings={data.settings} today={today} week={week} currentWeek={currentWeek} onWeek={changeWeek}/>}
         {view === 'inventory' && <InventoryView summary={summary} settings={data.settings} today={today} onStocktake={() => setStocktaking(true)} onEdit={setEditing}/>}
@@ -148,6 +151,7 @@ export default function SpotlogApp() {
     {backup && <Sheet title="バックアップを復元" onClose={() => setBackup(null)}><p>以下のバックアップを確認してください。</p><dl className="breakdown-list"><div><dt>作成日時</dt><dd>{backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('ja-JP') : '旧形式のため不明'}</dd></div><div><dt>記録数</dt><dd>{backup.recordCount}件</dd></div><div><dt>対象期間</dt><dd>{backup.startDate ? `${backup.startDate} 〜 ${backup.endDate}` : '記録なし'}</dd></div></dl><div className="warning"><div><strong>現在の{demo ? 'デモ' : '端末'}データを上書きします</strong><p>{data.records.length}件の記録と設定が置き換わります。必要な場合は先にバックアップしてください。</p></div></div><button className="button button-secondary" onClick={() => exportFile()}><Download size={18}/>現在のデータをバックアップ</button><div className="dialog-actions"><button className="button button-secondary" onClick={() => setBackup(null)}>キャンセル</button><button className="button button-primary" disabled={saving} onClick={async () => { const ok = await commit(backup.data, 'バックアップを復元しました', true, true); if (ok) { setBackup(null); setSelectedWeek(null); } }}>確認して上書き復元</button></div></Sheet>}
     {csvText !== null && <Sheet wide title="CSVから記録を取り込む" onClose={() => setCsvText(null)}><CsvImportPanel text={csvText} data={data} onImport={async records => { const ok = await commit({ ...data, records: [...data.records, ...records] }, `${records.length}件を取り込みました`); if (ok) setCsvText(null); return ok; }}/></Sheet>}
     {screenshotImport && <Sheet wide title="スクショから取り込む" onClose={() => { if (!saving) setScreenshotImport(false); }}><ScreenshotImportPanel data={data} today={today} onImport={async records => { const ok = await commit({ ...data, records: [...data.records, ...records] }, `${records.length}件をスクショから登録しました`); if (ok) { setScreenshotImport(false); changeView('history'); } return ok; }}/></Sheet>}
+    {shareOpen && <Sheet title="成績をXで共有" onClose={() => setShareOpen(false)}><SharePanel todaySummary={currentWeekSummary} weekSummary={summary} today={today} demo={demo} online={online}/></Sheet>}
     <input ref={fileRef} hidden type="file" accept=".json,application/json" aria-label="JSONバックアップファイル" onChange={e => { void readFile(e.target.files?.[0]); }}/><input ref={csvRef} hidden type="file" accept=".csv,text/csv" aria-label="CSVファイル" onChange={e => { void readFile(e.target.files?.[0], true); }}/>
     {notice && <div className={`toast ${notice.error ? 'error' : ''}`} role={notice.error ? 'alert' : 'status'}><span>{!notice.error && <Check size={19}/>}<span>{notice.text}</span></span>{undo && !notice.error && <button disabled={saving} onClick={async () => { await commit(undo, '操作を元に戻しました', false); }}><RotateCcw size={16}/>元に戻す</button>}<button className="toast-close" aria-label="通知を閉じる" onClick={() => { setNotice(null); setUndo(null); }}><X size={18}/></button></div>}
   </div>;

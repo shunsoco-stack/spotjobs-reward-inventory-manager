@@ -36,7 +36,12 @@ test('today and current-week results can be previewed and handed to X safely', a
   await seedReferenceThroughUI(page);
   await page.setViewportSize({ width: 320, height: 844 });
   await noHorizontalOverflow(page);
-  await page.getByRole('button', { name: '成績をXで共有', exact: true }).click();
+  const shareTrigger = page.locator('.reward-hero').getByRole('button', { name: '成績をXで共有', exact: true });
+  await expect(shareTrigger).toBeVisible();
+  await expect(shareTrigger).toBeInViewport();
+  await expect(shareTrigger).toHaveAttribute('aria-haspopup', 'dialog');
+  expect((await shareTrigger.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  await shareTrigger.click();
 
   const dialog = page.getByRole('dialog', { name: '成績をXで共有', exact: true });
   const preview = dialog.getByTestId('share-preview');
@@ -71,7 +76,7 @@ test('today and current-week results can be previewed and handed to X safely', a
 
   await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: '前の週', exact: true }).click();
-  await page.getByRole('button', { name: '成績をXで共有', exact: true }).click();
+  await shareTrigger.click();
   await expect(preview).toContainText('今日のSPOTJOBS成績');
   await expect(preview).toContainText('補充 54本・取出 60本');
   await dialog.getByRole('button', { name: '1週間', exact: true }).click();

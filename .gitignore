@@ -1,6 +1,7 @@
 node_modules/
 .next/
 out/
+public/ocr/
 *.tsbuildinfo
 *.log
 test-results/

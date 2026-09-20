@@ -41,3 +41,6 @@ jobs:
           test -s out/index.html
           test -s out/manifest.webmanifest
           test -s out/sw.js
+          test -s out/ocr/worker.min.js
+          test -s out/ocr/lang/jpn.traineddata.gz
+          test -s out/ocr/lang/eng.traineddata.gz

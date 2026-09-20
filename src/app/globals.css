@@ -440,6 +440,44 @@ fieldset.settings-section > div.settings-section > .button-secondary { justify-s
 .dialog-actions .button { font-size: .75rem; padding: .75rem .5rem; }
 .delete-section { border-top: 1px solid var(--line); padding-top: 1rem; display: grid; gap: 1rem; font-size: .8125rem; }
 .csv-import { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.screenshot-home-action { grid-column: 1 / -1; }
+.screenshot-entry-action { width: 100%; margin-bottom: 1.25rem; }
+.screenshot-import { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.screenshot-intro { display: flex; gap: .75rem; align-items: center; }
+.screenshot-intro p, .screenshot-review-heading p { color: var(--muted); font-size: .75rem; margin-top: .3rem; }
+.screenshot-privacy { display: flex; gap: .5rem; color: var(--green); font-size: .75rem; }
+.screenshot-pick { min-height: 56px; width: 100%; border-style: dashed; }
+.ocr-progress { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; background: var(--surface-subtle); border-radius: 14px; }
+.ocr-progress progress { width: 100%; height: 12px; accent-color: var(--green); }
+.screenshot-sources { border: 1px solid var(--line); border-radius: 14px; padding: .5rem .875rem; }
+.screenshot-sources summary, .candidate-raw summary { cursor: pointer; min-height: 44px; align-content: center; font-weight: 650; font-size: .75rem; }
+.screenshot-sources > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .75rem; }
+.screenshot-sources figure { margin: 0; min-width: 0; }
+.screenshot-sources img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; }
+.screenshot-sources figcaption { font-size: .6875rem; color: var(--muted); overflow-wrap: anywhere; padding: .35rem 0; }
+.screenshot-review-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.screenshot-review-heading > button { flex: none; }
+.screenshot-candidates { display: grid; gap: 1rem; }
+.screenshot-candidate { border: 1px solid var(--line); border-top: 3px solid var(--muted); border-radius: 16px; padding: .875rem; min-width: 0; }
+.screenshot-candidate.refill { border-top-color: var(--refill-fill); }
+.screenshot-candidate.pickup { border-top-color: var(--pickup-fill); }
+.screenshot-candidate.duplicate { background: var(--surface-subtle); }
+.candidate-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .75rem; }
+.candidate-heading .check-field { margin: 0; min-height: 44px; }
+.candidate-fields { display: grid; gap: .875rem; }
+.candidate-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .625rem; }
+.candidate-grid input { width: 100%; min-height: 48px; }
+.candidate-fields input, .candidate-fields select { font-size: 1rem; min-height: 48px; }
+.candidate-raw { margin-top: .75rem; border-top: 1px solid var(--line); }
+.candidate-raw pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .75rem; color: var(--muted); }
+.candidate-raw small { display: block; overflow-wrap: anywhere; color: var(--muted); }
+.screenshot-save-summary { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; background: var(--surface-subtle); border: 1px solid var(--line); border-radius: 16px; }
+.screenshot-save-summary > span { color: var(--muted); font-size: .8125rem; }
+.screenshot-save-summary .check-field { align-items: flex-start; font-size: .8125rem; min-height: 44px; }
+.screenshot-import .notice, .screenshot-import .warning, .screenshot-candidate .form-error, .screenshot-candidate .warning-text { overflow-wrap: anywhere; }
+.screenshot-import .notice { display: block; }
+.screenshot-import .notice > strong { display: block; margin-bottom: .375rem; }
+@media (max-width: 480px) { .candidate-datetime { grid-template-columns: minmax(0, 1fr); } }
 .csv-import > .field-hint { margin-top: -.6rem; }
 .import-preview-list { max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
 .import-preview-list:empty { display: none; }

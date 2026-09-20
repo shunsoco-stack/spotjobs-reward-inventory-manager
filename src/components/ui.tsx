@@ -23,7 +23,7 @@ export function Sheet({ title, children, onClose, wide = false }: { title: strin
     document.body.style.overflow = 'hidden'; dialog?.showModal();
     return () => { dialog?.close(); document.body.style.overflow = overflow; };
   }, []);
-  return <dialog ref={ref} className={`sheet ${wide ? 'wide' : ''}`} aria-labelledby={id} onCancel={onClose}>
+  return <dialog ref={ref} className={`sheet ${wide ? 'wide' : ''}`} aria-labelledby={id} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className="sheet-handle"/><header className="sheet-header"><h2 id={id}>{title}</h2><button className="icon-button" onClick={onClose} aria-label="閉じる"><X size={22}/></button></header>
     <div className="sheet-body">{children}</div>
   </dialog>;

@@ -1,0 +1,33 @@
+Japanese and English OCR language models
+Files: jpn.traineddata.gz, eng.traineddata.gz
+Model set: 4.0.0_best_int
+Distributed via @tesseract.js-data/jpn@1.0.0 and @tesseract.js-data/eng@1.0.0.
+
+Integerized Tessdata Best models distributed by naptha/tessdata.
+Upstream models: tesseract-ocr/tessdata_best.
+Model license: Apache License 2.0; see tessdata-APACHE-2.0.txt.
+The English model is redistributed without modification.
+
+Japanese model modification by this application (compatibility: cjkcompat1):
+The build removes ten legacy-engine configuration keys that are unavailable in
+the LSTM-only Tesseract.js core, and the jpn_vert sublanguage request because
+this application reads horizontal screenshots and does not bundle that model.
+Only the config component and component offsets are rewritten. Every other
+component, including learned weights, is verified byte-for-byte unchanged.
+No warning is filtered or silenced at runtime.
+
+Original jpn.traineddata.gz SHA-256:
+2b63ebfbf1484de4a08ce53b29ef98a1c17658a93cbd38acb665d7d316d0be88
+The reproducible build transformation is in scripts/prepare-ocr.mjs.
+See jpn-model-build.json for the output checksum and removed configuration keys.
+
+The npm package metadata declares MIT; the model repositories provide
+Apache-2.0 licensing for the trained data. Original package metadata is
+included in jpn-package.json and eng-package.json.
+
+Sources:
+https://github.com/naptha/tessdata/tree/gh-pages
+https://raw.githubusercontent.com/naptha/tessdata/gh-pages/LICENSE
+https://github.com/tesseract-ocr/tessdata_best
+
+This notice describes model provenance; it does not modify upstream licenses.

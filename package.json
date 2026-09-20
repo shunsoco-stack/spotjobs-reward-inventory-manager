@@ -4,8 +4,9 @@
   "private": true,
   "description": "SPOTJOBSワーカー向け、報酬と在庫の記録アプリ",
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0 --port 3058",
-    "build": "next build && node scripts/build-offline.mjs",
+    "prepare:ocr": "node scripts/prepare-ocr.mjs",
+    "dev": "node scripts/prepare-ocr.mjs && next dev --hostname 0.0.0.0 --port 3058",
+    "build": "node scripts/prepare-ocr.mjs && next build && node scripts/build-offline.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
@@ -16,10 +17,14 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/jpn": "1.0.0",
     "lucide-react": "1.28.0",
     "next": "16.3.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

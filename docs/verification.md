@@ -74,7 +74,7 @@ lint・型検査・99件の単体テスト・buildが成功し、ソースコミ
 | `npm run build` | PASS、静的配信ファイルとオフライン資産を生成 |
 | 本番E2E | 14件成功、1件理由付きスキップ |
 | 本番コンソール・ページ例外 | 実行した14件で0件 |
-| GitHub Actions | [初回公開コミットの全チェック成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/35321833126) |
+| GitHub Actions | [機能・スクリーンショット公開コミットの全チェック成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/35526750493) |
 | Secret Scan | Gitleaks 8.30.0で公開直前の全ステージ差分および配信ファイルを検査、検出0件 |
 | 54本すべて早期補充 | 基本2,970円＋早期540円＋本数540円＝**4,050円** |
 | 段階の境界 | 0/1/19/20/49/50/99/100/149/150本・大量本数を確認 |
@@ -106,7 +106,7 @@ READMEの`Screenshots`へ5枚すべて相対パスで埋め込み。[撮影元�
 
 ## GitHub公開後の確認
 
-2026年9月18日16:57 JSTに、未ログインのGitHub Web UIで[README](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/blob/main/README.md#screenshots)を実際に開き、公開状態と5枚すべての画像表示を確認しました。
+2026年9月21日02:45 JSTに、GitHub Web UIで[README](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/blob/main/README.md#screenshots)を実際に再読み込みし、スクショ取り込みの説明と5枚すべての画像表示を確認しました。確認対象は公開`main`のコミット`2e89203`です。
 
 | README内の画像 | 読み込み完了 | 画像の実寸 |
 | --- | --- | --- |

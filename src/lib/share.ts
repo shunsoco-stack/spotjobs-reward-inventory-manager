@@ -43,8 +43,7 @@ export function buildPerformanceShareText({ scope, summary, today, demo = false 
       countLine(day.refillCount, day.pickupCount),
       `早期補充 ${day.earlyCount}本`,
       `見込み報酬 ${day.total.toLocaleString("ja-JP")}円`,
-      "個人制作の非公式管理ツール",
-      "#SPOTJOBS記録",
+      "#SPOTJOBS記録 #SPOTJOBS",
     ].join("\n");
   }
 
@@ -58,8 +57,7 @@ export function buildPerformanceShareText({ scope, summary, today, demo = false 
     `早期補充 ${summary.earlyCount}本`,
     `見込み報酬 ${summary.total.toLocaleString("ja-JP")}円`,
     tierLine,
-    "個人制作の非公式管理ツール",
-    "#SPOTJOBS記録",
+    "#SPOTJOBS記録 #SPOTJOBS",
   ].join("\n");
 }
 

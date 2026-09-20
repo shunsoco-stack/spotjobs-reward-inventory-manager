@@ -36,8 +36,7 @@ describe("performance sharing", () => {
       "補充 54本・取出 60本",
       "早期補充 54本",
       "見込み報酬 4,050円",
-      "個人制作の非公式管理ツール",
-      "#SPOTJOBS記録",
+      "#SPOTJOBS記録 #SPOTJOBS",
     ].join("\n"));
     expect(text).not.toContain("店舗名");
     expect(text).not.toContain("メモ");
@@ -50,8 +49,7 @@ describe("performance sharing", () => {
       "早期補充 54本",
       "見込み報酬 4,050円",
       "次の本数ボーナスまであと46本（+15円/本）",
-      "個人制作の非公式管理ツール",
-      "#SPOTJOBS記録",
+      "#SPOTJOBS記録 #SPOTJOBS",
     ].join("\n"));
   });
 

@@ -45,7 +45,8 @@ test('today and current-week results can be previewed and handed to X safely', a
   await expect(preview).toContainText('今日のSPOTJOBS成績');
   await expect(preview).toContainText('補充 54本・取出 60本');
   await expect(preview).toContainText('見込み報酬 4,050円');
-  await expect(preview).toContainText('個人制作の非公式管理ツール');
+  await expect(preview).not.toContainText('個人制作の非公式管理ツール');
+  await expect(preview).toContainText('#SPOTJOBS記録 #SPOTJOBS');
   await expect(preview).toContainText('https://spotjobs-reward-inventory-manager.vercel.app/');
 
   let shareLink = dialog.getByTestId('x-share-link');
@@ -54,6 +55,8 @@ test('today and current-week results can be previewed and handed to X safely', a
   const todayIntent = new URL((await shareLink.getAttribute('href'))!);
   expect(`${todayIntent.origin}${todayIntent.pathname}`).toBe('https://x.com/intent/tweet');
   expect(todayIntent.searchParams.get('text')).toContain('今日のSPOTJOBS成績');
+  expect(todayIntent.searchParams.get('text')).toContain('#SPOTJOBS記録 #SPOTJOBS');
+  expect(todayIntent.searchParams.get('text')).not.toContain('個人制作の非公式管理ツール');
   expect(todayIntent.searchParams.get('url')).toBe('https://spotjobs-reward-inventory-manager.vercel.app/');
 
   await dialog.getByRole('button', { name: '1週間', exact: true }).click();

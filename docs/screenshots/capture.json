@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-18T10:35:42.112Z",
+  "capturedAt": "2026-09-20T17:41:08.888Z",
   "deploymentURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
   "browser": "Playwright Chromium in isolated headless contexts",
   "browserVersion": "153.0.8010.12",
@@ -13,7 +13,7 @@
     {
       "filename": "01-dashboard.png",
       "description": "週間報酬・週間補充・現在庫・次のボーナスを確認するホーム",
-      "capturedAt": "2026-09-18T10:35:37.748Z",
+      "capturedAt": "2026-09-20T17:41:04.018Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -31,17 +31,17 @@
       "fullPage": false,
       "mode": "Demo explicitly selected through the application UI",
       "verifiedUI": {
-        "weeklyReward": 3010,
-        "weeklyRefills": 43,
+        "weeklyReward": 195,
+        "weeklyRefills": 3,
         "inventory": 14,
-        "remainingToNextTier": 7
+        "remainingToNextTier": 17
       },
-      "sha256": "c81bf1eb5836d4498418dfa29a3a6562090195ed33269c940b20a60ddac208d2"
+      "sha256": "4c983953d1fb2e3df39502bec302819c8caf9c2bd1b48077b7f176d0848dafb9"
     },
     {
       "filename": "02-replenishment.png",
       "description": "7本・エリアA・早期自動判定を入力した補充画面（保存前）",
-      "capturedAt": "2026-09-18T10:35:38.845Z",
+      "capturedAt": "2026-09-20T17:41:05.192Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -50,11 +50,11 @@
       },
       "viewport": {
         "width": 390,
-        "height": 1951
+        "height": 2020
       },
       "imageSize": {
         "width": 390,
-        "height": 1951
+        "height": 2020
       },
       "fullPage": true,
       "mode": "Demo explicitly selected through the application UI",
@@ -64,12 +64,12 @@
         "earlyMode": "auto",
         "saved": false
       },
-      "sha256": "475c14727f7af482a28dfd810be7d2f39ae2da0322524de183072624caa89104"
+      "sha256": "fc0a4175df01a01cbe2a4799ec0aa235648e712679a1d35c8ea91791bb3934a6"
     },
     {
       "filename": "03-weekly-reward.png",
       "description": "週次の報酬内訳・日別実績・地域別補充の集計",
-      "capturedAt": "2026-09-18T10:35:39.941Z",
+      "capturedAt": "2026-09-20T17:41:06.454Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -87,17 +87,17 @@
       "fullPage": true,
       "mode": "Demo explicitly selected through the application UI",
       "verifiedUI": {
-        "weeklyReward": 3010,
-        "weeklyRefills": 43,
+        "weeklyReward": 195,
+        "weeklyRefills": 3,
         "dailyTable": true,
         "regionalTable": true
       },
-      "sha256": "bf6a28b4d80410413abc3e67649089836a707922f10f7a46fc79a98612614592"
+      "sha256": "8a17f37cb1b54655da795b48e60ebbd58ac0059727ffe81e87c39d2ffeab0263"
     },
     {
       "filename": "04-inventory.png",
-      "description": "現在庫14本、実棚卸12本を確認記録として保存した在庫・棚卸画面",
-      "capturedAt": "2026-09-18T10:35:41.075Z",
+      "description": "現在庫と2本少ない実棚卸を確認記録として保存した在庫・棚卸画面",
+      "capturedAt": "2026-09-20T17:41:07.733Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -120,12 +120,12 @@
         "difference": -2,
         "adjustmentApplied": false
       },
-      "sha256": "ab41a996a4ade1b1293958a7373317ffda0c0169895d6519488f5099f39ee252"
+      "sha256": "f3ac5e8c1448cdf2b07837af8eef9716c63d468be783da56f0105e359b240fc5"
     },
     {
       "filename": "05-simulator.png",
       "description": "エリアA・早期対象20本を追加した報酬シミュレーション",
-      "capturedAt": "2026-09-18T10:35:42.110Z",
+      "capturedAt": "2026-09-20T17:41:08.886Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -146,11 +146,11 @@
         "additional": 20,
         "area": "A",
         "allEarly": true,
-        "projectedCount": 63,
-        "projectedReward": 4725,
-        "increase": 1715
+        "projectedCount": 23,
+        "projectedReward": 1610,
+        "increase": 1415
       },
-      "sha256": "804c3822f44e3e55de7f42d41aeb80091387732f29a80b68b3da41b46ec895d5"
+      "sha256": "4fde73bd9082dc894270c25521d9373e3fad92ba513a3f4231d19e6d431fc22c"
     }
   ]
 }

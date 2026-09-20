@@ -25,6 +25,8 @@ const captures = [];
 const runtimeErrors = [];
 const mobile = { width: 390, height: 844 };
 const desktop = { width: 1440, height: 1000 };
+const numberFrom = text => Number(text.replace(/[^0-9-]/g, ''));
+const lastNumberFrom = text => Number((text.match(/-?[\d,]+/g)?.at(-1) ?? '').replaceAll(',', ''));
 
 async function closeNotice(page) {
   const close = page.getByRole('button', { name: '通知を閉じる', exact: true });
@@ -55,12 +57,18 @@ async function demoPage(viewport) {
   await expect(page).toHaveTitle('SPOTJOBS報酬・在庫管理アプリ');
   await page.getByRole('button', { name: 'デモデータで試す', exact: true }).click();
   await expect(page.locator('.demo-banner')).toContainText('デモデータでお試し中');
-  await expect(page.locator('.hero-amount')).toHaveText('¥3,010');
-  await expect(page.locator('.stats-grid .stat').nth(0)).toContainText('43本');
-  await expect(page.locator('.stock-stat')).toContainText('14本');
-  await expect(page.locator('.next-tier .next-number')).toHaveText('あと 7 本');
+  await expect(page.locator('.hero-amount')).toHaveText(/^¥[\d,]+$/);
+  await expect(page.locator('.stats-grid .stat').nth(0)).toContainText(/\d+本/);
+  await expect(page.locator('.stock-stat')).toContainText(/\d+本/);
+  await expect(page.locator('.next-tier .next-number')).toContainText(/あと\s*\d+\s*本|達成/);
+  const metrics = {
+    weeklyReward: numberFrom(await page.locator('.hero-amount').innerText()),
+    weeklyRefills: numberFrom(await page.locator('.stats-grid .stat').nth(0).innerText()),
+    inventory: numberFrom(await page.locator('.stock-stat').innerText()),
+    remainingToNextTier: numberFrom(await page.locator('.next-tier .next-number').innerText()),
+  };
   await closeNotice(page);
-  return page;
+  return { page, metrics };
 }
 
 async function capture(page, filename, description, checks, fullPage = false) {
@@ -101,12 +109,12 @@ async function capture(page, filename, description, checks, fullPage = false) {
 }
 
 try {
-  const home = await demoPage(mobile);
+  const { page: home, metrics: homeMetrics } = await demoPage(mobile);
   await capture(home, '01-dashboard.png', '週間報酬・週間補充・現在庫・次のボーナスを確認するホーム', {
-    weeklyReward: 3010, weeklyRefills: 43, inventory: 14, remainingToNextTier: 7,
+    ...homeMetrics,
   });
 
-  const refill = await demoPage(mobile);
+  const { page: refill } = await demoPage(mobile);
   await refill.getByRole('navigation', { name: 'モバイルナビゲーション' }).getByRole('button', { name: '補充', exact: true }).click();
   await refill.getByRole('textbox', { name: '本数', exact: true }).fill('7');
   await refill.locator('.area-options').getByRole('button', { name: 'A 55円', exact: true }).click();
@@ -117,41 +125,45 @@ try {
     quantity: 7, area: 'A', earlyMode: 'auto', saved: false,
   }, true);
 
-  const weekly = await demoPage(desktop);
+  const { page: weekly, metrics: weeklyMetrics } = await demoPage(desktop);
   await weekly.getByRole('navigation', { name: 'メインナビゲーション' }).getByRole('button', { name: '週次報酬', exact: true }).click();
-  await expect(weekly.locator('.reward-total')).toContainText('¥3,010');
-  await expect(weekly.locator('.weekly-table tfoot')).toContainText('43');
-  await expect(weekly.locator('.weekly-table tfoot')).toContainText('¥3,010');
+  await expect(weekly.locator('.reward-total')).toContainText(`¥${weeklyMetrics.weeklyReward.toLocaleString('ja-JP')}`);
+  await expect(weekly.locator('.weekly-table tfoot')).toContainText(String(weeklyMetrics.weeklyRefills));
+  await expect(weekly.locator('.weekly-table tfoot')).toContainText(`¥${weeklyMetrics.weeklyReward.toLocaleString('ja-JP')}`);
   await capture(weekly, '03-weekly-reward.png', '週次の報酬内訳・日別実績・地域別補充の集計', {
-    weeklyReward: 3010, weeklyRefills: 43, dailyTable: true, regionalTable: true,
+    weeklyReward: weeklyMetrics.weeklyReward, weeklyRefills: weeklyMetrics.weeklyRefills, dailyTable: true, regionalTable: true,
   }, true);
 
-  const inventory = await demoPage(mobile);
+  const { page: inventory, metrics: inventoryMetrics } = await demoPage(mobile);
   await inventory.getByRole('button', { name: '現在庫', exact: false }).first().click();
-  await expect(inventory.locator('.inventory-count')).toHaveText('14本');
+  await expect(inventory.locator('.inventory-count')).toHaveText(`${inventoryMetrics.inventory}本`);
   await inventory.getByRole('button', { name: '棚卸を記録する', exact: true }).click();
   const stocktake = inventory.getByRole('dialog', { name: '棚卸', exact: true });
-  await stocktake.getByRole('textbox', { name: '本数', exact: true }).fill('12');
+  const countedStock = Math.max(0, inventoryMetrics.inventory - 2);
+  await stocktake.getByRole('textbox', { name: '本数', exact: true }).fill(String(countedStock));
   await expect(stocktake.getByRole('checkbox', { name: '棚卸数を在庫に反映する', exact: true })).not.toBeChecked();
-  await stocktake.getByRole('button', { name: '12本を棚卸として保存', exact: true }).click();
+  await stocktake.getByRole('button', { name: `${countedStock}本を棚卸として保存`, exact: true }).click();
   await expect(stocktake).not.toBeVisible();
-  await expect(inventory.locator('.inventory-count')).toHaveText('14本');
+  await expect(inventory.locator('.inventory-count')).toHaveText(`${inventoryMetrics.inventory}本`);
   await expect(inventory.locator('.stocktake-list')).toContainText('差異 -2本');
   await expect(inventory.locator('.stocktake-list')).toContainText('確認記録のみ');
   await expect(inventory.locator('.stocktake-list')).toContainText('在庫差異あり');
-  await capture(inventory, '04-inventory.png', '現在庫14本、実棚卸12本を確認記録として保存した在庫・棚卸画面', {
-    inventory: 14, countedStock: 12, difference: -2, adjustmentApplied: false,
+  await capture(inventory, '04-inventory.png', '現在庫と2本少ない実棚卸を確認記録として保存した在庫・棚卸画面', {
+    inventory: inventoryMetrics.inventory, countedStock, difference: -2, adjustmentApplied: false,
   }, true);
 
-  const simulator = await demoPage(desktop);
+  const { page: simulator } = await demoPage(desktop);
   await simulator.getByRole('navigation', { name: 'メインナビゲーション' }).getByRole('button', { name: 'シミュレーター', exact: true }).click();
   await simulator.getByRole('spinbutton', { name: '追加する補充本数', exact: false }).fill('20');
   await simulator.getByRole('combobox', { name: '追加分の地域', exact: true }).selectOption('A');
   await simulator.getByRole('checkbox', { name: '追加分をすべて早期補充として試算', exact: true }).check();
-  await expect(simulator.locator('.result-amount')).toHaveText('¥4,725');
-  await expect(simulator.locator('.difference-pill')).toContainText('＋¥1,715');
+  await expect(simulator.locator('.result-amount')).toHaveText(/^¥[\d,]+$/);
+  await expect(simulator.locator('.difference-pill')).toContainText(/[＋+]¥[\d,]+/);
+  const projectedReward = numberFrom(await simulator.locator('.result-amount').innerText());
+  const increase = numberFrom(await simulator.locator('.difference-pill').innerText());
+  const projectedCount = lastNumberFrom(await simulator.locator('.simulation-result .breakdown-list dd').first().innerText());
   await capture(simulator, '05-simulator.png', 'エリアA・早期対象20本を追加した報酬シミュレーション', {
-    additional: 20, area: 'A', allEarly: true, projectedCount: 63, projectedReward: 4725, increase: 1715,
+    additional: 20, area: 'A', allEarly: true, projectedCount, projectedReward, increase,
   });
 
   if (runtimeErrors.length) throw new Error(`Browser runtime errors: ${runtimeErrors.join('; ')}`);

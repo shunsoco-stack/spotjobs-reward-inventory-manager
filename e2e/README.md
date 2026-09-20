@@ -40,11 +40,11 @@ WebKit は実機 iPhone の Safari ではありません。Playwright の [Servi
 
 WebKitではオンライン状態の取り込みフローを以前の確認で通しています。通信断中の再起動は上記のWindows WebKit制約があるため、オフラインOCRの最終確認はChromiumで行いました。これは実機iPhone Safariが非対応という判定ではありません。
 
-同じ最終状態で`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`が成功しています。単体テストは166件／5ファイルです。既存の公開環境E2E結果14件成功・1件スキップは下記の履歴として維持しています。
+同じ最終状態で`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`が成功しています。単体テストは166件／5ファイルです。本番環境E2Eは14件成功・1件スキップでした。
 
 ## 公開環境での実行結果
 
-2026年9月18日 16:50 JST に、[公開アプリ](https://spotjobs-reward-inventory-manager.vercel.app/)を未認証の独立したブラウザー保存領域から検証しました。
+2026年9月21日 02:40 JST に、[公開アプリ](https://spotjobs-reward-inventory-manager.vercel.app/)を未認証の独立したブラウザー保存領域から検証しました。
 
 ```powershell
 $env:E2E_BASE_URL = 'https://spotjobs-reward-inventory-manager.vercel.app'
@@ -58,4 +58,4 @@ npm.cmd run test:e2e
 | iPhone 13 WebKit | 4 | 1 |
 | 合計 | 14 | 1 |
 
-実行時間は1.1分。成功した14件ではコンソールエラー・ページ例外ともに0件でした。Chromiumの2構成では、公開URLの初回読込後に通信を切り、再読込→入力→保存→再読込→履歴確認まで成功しています。WebKitのスキップ理由と実機未検証の範囲は上記のとおりです。
+実行時間は1.4分。成功した14件ではコンソールエラー・ページ例外ともに0件でした。Chromiumの2構成では、公開URLの初回読込後に通信を切り、再読込→入力→保存→再読込→履歴確認まで成功しています。WebKitのスキップ理由と実機未検証の範囲は上記のとおりです。

@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-20T17:41:08.888Z",
+  "capturedAt": "2026-09-20T18:03:41.591Z",
   "deploymentURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
   "browser": "Playwright Chromium in isolated headless contexts",
   "browserVersion": "153.0.8010.12",
@@ -13,7 +13,7 @@
     {
       "filename": "01-dashboard.png",
       "description": "週間報酬・週間補充・現在庫・次のボーナスを確認するホーム",
-      "capturedAt": "2026-09-20T17:41:04.018Z",
+      "capturedAt": "2026-09-20T18:03:37.092Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -41,7 +41,7 @@
     {
       "filename": "02-replenishment.png",
       "description": "7本・エリアA・早期自動判定を入力した補充画面（保存前）",
-      "capturedAt": "2026-09-20T17:41:05.192Z",
+      "capturedAt": "2026-09-20T18:03:38.249Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -69,7 +69,7 @@
     {
       "filename": "03-weekly-reward.png",
       "description": "週次の報酬内訳・日別実績・地域別補充の集計",
-      "capturedAt": "2026-09-20T17:41:06.454Z",
+      "capturedAt": "2026-09-20T18:03:39.416Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -97,7 +97,7 @@
     {
       "filename": "04-inventory.png",
       "description": "現在庫と2本少ない実棚卸を確認記録として保存した在庫・棚卸画面",
-      "capturedAt": "2026-09-20T17:41:07.733Z",
+      "capturedAt": "2026-09-20T18:03:40.571Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -125,7 +125,7 @@
     {
       "filename": "05-simulator.png",
       "description": "エリアA・早期対象20本を追加した報酬シミュレーション",
-      "capturedAt": "2026-09-20T17:41:08.886Z",
+      "capturedAt": "2026-09-20T18:03:41.590Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {

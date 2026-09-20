@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-20T18:03:41.591Z",
+  "capturedAt": "2026-09-20T18:58:10.954Z",
   "deploymentURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
   "browser": "Playwright Chromium in isolated headless contexts",
   "browserVersion": "153.0.8010.12",
@@ -13,7 +13,7 @@
     {
       "filename": "01-dashboard.png",
       "description": "週間報酬・週間補充・現在庫・次のボーナスを確認するホーム",
-      "capturedAt": "2026-09-20T18:03:37.092Z",
+      "capturedAt": "2026-09-20T18:58:06.418Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -36,12 +36,12 @@
         "inventory": 14,
         "remainingToNextTier": 17
       },
-      "sha256": "4c983953d1fb2e3df39502bec302819c8caf9c2bd1b48077b7f176d0848dafb9"
+      "sha256": "0de5ce9272b11ed7fb56c35abbe8008842ac73764d572a70e726c0baad7fbb39"
     },
     {
       "filename": "02-replenishment.png",
       "description": "7本・エリアA・早期自動判定を入力した補充画面（保存前）",
-      "capturedAt": "2026-09-20T18:03:38.249Z",
+      "capturedAt": "2026-09-20T18:58:07.520Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -69,7 +69,7 @@
     {
       "filename": "03-weekly-reward.png",
       "description": "週次の報酬内訳・日別実績・地域別補充の集計",
-      "capturedAt": "2026-09-20T18:03:39.416Z",
+      "capturedAt": "2026-09-20T18:58:08.671Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -97,7 +97,7 @@
     {
       "filename": "04-inventory.png",
       "description": "現在庫と2本少ない実棚卸を確認記録として保存した在庫・棚卸画面",
-      "capturedAt": "2026-09-20T18:03:40.571Z",
+      "capturedAt": "2026-09-20T18:58:09.880Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {
@@ -125,7 +125,7 @@
     {
       "filename": "05-simulator.png",
       "description": "エリアA・早期対象20本を追加した報酬シミュレーション",
-      "capturedAt": "2026-09-20T18:03:41.590Z",
+      "capturedAt": "2026-09-20T18:58:10.953Z",
       "sourceURL": "https://spotjobs-reward-inventory-manager.vercel.app/",
       "title": "SPOTJOBS報酬・在庫管理アプリ",
       "interactionViewport": {

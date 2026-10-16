@@ -21,14 +21,28 @@
 
 ## 最初に必ず行うこと
 
-1. リポジトリをcloneまたは既存cloneを開き、`git status`、`git remote -v`、`git log`を確認する。
+1. リポジトリをcloneまたは既存cloneを開き、`git status`、`git remote -v`、`git log -5 --oneline --decorate`を確認する。既存cloneに未commit変更があれば消さずに内容を確認する。cleanな`main`なら`git fetch origin`→`git switch main`→`git pull --ff-only origin main`→`git switch -c codex/ios-release`の順で開始する。branchが既に存在する場合は、勝手に削除・作り直しせず、その履歴と`origin/main`との差分を確認して続行または別の`codex/` branchを作る。
 2. `AGENTS.md`を全文読む。`DEVELOPMENT_RULES.md`があれば全文読む。
 3. `docs/IOS_BUILD.md`、`docs/APP_STORE_METADATA_JA.md`、`docs/APP_STORE_RELEASE_CHECKLIST.md`、`docs/app-store/screenshots/README.md`を読み、Windows側の準備済み範囲と未検証事項を確認する。
 4. このNext.jsは通常の知識で決め打ちせず、実装前に `node_modules/next/dist/docs/` の該当ガイドを読む。
 5. 利用可能なSkillに `apple-design` / `/apple-design` があれば必ず使う。
 6. Node.js 22以上、最新の安定版Xcode、Xcode Command Line Toolsを確認する。提出直前にApple公式のUpcoming Requirementsを再確認する。2026-10-17時点ではApp Store ConnectへのiOSアップロードにXcode 26以降とiOS 26 SDK以降が必要。
-7. 新しい作業ブランチ `codex/ios-release` を作る。既存Web版を壊さず、共通コードを再利用する。
-8. 最初に現行品質を固定するため、`npm ci`、`npm run ios:preflight`、可能なら`npm run test:e2e`を実行し、結果を記録する。`ios:preflight`はlint、typecheck、unit、static buildに加え、Capacitor設定、local asset、OCR、法務ページ、icon、Privacy Manifest雛形、commit対象secret/Xcode stateを自動監査する。Windows側の基準は単体185件成功、ブラウザ17件成功・WebKitのオフライン再起動1件スキップ。
+7. 作業は手順1で用意した`codex/ios-release`（または衝突しない別の`codex/` branch）上で行う。既存Web版を壊さず、共通コードを再利用する。
+8. 最初に現行品質を固定するため、`npm ci`、`npm run ios:preflight`を実行し、結果を記録する。`ios:preflight`はlint、typecheck、unit、static buildに加え、Capacitor設定、local asset、OCR、法務ページ、icon、Privacy Manifest雛形、commit対象secret/Xcode stateを自動監査する。`npm run ios:release-preflight -- --plan`で、その後Mac上で実行する全検証をファイル変更なしで確認できる。ブラウザが未導入なら`npx playwright install chromium webkit`を一度実行し、公開中のbaselineは`E2E_BASE_URL=https://spotjobs-reward-inventory-manager.vercel.app npm run test:e2e`で確認する。`npm run test:e2e`単独は`http://localhost:3059`を参照するため、ローカル変更を手動検証するときは別processで`npm run preview`を起動してから実行する。Windows側の基準は単体185件成功、ブラウザ17件成功・WebKitのオフライン再起動1件スキップ。
+
+## 最初の自動確認後、ユーザーへ一度に聞く事項
+
+依存しない実装・監査を先に終えたうえで、次を一つの簡潔な質問へまとめる。認証情報そのものは聞かない。
+
+1. 有効なApple Developer Program membershipがあり、このMacのXcodeへ対象Teamでsign inできるか。2要素認証は表示されたApple画面で本人に操作してもらう。
+2. `SPOTJOBS`をApp Store名とBundle IDへ使う明示的許諾があり、Appleへ提出できる証拠があるか。なければ中立名称と中立Bundle IDを2〜3案提示し、本人に選んでもらう。
+3. 許諾がある場合、最終Bundle IDを`com.shunsoco.spotjobsmanager`にしてよいか。別IDを希望する場合は本人のreverse-DNS候補を確認する。
+4. 公開Supportページへ載せる連絡先と、非公開のApp Review連絡先（氏名・電話・メール）、Copyrightへ載せる正式名。
+5. Version 1.0を広告SDK／広告枠なし、無料で公開してよいか。初回から広告を入れる場合はnetwork、正式App ID／Ad Unit ID、同意方針が必要。
+6. iPhone専用かiPad対応か。iPad対応なら13-inch提出画像とiPad全画面QAを追加する。
+7. 配信地域、DSA trader/non-trader、公開方式／希望時期。法的状態をCodexが推測して回答しない。
+
+回答待ちでも、ソース監査、metadata草案、Simulator QA、スクリーンショット準備など依存しない作業は続ける。最終identityが必要な永続`ios/`生成、App ID／アプリレコード作成、TestFlight uploadだけを止める。
 
 ## 実装方針
 
@@ -39,17 +53,19 @@
 - Capacitor標準のlocal server/custom schemeから同梱assetを配信する。`file://`直読みや`server.url`による本番Webサイトのラップは使わない。
 - iOS側はCapacitor 8標準のSwift Package Managerを優先する。必要性を説明できないCocoaPods依存やプラグインを増やさない。
 - iOS deployment targetはCapacitor 8の要件に合わせて15.0以上とし、使用するWeb APIの互換性も確認する。必要なら16.4以上を選ぶが、理由を記録する。
-- package scriptsの`ios:add`、`ios:sync`、`ios:open`、`ios:run`を使用し、不足するSimulator/Archive検証用コマンドだけ追加する。
+- package scriptsの`ios:release-preflight`、`ios:add`、`ios:sync`、`ios:open`、`ios:run`を使用する。最終identity確定後の初回は`npm run ios:release-preflight -- --identity-confirmed`を使う。このcommandはWeb品質、local production E2E、Capacitor生成、release asset、native audit、SPM解決、署名なしSimulator build、App.app内Privacy Manifestまで一括確認し、`.artifacts/ios-release-preflight.md`へ証跡を出す。`ios/`が既にある再検証では`npm run ios:release-preflight`を使う。`ios:add`は`ios/`が存在しない最初の1回だけ使う低レベルcommandであり、既存の`ios/`を再生成のために削除しない。
 - `ios:add`と`ios:sync`は、`assets/app-icon-1024.png`と`assets/ios/PrivacyInfo.xcprivacy`をnative projectへ適用し、`npm run ios:verify-native`まで行う。自動処理がCapacitor template差分を検出して停止した場合は、XcodeでPrivacy ManifestをApp targetのCopy Bundle Resourcesへ追加し、再度native auditを通す。検証を削除・迂回しない。
 - `ios/`、Capacitor設定、必要なAsset Catalog、Privacy ManifestはGit管理する。証明書、provisioning profile、API key、Apple ID、Teamの秘密情報は絶対にcommitしない。
 
 ## Bundle IDと署名
 
-- Bundle IDはApp Store Connectでアプリレコードを作成した後は変更できないため、勝手に確定しない。
+- Bundle IDはApple Developer Portalで明示的なApp IDとして登録し、App Store Connectのアプリレコードへ紐づける恒久的な識別子になる。build upload後はApp Store Connect上で変更できず、SKUはアプリレコード作成後に変更できないため、どちらも勝手に確定しない。
 - 候補は `com.shunsoco.spotjobsmanager`だが、この値にも第三者名称`spotjobs`が含まれる。名称・商標の許諾判断をApple Developer PortalへのBundle ID登録前に終え、許諾があり、Portalで利用可能で、ユーザーが別のreverse-DNS名を希望しない場合だけ採用する。
-- 許諾がない場合は、中立的なApp Store名とBundle ID候補を2〜3案提示し、ユーザーが選んだ値を`capacitor.config.ts`へ反映してから`npm run ios:add`を実行する。名称もBundle IDも勝手に変更・登録しない。
+- 許諾がない場合は、中立的なApp Store名とBundle ID候補を2〜3案提示し、ユーザーが選んだ値を関連ファイルへ反映してから、初回の`npm run ios:release-preflight -- --identity-confirmed`を実行する。名称もBundle IDも勝手に変更・登録しない。
 - XcodeのSigning TeamはユーザーのApple Developer Programチームを選ぶ。認証ダイアログ、2要素認証、契約同意が必要なら、その画面でユーザーに操作してもらう。認証情報を質問文やログへ貼らせない。
 - App Store公開にはApple Developer Program加入が必要。未加入、契約未同意、税務・銀行情報未完了など外部アカウント側の不足があれば、ローカル実装と検証を先に完了してから、必要な操作だけを具体的に示す。
+
+最終App Store名とBundle IDをユーザーが選び、関連ファイルへ反映したら、`ios/`がない初回は`npm run ios:release-preflight -- --identity-confirmed`を実行する。`--identity-confirmed`はApple Developer Portalへの登録を自動実行するflagではなく、確定前の仮identityで永続Xcode projectを作らないためのlocal guardである。成功後に`npm run ios:open`でXcodeを開く。以後は`npm run ios:release-preflight`で同じ検証を再実行できる。`--ci-ephemeral`はGitHub Actionsのcleanな使い捨てcheckout専用なので、Macのlocal作業では使わず、`CI=true`を偽装してguardを迂回しない。
 
 ## 現行Web機能をすべて維持する
 
@@ -79,8 +95,9 @@
 - 外部URLを開く
 - 文章を共有する
 - JSON/CSVファイルを書き出す
-- JSON/CSV/画像ファイルを選ぶ
 - 必要ならNetwork状態、Haptics、Status Bar
+
+JSON／CSV／画像の読込は現状`input type="file"`を使っており、runtime adapterにはfile picker APIがまだない。まずiOSのFiles／写真pickerでJSON、CSV、最大5枚の画像が選べることを実機確認し、動かない場合だけ保守されているpluginを選定してadapterへ追加する。存在しないpicker実装を準備済みと扱わない。
 
 ### 2. Service Worker/PWA
 
@@ -158,11 +175,11 @@ App Store record作成前に、Version 1.0を広告SDK・広告枠なしで公�
 
 ユーザーはアプリ名を「SPOTJOBS報酬・在庫管理アプリ」と指定している。開発中に勝手に改名しない。ただしApple Review Guideline 4.1(c)、5.2.1、5.2.2では、権利者の許諾なしに第三者ブランド/製品名をアプリ名やiconへ使うこと、第三者サービスを無許可で収益化することが拒否リスクになる。「非公式」と書くだけでは解消しない。
 
-- ローカル開発、実機QA、必要に応じた暫定名称での内部TestFlightまでは進めてよい。暫定名称のbuildを外部公開しない。
-- Apple Developer PortalへのBundle ID登録、外部TestFlight／Beta App Review、Public App Reviewの前に、SPOTJOBS/ChargeSPOT/INFORICH側から名称・商標利用の明示的許諾があるかをユーザーへ1回だけ確認する。暫定候補`com.shunsoco.spotjobsmanager`にも第三者名称が含まれるため、同じ判断を適用する。
+- 名称判断前でも、SimulatorとXcodeから直接installした実機での開発・QAは進めてよい。TestFlightは内部配信でも、明示的なApp ID、App Store Connectのアプリレコード、application identifierを含むprovisioning profileが必要になるため、最終identityが未確定のまま暫定候補を登録・uploadしない。
+- Apple Developer PortalへのApp ID登録、App Store Connectのアプリレコード作成、内部／外部TestFlight、Public App Reviewの前に、SPOTJOBS/ChargeSPOT/INFORICH側から名称・商標利用の明示的許諾があるかをユーザーへ1回だけ確認する。暫定候補`com.shunsoco.spotjobsmanager`にも第三者名称が含まれるため、同じ判断を適用する。
 - 許諾あり：契約書、メール等の証拠をApp Reviewへ提示できる形にし、現在名を維持する。
-- 許諾なし：勝手に改名せず、機能と背景を保った中立的なApp Store名とBundle IDの候補を2〜3案提示し、ユーザーが選んだ値へApp Store名、ホーム画面名、Bundle ID、icon内文字、metadataを変更する。「SPOTJOBS」は用途・互換性の説明に必要な範囲だけで使い、非公式・非提携を明記する。
-- この判断が終わるまで外部TestFlight／Beta App ReviewとPublic App Reviewへの送信は行わない。他の実装、内部TestFlight、metadata草案、スクリーンショット作成は止めない。
+- 許諾なし：勝手に改名せず、機能と背景を保った中立的なApp Store名とBundle IDの候補を2〜3案提示し、ユーザーが選んだ値へApp Store名、ホーム画面名、Bundle ID、icon内文字、metadataを変更する。`rg -n "SPOTJOBS報酬・在庫管理アプリ|com\.shunsoco\.spotjobsmanager" capacitor.config.ts public src scripts docs README.md`で商品名とIDの残存箇所を洗い出し、`capacitor.config.ts`、Next metadata、PWA manifest、法務／support、申請文面、検証scriptを矛盾なく揃える。`SPOTJOBS`は用途・互換性の説明に必要な範囲だけで使い、非公式・非提携を明記する。
+- この判断が終わるまでApp ID／アプリレコードを作らず、内部／外部TestFlight、Beta App Review、Public App Reviewへ送信しない。他の実装、Simulator／Xcode直接installでの実機QA、metadata草案、スクリーンショット作成は止めない。どうしても判断前に内部TestFlightが必要な場合だけ、productionには転用しない中立名称・中立Bundle IDの別app recordが必要になることを説明し、ユーザーが明示的に選んだ場合に限って作成する。
 - Review Notesには、公式API/ロゴ/素材を使わないこと、本人の手入力記録を端末内計算すること、公式サイトはユーザー操作時の外部リンクだけであること、ログイン不要であることを明記する。
 
 ## App Store Connect素材
@@ -178,12 +195,12 @@ App Store record作成前に、Version 1.0を広告SDK・広告枠なしで公�
 - 個人情報のないデモApp Storeスクリーンショットは`docs/app-store/screenshots/`へ保存してcommitする。実作業履歴、実店舗名、個人情報を含む画像はcommitも提出もしない。
 - Appleがその時点で要求するiPhoneサイズを公式仕様で再確認する。PNG/JPG、alphaなし、端末frameや文言が誤認を招かないこと。iPadを有効にする場合はiPad素材も用意する。
 
-App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、最終App Store名、ホーム画面表示名、iPhone専用／iPad対応、v1広告なしの前提を確定する。SKUは個人情報を含まない一意な値にする。
+App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、最終App Store名、ホーム画面表示名、iPhone専用／iPad対応、v1広告なしの前提を確定する。SKUは個人情報を含まない一意な値にする。identity確定後は、(1) Apple Developer Portalで同じBundle IDの明示的なApp IDを登録、(2) App Store ConnectでそのBundle IDと確定SKUを選んでiOSアプリレコードを作成、(3) Xcode Signingと`capacitor.config.ts`のBundle IDが一致することを確認、(4) Archive／Validate／upload、(5) 内部TestFlight、の順で進める。
 
 ## TestFlightとQA
 
 1. Xcode SimulatorでDebug/Release build。
-2. `xcodebuild`でclean buildし、警告を確認する。
+2. `npm run ios:release-preflight`を成功させ、`.artifacts/ios-release-preflight.md`を証跡として確認する。このcommandが署名なしのclean Simulator buildを行う。Xcode上でも警告を確認する。
 3. 実iPhoneで次を全て確認する。
    - 初回起動、デモ、自分の記録
    - 補充、取出、編集、削除、Undo
@@ -203,7 +220,7 @@ App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、
 6. GitHub Actionsの`iOS native build`が成功していることを確認する。このworkflowは`macos-26`で毎回cleanなCapacitor projectを生成し、署名なしのgeneric iOS Simulator buildを行う。失敗をローカル成功だけで無視しない。
 7. `npm run ios:verify-native`を再実行して、Bundle ID、iOS 15+、plugin登録、同梱asset、AppIcon、Privacy Manifest、offline OCRの同期を確認する。
 8. Archive→Validate Appでerror 0。Privacy Report、App Store icon、signing、version/build、symbolsを確認する。
-9. App Store Connectへuploadし、まず内部TestFlightで実機確認する。外部TestFlightは名称・商標ゲートを通過した後だけ行う。外部初回はBeta App Reviewがあり、build有効期間は90日。
+9. 名称・商標ゲートと最終identity確定後にApp Store Connectへuploadし、まず内部TestFlightで実機確認する。外部TestFlightも同じゲートを通過したbuildだけで行う。外部初回はBeta App Reviewがあり、build有効期間は90日。
 
 既存の自動テスト185件、54本すべて早期補充で4,050円、19/20/49/50/99/100/149/150本のBonus境界を必ず維持する。native adapterにも単体テストを追加するが、実装をなぞるだけの無意味なテストは増やさない。
 

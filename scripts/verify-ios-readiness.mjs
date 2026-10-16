@@ -64,6 +64,8 @@ function literalProperty(source, name) {
   return match?.[2];
 }
 
+const xmlText = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+
 function assertPrivacyManifest(path) {
   const source = readText(path);
   for (const value of ['NSPrivacyAccessedAPITypes', 'NSPrivacyAccessedAPICategoryFileTimestamp', 'NSPrivacyAccessedAPITypeReasons', 'C617.1']) {
@@ -91,7 +93,7 @@ check('Pinned Capacitor packages and npm commands', () => {
   }
   const capacitorMajors = ['@capacitor/core', '@capacitor/cli', '@capacitor/ios'].map(name => Number(declared[name].split('.')[0]));
   assert(capacitorMajors.every(major => major === capacitorMajors[0] && major >= 8), 'Capacitor core, CLI, and iOS must use the same supported major');
-  for (const script of ['build', 'ios:add', 'ios:sync', 'ios:prepare-assets', 'ios:verify-native']) {
+  for (const script of ['build', 'ios:add', 'ios:sync', 'ios:prepare-assets', 'ios:verify-native', 'ios:release-preflight']) {
     assert(typeof packageJson.scripts?.[script] === 'string', `npm script ${script} is missing`);
   }
   return `Capacitor ${declared['@capacitor/core']}`;
@@ -104,7 +106,7 @@ const appName = literalProperty(capacitorSource, 'appName');
 const webDir = literalProperty(capacitorSource, 'webDir');
 check('Capacitor local-bundle configuration', () => {
   assert(/^[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9][A-Za-z0-9-]*){2,}$/.test(appId ?? ''), `invalid appId ${String(appId)}`);
-  assert(appName === 'SPOTJOBS報酬・在庫管理アプリ', `unexpected appName ${String(appName)}`);
+  assert(typeof appName === 'string' && appName.trim().length > 0, 'appName must not be empty');
   assert(webDir === 'out', `webDir must be out; found ${String(webDir)}`);
   assert(!/\bserver\s*:\s*\{[\s\S]*?\burl\s*:/.test(capacitorSource), 'server.url would turn the app into a remote website wrapper');
   assert(!/\ballowNavigation\s*:/.test(capacitorSource), 'allowNavigation must not expose remote origins inside the app WebView');
@@ -125,13 +127,15 @@ check('Static export and legal routes', () => {
   assert(readText(join(out, 'privacy.html')).includes('プライバシーポリシー'), 'privacy.html has no privacy policy heading');
   assert(readText(join(out, 'support.html')).includes('サポート'), 'support.html has no support heading');
   const indexHtml = readText(join(out, 'index.html'));
+  const documentTitle = indexHtml.match(/<title>(.*?)<\/title>/)?.[1];
+  assert(documentTitle === appName, `HTML title ${String(documentTitle)} differs from Capacitor appName ${String(appName)}`);
   assert(!/<script\b[^>]*\bsrc\s*=\s*['\"]https?:\/\//i.test(indexHtml), 'index.html loads a remote script and cannot guarantee offline native startup');
   return required.join(', ');
 });
 
 check('PWA manifest and icon files', () => {
   const manifest = readJson(join(out, 'manifest.webmanifest'));
-  assert(manifest.name === 'SPOTJOBS報酬・在庫管理アプリ', 'manifest app name differs from the requested app name');
+  assert(manifest.name === appName, `manifest app name ${String(manifest.name)} differs from Capacitor appName ${String(appName)}`);
   assert(manifest.display === 'standalone', 'manifest display must be standalone');
   assert(Array.isArray(manifest.icons) && manifest.icons.length >= 2, 'manifest needs installable icons');
   for (const icon of manifest.icons) {
@@ -201,11 +205,12 @@ check('Committable-file secret and Xcode-state scan', () => {
 
 const ios = join(root, 'ios');
 if (!existsSync(ios)) {
-  if (requireNative) failures.push('Generated iOS project: ios/ is missing; run npm run ios:add on macOS or in the macOS CI job');
-  else notes.push('Native Xcode project is intentionally pending. Run npm run ios:add on macOS, then npm run ios:verify-native.');
+  if (requireNative) failures.push('Generated iOS project: ios/ is missing; after the final app identity is approved, run npm run ios:release-preflight -- --identity-confirmed on macOS');
+  else notes.push('Native Xcode project is intentionally pending. After the final app name and Bundle ID are approved, run npm run ios:release-preflight -- --identity-confirmed on macOS.');
 } else {
   const projectPath = join(ios, 'App', 'App.xcodeproj', 'project.pbxproj');
   const nativeConfigPath = join(ios, 'App', 'App', 'capacitor.config.json');
+  const nativeInfoPath = join(ios, 'App', 'App', 'Info.plist');
   const nativePublic = join(ios, 'App', 'App', 'public');
   const nativePrivacy = join(ios, 'App', 'App', 'PrivacyInfo.xcprivacy');
   const nativeIcon = join(ios, 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-512@2x.png');
@@ -217,6 +222,13 @@ if (!existsSync(ios)) {
     assert(targets.length > 0 && targets.every(target => target >= 15), 'all iOS deployment targets must be 15.0 or newer');
     assert(project.includes('PrivacyInfo.xcprivacy in Resources'), 'PrivacyInfo.xcprivacy is not in Copy Bundle Resources; run npm run ios:prepare-assets');
     return `${appId}; iOS ${Math.min(...targets).toFixed(1)}+`;
+  });
+  check('Native display name', () => {
+    assert(nonEmpty(nativeInfoPath), `${display(nativeInfoPath)} is missing`);
+    const info = readText(nativeInfoPath);
+    const displayName = info.match(/<key>CFBundleDisplayName<\/key>\s*<string>([^<]*)<\/string>/)?.[1]?.trim();
+    assert(displayName === xmlText(appName), `Info.plist display name ${String(displayName)} differs from Capacitor appName ${String(appName)}; cap sync does not update native identity, so update it in Xcode or regenerate the project`);
+    return appName;
   });
   check('Generated native configuration', () => {
     const nativeConfig = readJson(nativeConfigPath);

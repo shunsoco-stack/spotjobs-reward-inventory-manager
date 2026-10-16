@@ -19,7 +19,7 @@
 | Version | 1.0.0 |
 | Copyright | `2026 [Apple Developerの正式な個人名または法人名]` |
 | Marketing URL | https://spotjobs-reward-inventory-manager.vercel.app/ |
-| Support URL | https://spotjobs-reward-inventory-manager.vercel.app/support/ |
+| Support URL | https://spotjobs-reward-inventory-manager.vercel.app/support/（実際の連絡先を掲載してから使用） |
 | Privacy Policy URL | https://spotjobs-reward-inventory-manager.vercel.app/privacy/ |
 
 ## Promotional Text
@@ -56,11 +56,13 @@
 
 ## Keywords
 
-`報酬,在庫,補充,取出,棚卸,副業,作業記録,オフライン`
+`バッテリー,作業管理,収益管理,棚卸管理,副業管理,業務効率化,オフライン`
 
-App Store Connect上の文字数・byte数を保存前に再確認します。商標許諾がない場合、`SPOTJOBS`はkeywordsへ入れません。
+各語は2文字を超え、全体はUTF-8で99byteです。App Store Connectへ保存するときにも再確認します。商標許諾がない場合、`SPOTJOBS`はkeywordsへ入れません。
 
-## Version 1.0 リリースノート
+## Version 1.0 紹介メモ
+
+初回版ではApp Store Connectの「このバージョンの新機能（What's New）」欄は表示されません。次の文はTestFlightや公開告知へ転用するための内部メモです。
 
 補充・取出、報酬、週間ボーナス、在庫、棚卸、シミュレーションをiPhoneで管理できる初回リリースです。ジョブ履歴スクリーンショットの端末内読み取り、JSON／CSV、X共有、オフライン利用にも対応します。
 
@@ -89,6 +91,8 @@ App Store Connect上の文字数・byte数を保存前に再確認します。�
 - 公式API、公式アカウント、公式ロゴ、公式素材は使用しません。
 - SPOTJOBS／ChargeSPOT／株式会社INFORICHが提供・承認する公式アプリではありません。
 - 公式Webサイトへのリンクは、ユーザーがボタンを押した場合だけ外部ブラウザで開きます。
+- App本体、画面、計算logic、文字認識modelはbinaryへ同梱しており、remote websiteを表示する構成ではありません。補充・取出・報酬・在庫・棚卸・履歴・OCRは通信なしで動作します。
+- JSON／CSVの書出しはiOSのFilesystemと共有sheetへ統合し、公式サイトとX共有は既定の外部browserで開きます。
 - 入力記録は端末内へ保存され、当方のserverへ送信されません。
 - スクリーンショットOCRは同梱したTesseract.jsのmodelを使い、端末内で処理します。画像と認識文字は外部へ送信しません。
 - 主要機能は通信なしで利用できます。外部サイトとX共有を開く場合だけ通信が必要です。
@@ -123,7 +127,7 @@ Version 1.0のbinaryと通信を最終監査し、広告・analytics・Cloud Syn
 - 最終Bundle ID
 - Copyrightへ載せる正式名
 - App Review連絡先の氏名、電話番号、メールアドレス
-- Supportページへ公開する問い合わせ方法
+- Supportページへ公開する実際の連絡先（配信地域の法令に応じた住所、メールアドレス、電話番号）。現在のGitHub Issuesだけでは提出しない
 - 配信地域
 - DSA trader/non-trader回答
 - `SPOTJOBS`名称・商標利用の許諾有無と証拠
@@ -142,4 +146,4 @@ Apple IDのパスワード、2要素認証code、証明書秘密鍵、`.p8`、`.
 5. スクショ取込：画像選択、端末内処理、確認して保存
 6. シミュレーター：追加本数、到達Tier、予想報酬、目標まであと何本
 
-Appleが提出時点で要求する最新iPhoneサイズを使用し、PNG/JPG、alphaなしで作ります。iPad対応を有効にする場合は、iPad実機QAとiPad用素材も追加します。
+2026年10月17日時点では、Appleが必須としているDynamic Islandのmedium display（縦1179×2556または1206×2622）で作成します。提出直前に公式仕様を再確認し、PNG/JPG、alphaなしで保存します。iPad対応を有効にする場合は、iPad実機QAと必須の13-inch iPad素材も追加します。

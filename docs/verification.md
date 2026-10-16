@@ -92,7 +92,7 @@ Vercel本番では、正規URLに加えて`/privacy`、`/support`、`/manifest.w
 | `npm test` | PASS、185件／7ファイル（2026年10月17日） |
 | `npm run build` | PASS、静的配信ファイルとオフライン資産を生成 |
 | `npm run verify:ios` | PASS、iOSリリース入力10/10。Node・依存関係・設定・静的出力・アイコン・Privacy Manifest・OCR資産・秘密情報を確認 |
-| `npm run ios:verify-native` | PASS、生成したiOS projectの14/14。Bundle ID・deployment target・plugin・AppIcon・Privacy Manifest・同梱Web／OCR資産を確認 |
+| `npm run ios:verify-native` | PASS、生成したiOS projectの15/15。表示名・Bundle ID・deployment target・plugin・AppIcon・Privacy Manifest・同梱Web／OCR資産を確認 |
 | 最新ローカルE2E | 17件成功、1件理由付きスキップ。X共有をDesktop Chromium／Pixel 7／iPhone 13 WebKitで確認 |
 | 本番E2E | 17件成功、1件の意図したスキップ（Windows WebKitのオフライン再起動） |
 | 本番コンソール・ページ例外 | 実行した17件で0件 |

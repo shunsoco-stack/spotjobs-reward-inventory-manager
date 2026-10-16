@@ -247,6 +247,8 @@ iOS共通層にはCapacitor 8を導入済みです。nativeではService Worker�
 
 Macでの生成・同期手順は[iOS build handoff](docs/IOS_BUILD.md)、TestFlightからApp Store公開までMac版Codexへ引き継ぐ場合は[Mac版Codex向け iOSリリース引き継ぎプロンプト](docs/MAC_IOS_RELEASE_PROMPT.md)を使用してください。申請前の証跡は[App Store release readiness checklist](docs/APP_STORE_RELEASE_CHECKLIST.md)、native画像の撮影条件は[App Store screenshot plan](docs/app-store/screenshots/README.md)にまとめています。`npm run ios:preflight`でWeb品質とiOS入力資産を一括確認でき、生成後は`npm run ios:verify-native`でXcode project、Bundle ID、deployment target、plugin、AppIcon、Privacy Manifest、同梱OCRの同期を確認できます。
 
+Macで最終App Store名とBundle IDを確定した後、`ios/`がない初回は`npm run ios:release-preflight -- --identity-confirmed`、既存`ios/`の再検証は`npm run ios:release-preflight`を使うと、local E2Eから署名なしSimulator buildとApp.app内Privacy Manifest確認までを一括実行し、`.artifacts/ios-release-preflight.md`へ証跡を残せます。
+
 開発サーバー：
 
 ```sh

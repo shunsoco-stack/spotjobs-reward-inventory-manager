@@ -8,20 +8,24 @@ as iPhone App Store screenshots.
 ## Capture source
 
 - Build the current `main` commit with `npm run ios:sync`, then run the app from
-  Xcode on a current 6.9-inch iPhone Simulator or a matching physical device.
+  Xcode on an iPhone with Dynamic Island (medium display) Simulator or a
+  matching physical device.
 - Use demo data only. Do not expose real store names, job history, personal
   notifications, Apple IDs, carrier details, or other personal information.
 - Capture the actual app UI. Do not substitute mockups or generated images.
 - Keep every screenshot in portrait orientation, without alpha/transparency,
   and use one accepted pixel size from Apple's current screenshot
-  specification. At the time of this audit, accepted 6.9-inch portrait sizes
-  include `1260 x 2736`, `1290 x 2796`, and `1320 x 2868` pixels. Recheck the
+  specification. At the time of this audit, Apple requires at least one
+  iPhone screenshot for the Dynamic Island medium display. Its accepted
+  portrait sizes are `1179 x 2556` and `1206 x 2622` pixels. Recheck the
   specification immediately before upload and keep the raw Simulator/device
   output instead of stretching a smaller web screenshot.
 
-Apple accepts one to ten screenshots per device size and localization. If the
-UI is the same across supported iPhone sizes, the highest required resolution
-can be supplied and App Store Connect scales it for smaller displays.
+Apple accepts one to ten screenshots per device size and localization. Submit
+the required Dynamic Island medium-display set even if you also prepare images
+for larger iPhones. If the app supports iPad, a separate 13-inch iPad set is
+required (`2064 x 2752` or `2048 x 2732` pixels in portrait at the time of this
+audit).
 
 ## Japanese screenshot sequence
 

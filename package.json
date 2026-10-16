@@ -18,6 +18,7 @@
     "ios:add": "npm run build && cap add ios && npm run ios:prepare-assets && npm run ios:verify-native",
     "ios:sync": "npm run build && cap sync ios && npm run ios:prepare-assets && npm run ios:verify-native",
     "ios:verify-native": "node scripts/verify-ios-readiness.mjs --require-native",
+    "ios:release-preflight": "node scripts/ios-release-preflight.mjs",
     "ios:open": "cap open ios",
     "ios:run": "npm run ios:sync && cap run ios"
   },

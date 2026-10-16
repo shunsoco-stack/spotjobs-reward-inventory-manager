@@ -8,7 +8,7 @@
 
 - [x] App Store名候補は18文字、Subtitleは18文字で、各30文字以内。
 - [x] Promotional Textは71文字で、170文字以内。
-- [x] KeywordsはUTF-8で70byteで、100byte以内。第三者名称は含めていない。
+- [x] KeywordsはUTF-8で99byteで、100byte以内。各語は3文字以上で、App Store名・会社名・第三者名称を重複させていない。
 - [x] Description、TestFlight説明、What to Test、App Review Notesの日本語草案がある。
 - [x] Privacy Policy URLとSupport URLの公開ページが実装されている。
 - [x] Version 1.0は広告SDK、analytics SDK、Cloud Sync、クラッシュ収集を含めない方針が、実装・README・申請草案で一致している。
@@ -20,6 +20,7 @@
 ## Macでbinary生成後に確認する項目
 
 - [ ] 名称・商標の判断後、`origin/main`の最新commitから`ios/`を生成し、最終Bundle IDとSigning Teamを確定する。
+- [ ] 初回は`npm run ios:release-preflight -- --identity-confirmed`、以後は`npm run ios:release-preflight`を成功させ、`.artifacts/ios-release-preflight.md`でWeb品質、local E2E、native audit、SPM解決、署名なしSimulator build、App.app内Privacy Manifestの証跡を確認する。
 - [ ] ホーム画面表示名を最終App Store名と揃え、Version `1.0.0`、Build `1`から開始する。再upload時はBuildだけを増やす。
 - [ ] v1をiPhone専用にするかiPadにも対応するかをユーザーと確定し、Xcodeの対象device familyへ反映する。iPad対応時はiPad実機QAと提出画像も追加する。
 - [ ] 独自モチーフのLaunch Screenを設定し、Light／Darkの起動時に不自然な白／黒flashや公式サービスと誤認させる表現がないことを確認する。
@@ -28,7 +29,7 @@
 - [ ] Filesystem以外のapp code／SDKがrequired-reason APIを使う場合は、実際の用途に合うapproved reasonを追加する。雛形のまま決め打ちしない。
 - [ ] 全依存を監査して、OS標準HTTPSなど免除対象の暗号だけなら`ITSAppUsesNonExemptEncryption = NO`を設定する。事実が異なる場合はexport complianceを申告する。
 - [ ] AppIcon asset catalogへ1024px原本を登録し、XcodeのApp Icon検証に合格する。
-- [ ] デモデータで実機／Simulatorの6.9-inch App Store画像を撮影し、`docs/app-store/screenshots/`へ保存・commitする。既存の`docs/screenshots/`はWeb版ポートフォリオ画像なので提出しない。
+- [ ] デモデータで実機／SimulatorのApp Store画像を撮影し、`docs/app-store/screenshots/`へ保存・commitする。2026-10-17時点の必須iPhone枠はDynamic Islandのmedium display（portrait `1179×2556`または`1206×2622`）。iPad対応時は13-inch（portrait `2064×2752`または`2048×2732`）も必須。提出直前に公式仕様を再確認し、既存の`docs/screenshots/`はWeb版ポートフォリオ画像なので提出しない。
 - [ ] iPhone実機で初回起動、force quit、端末再起動、機内モード、アプリ更新後のIndexedDB保持を確認する。
 - [ ] Web版でJSONを出力し、iOS版でRestore Previewの作成日時・件数・期間を確認して復元する。設定、全記録、在庫、週間報酬が一致することを確認する。
 - [ ] JSON／CSV書出し、Filesへの保存、画像／JSON／CSVのpicker、X共有、SPOTJOBS公式サイトの外部ブラウザ起動を実機で確認する。
@@ -49,7 +50,7 @@
 
 - [ ] `SPOTJOBS`をApp Store名とBundle ID候補`com.shunsoco.spotjobsmanager`で使う前に、名称・商標の明示的な許諾有無を確認する。許諾がある場合は、Appleへ提示できる契約・メール等をApp Review Informationへ添付する。
 - [ ] 許諾がない場合は、Apple Developer Portalへ暫定Bundle IDを登録しない。中立名称と中立Bundle IDの候補を提示し、ユーザーが選んだ値へApp Store名、ホーム画面表示名、Bundle ID、metadata、スクリーンショットを揃えて変更する。勝手に名称やIDを確定しない。
-- [ ] 名称判断が終わるまで、外部TestFlight／Beta App ReviewとPublic App Reviewへ送信しない。必要に応じて暫定名称の内部TestFlightでQAしてよいが、外部公開しない。
+- [ ] 名称判断が終わるまで、App ID／App Store Connectアプリレコードを作らず、内部／外部TestFlight、Beta App Review、Public App Reviewへ送信しない。判断前はSimulatorとXcodeから直接installした実機でQAする。判断前の内部TestFlightが不可欠なら、productionへ転用しない中立名称・中立Bundle IDの別app recordが必要になることを説明し、本人が明示的に選んだ場合に限る。
 - [ ] Support URLに利用者が到達できる問い合わせ手段がない状態で送信しない。
 - [ ] 個人情報のないデモApp Storeスクリーンショットは`docs/app-store/screenshots/`へcommitしてよい。実作業履歴、実店舗名、個人情報を含む画像はTestFlight Notes、Git、Issueへ含めず、提出にも使わない。
 
@@ -69,7 +70,7 @@ Version 1.0の現状は広告なしです。将来Web／iOS／Androidへ広告�
 
 AppleはiPhoneのdevice size／localizationごとに1〜10枚を受け付け、alpha/transparencyを認めていません。UIが同じなら、最も高い必須解像度を提出して小さいdeviceへscaleできます。提出時点の公式仕様を再確認してください。
 
-現行のREADME画像は次の寸法で、いずれもApp Storeの6.9-inch提出画像としては使用できません。
+現行のREADME画像は次の寸法で、いずれもApp Storeで必須のDynamic Island medium-display提出画像としては使用できません。
 
 | ファイル | 現在の寸法 | 用途 |
 | --- | ---: | --- |

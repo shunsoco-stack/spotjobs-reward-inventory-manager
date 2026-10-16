@@ -7,24 +7,34 @@ on:
       - ".github/workflows/ios-native.yml"
       - "assets/**"
       - "capacitor.config.ts"
+      - "e2e/**"
+      - "eslint.config.mjs"
       - "next.config.ts"
       - "package.json"
       - "package-lock.json"
+      - "playwright.config.ts"
       - "public/**"
       - "scripts/**"
       - "src/**"
+      - "tsconfig.json"
+      - "vitest.config.mts"
   pull_request:
     branches: [main]
     paths:
       - ".github/workflows/ios-native.yml"
       - "assets/**"
       - "capacitor.config.ts"
+      - "e2e/**"
+      - "eslint.config.mjs"
       - "next.config.ts"
       - "package.json"
       - "package-lock.json"
+      - "playwright.config.ts"
       - "public/**"
       - "scripts/**"
       - "src/**"
+      - "tsconfig.json"
+      - "vitest.config.mts"
   workflow_dispatch:
 
 permissions:
@@ -52,21 +62,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - name: Generate and verify the ephemeral iOS project
-        run: npm run ios:add
-      - name: Show the Apple toolchain
-        run: xcodebuild -version
-      - name: Build for a generic iOS Simulator without signing
-        run: |
-          xcodebuild \
-            -project ios/App/App.xcodeproj \
-            -scheme App \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/spotjobs-derived-data" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build
-      - name: Confirm the simulator application bundle
-        run: test -d "$RUNNER_TEMP/spotjobs-derived-data/Build/Products/Debug-iphonesimulator/App.app"
+      - name: Run the same local release preflight used on the release Mac
+        run: npm run ios:release-preflight -- --ci-ephemeral
+      - name: Publish the preflight evidence
+        if: always() && hashFiles('.artifacts/ios-release-preflight.md') != ''
+        run: cat .artifacts/ios-release-preflight.md >> "$GITHUB_STEP_SUMMARY"

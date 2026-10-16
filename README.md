@@ -234,6 +234,8 @@ Desktop Chromium、Pixel 7相当、iPhone 13相当で入力・報酬・棚卸・
 
 Vercel Production：[SPOTJOBS報酬・在庫管理アプリ](https://spotjobs-reward-inventory-manager.vercel.app)。未ログインのブラウザからアクセスできることを確認しています。
 
+iOS版の実装、TestFlight、App Store公開をMac版Codexへ引き継ぐ場合は、[Mac版Codex向け iOSリリース引き継ぎプロンプト](docs/MAC_IOS_RELEASE_PROMPT.md)を使用してください。
+
 開発サーバー：
 
 ```sh

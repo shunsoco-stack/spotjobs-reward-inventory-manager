@@ -8,7 +8,16 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'SPOTJOBS管理', statusBarStyle: 'default' },
 };
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#f5f7fa' };
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f7fa' },
+    { media: '(prefers-color-scheme: dark)', color: '#101917' },
+  ],
+};
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html lang="ja"><body>{children}</body></html>;
 }

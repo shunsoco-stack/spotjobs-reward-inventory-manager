@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MAX_SCREENSHOT_BYTES, recognizeScreenshot, validateScreenshotFile } from './screenshot-ocr';
+import { MAX_SCREENSHOT_BYTES, recognizeScreenshot, resolveOcrAssetUrls, validateScreenshotFile } from './screenshot-ocr';
 
 const sdk = vi.hoisted(() => ({ createWorker: vi.fn() }));
 vi.mock('tesseract.js', () => ({ ...sdk, OEM: { LSTM_ONLY: 1 }, PSM: { AUTO: '3' } }));
@@ -9,7 +9,7 @@ let bitmap: { width: number; height: number; getContext: ReturnType<typeof vi.fn
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubGlobal('window', { location: { origin: 'https://example.test' } });
+  vi.stubGlobal('window', { location: { href: 'https://example.test/', origin: 'https://example.test' } });
   vi.stubGlobal('Image', class { src = ''; naturalWidth = 589; naturalHeight = 1280; decode() { return Promise.resolve(); } });
   bitmap = { width: 0, height: 0, getContext: vi.fn(() => ({ fillRect: vi.fn(), drawImage: vi.fn() })) };
   vi.stubGlobal('document', { createElement: () => bitmap });
@@ -37,6 +37,18 @@ describe('screenshot file boundaries', () => {
 });
 
 describe('local OCR lifecycle', () => {
+  it('resolves bundled OCR assets for both HTTPS and Capacitor custom schemes', () => {
+    expect(resolveOcrAssetUrls({ href: 'https://example.test/app', origin: 'https://example.test' } as Location)).toEqual({
+      workerPath: 'https://example.test/ocr/worker.min.js',
+      corePath: 'https://example.test/ocr/core',
+      langPath: 'https://example.test/ocr/lang',
+    });
+    expect(resolveOcrAssetUrls({ href: 'capacitor://localhost/', origin: 'null' } as Location)).toEqual({
+      workerPath: 'capacitor://localhost/ocr/worker.min.js',
+      corePath: 'capacitor://localhost/ocr/core',
+      langPath: 'capacitor://localhost/ocr/lang',
+    });
+  });
   it('uses only same-origin asset URLs, returns text, and releases resources', async () => {
     const worker = makeWorker();
     sdk.createWorker.mockResolvedValue(worker);

@@ -14,6 +14,19 @@ const DEFAULT_TIMEOUT_MS = 180_000;
 const MODEL_CACHE = 'spotjobs-jpn-eng-tesseract7-models1-cjkcompat1';
 let running = false;
 
+export function resolveOcrAssetUrls(location: Pick<Location, 'href' | 'origin'> = window.location) {
+  // `Location.origin` is `"null"` for some custom URL schemes. Capacitor serves
+  // bundled files from a stable custom-scheme URL, so resolve from the full href
+  // and deliberately anchor at the application root.
+  const href = location.href || `${location.origin}/`;
+  const root = new URL('/', href);
+  return {
+    workerPath: new URL('ocr/worker.min.js', root).href,
+    corePath: new URL('ocr/core', root).href.replace(/\/$/, ''),
+    langPath: new URL('ocr/lang', root).href.replace(/\/$/, ''),
+  };
+}
+
 function abortError() {
   return new DOMException('画像の読み取りを中止しました。', 'AbortError');
 }
@@ -92,11 +105,9 @@ export async function recognizeScreenshot(file: File, options: ScreenshotOcrOpti
       report(0.05, '端末内の読み取り機能を準備しています');
       const { createWorker, OEM, PSM } = await import('tesseract.js');
       if (finished) throw abortError();
-      const origin = window.location.origin;
+      const assetUrls = resolveOcrAssetUrls();
       const created = await createWorker(['jpn', 'eng'], OEM.LSTM_ONLY, {
-        workerPath: `${origin}/ocr/worker.min.js`,
-        corePath: `${origin}/ocr/core`,
-        langPath: `${origin}/ocr/lang`,
+        ...assetUrls,
         workerBlobURL: false,
         gzip: true,
         cachePath: MODEL_CACHE,

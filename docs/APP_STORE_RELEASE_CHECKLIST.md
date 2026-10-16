@@ -19,13 +19,16 @@
 
 ## Macでbinary生成後に確認する項目
 
-- [ ] `origin/main`の最新commitから`ios/`を生成し、Bundle IDとSigning Teamを確定する。
+- [ ] 名称・商標の判断後、`origin/main`の最新commitから`ios/`を生成し、最終Bundle IDとSigning Teamを確定する。
+- [ ] ホーム画面表示名を最終App Store名と揃え、Version `1.0.0`、Build `1`から開始する。再upload時はBuildだけを増やす。
+- [ ] v1をiPhone専用にするかiPadにも対応するかをユーザーと確定し、Xcodeの対象device familyへ反映する。iPad対応時はiPad実機QAと提出画像も追加する。
+- [ ] 独自モチーフのLaunch Screenを設定し、Light／Darkの起動時に不自然な白／黒flashや公式サービスと誤認させる表現がないことを確認する。
 - [ ] `assets/ios/PrivacyInfo.xcprivacy`をアプリtargetへ追加し、Copy Bundle Resourcesへ含まれることを確認する。
 - [ ] ArchiveからPrivacy Reportを生成し、appと全SDKの収集データ、tracking、required-reason APIが申請回答と一致することを確認する。
 - [ ] Filesystem以外のapp code／SDKがrequired-reason APIを使う場合は、実際の用途に合うapproved reasonを追加する。雛形のまま決め打ちしない。
 - [ ] 全依存を監査して、OS標準HTTPSなど免除対象の暗号だけなら`ITSAppUsesNonExemptEncryption = NO`を設定する。事実が異なる場合はexport complianceを申告する。
 - [ ] AppIcon asset catalogへ1024px原本を登録し、XcodeのApp Icon検証に合格する。
-- [ ] デモデータで実機／Simulatorの6.9-inch App Store画像を撮影し、`docs/app-store/screenshots/`へ保存する。既存の`docs/screenshots/`はWeb版ポートフォリオ画像なので提出しない。
+- [ ] デモデータで実機／Simulatorの6.9-inch App Store画像を撮影し、`docs/app-store/screenshots/`へ保存・commitする。既存の`docs/screenshots/`はWeb版ポートフォリオ画像なので提出しない。
 - [ ] iPhone実機で初回起動、force quit、端末再起動、機内モード、アプリ更新後のIndexedDB保持を確認する。
 - [ ] Web版でJSONを出力し、iOS版でRestore Previewの作成日時・件数・期間を確認して復元する。設定、全記録、在庫、週間報酬が一致することを確認する。
 - [ ] JSON／CSV書出し、Filesへの保存、画像／JSON／CSVのpicker、X共有、SPOTJOBS公式サイトの外部ブラウザ起動を実機で確認する。
@@ -34,19 +37,21 @@
 
 ## App Store Connectで本人入力が必要な項目
 
-- [ ] Apple Developer ProgramのTeam、正式なseller名、Bundle ID、SKUを確定する。Bundle IDとSKUは後で変更できないため、作成前に確認する。
+- [ ] Apple Developer ProgramのTeam、正式なseller名、Bundle ID、SKUを確定する。暫定候補`com.shunsoco.spotjobsmanager`にも第三者名称が含まれるため、名称・商標の判断をApple Developer PortalへのBundle ID登録前に終える。Bundle IDとSKUは後で変更できないため、作成前に確認する。
 - [ ] Copyrightへ`2026`と正式な個人名または法人名を入力する。
 - [ ] App Review連絡先の氏名、電話番号、メールアドレスを入力する。認証がないためdemo accountは不要と明記する。
 - [ ] Supportページへ、配信地域の法令上必要になる実際の連絡先（メール、電話、法的住所等）を掲載する。現在のGitHub Issuesだけで要件を満たすと決め打ちしない。
 - [ ] 配信地域、価格（無料）、Release方式、DSA trader/non-trader、Age Rating、Content Rights、export complianceを本人が事実どおり回答する。
+- [ ] Version 1.0を広告SDK・広告枠なしで公開する前提をユーザー本人が確認する。初回から広告を入れる場合は、この監査結果を無効として広告・Privacy・同意設計を再監査する。
 - [ ] App Privacyは、最終Archiveと通信監査で広告・analytics・Cloud Sync・クラッシュ収集がないことを確認できた場合だけ「No, we do not collect data from this app」と回答する。
 
-## 公開を止めるゲート
+## 外部配信を止めるゲート
 
-- [ ] `SPOTJOBS`をApp Store名で使う明示的な許諾がある場合、Appleへ提示できる契約・メール等をApp Review Informationへ添付する。
-- [ ] 許諾がない場合は、この名称のままPublic App Reviewへ送信しない。中立名称の候補をユーザーへ提示し、ユーザーが選んだ名称へApp Store名、Bundle表示名、metadata、スクリーンショットを揃えて変更する。
+- [ ] `SPOTJOBS`をApp Store名とBundle ID候補`com.shunsoco.spotjobsmanager`で使う前に、名称・商標の明示的な許諾有無を確認する。許諾がある場合は、Appleへ提示できる契約・メール等をApp Review Informationへ添付する。
+- [ ] 許諾がない場合は、Apple Developer Portalへ暫定Bundle IDを登録しない。中立名称と中立Bundle IDの候補を提示し、ユーザーが選んだ値へApp Store名、ホーム画面表示名、Bundle ID、metadata、スクリーンショットを揃えて変更する。勝手に名称やIDを確定しない。
+- [ ] 名称判断が終わるまで、外部TestFlight／Beta App ReviewとPublic App Reviewへ送信しない。必要に応じて暫定名称の内部TestFlightでQAしてよいが、外部公開しない。
 - [ ] Support URLに利用者が到達できる問い合わせ手段がない状態で送信しない。
-- [ ] 実作業履歴、店舗名、個人情報がスクリーンショット、TestFlight Notes、Git、Issueへ含まれる状態で送信しない。
+- [ ] 個人情報のないデモApp Storeスクリーンショットは`docs/app-store/screenshots/`へcommitしてよい。実作業履歴、実店舗名、個人情報を含む画像はTestFlight Notes、Git、Issueへ含めず、提出にも使わない。
 
 ## 広告を追加する場合
 

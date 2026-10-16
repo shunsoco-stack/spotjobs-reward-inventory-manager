@@ -1,6 +1,6 @@
 # 公開・品質確認レポート
 
-確認日：2026年9月21日（日本時間）
+確認日：2026年10月17日（日本時間）
 
 - アプリ名：**SPOTJOBS報酬・在庫管理アプリ**
 - Vercel Production：https://spotjobs-reward-inventory-manager.vercel.app
@@ -45,6 +45,16 @@ lint・型検査・99件の単体テスト・buildが成功し、ソースコミ
 
 コミット`a03dbb3`をVercel Productionへ公開し、正規URLがHTTP 200を返し、X共有を含む本番バンドルを配信していることを確認しました。単体テスト170件、ローカルと本番のブラウザテスト各17件成功・1件スキップです。共有のブラウザテストはDesktop Chromium、Pixel 7 Chromium、iPhone 13 WebKitで成功し、実行した本番テストのコンソールエラーは0件でした。スキップは従来からのWindows WebKitのオフライン再起動1件です。Vercel deployment IDは`dpl_EBxro6rQYNwp6DqC5qroWE9pWGbv`です。
 
+## iOSリリース準備（2026年10月17日）
+
+Capacitor 8の共通層、外部ブラウザ起動、iOS共有シートによるJSON／CSV保存、native環境での同梱資産利用、App Store用アイコン、Privacy Manifestを準備しました。`npm run ios:preflight`でlint・型検査・185件／7ファイルの単体テスト・静的buildとiOS入力資産10項目を一括確認し、すべて成功しています。
+
+生成した一時iOS projectでは`npm run ios:verify-native`の14項目がすべて成功しました。Bundle ID、iOS 15以上のdeployment target、Capacitor plugin、独自AppIcon、Privacy Manifest、法務ページ、OCR資産を確認しています。GitHub Actionsの[macOS native build](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746142)では、macOS 26.6.2・Xcode 26.6上でprojectを生成し、Swift Packageを解決して、署名なしのgeneric iOS Simulator向け`App.app`をbuildできました。[Quality checks](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746172)も成功しています。
+
+この確認は、ソースからiOS Simulator用アプリを生成・コンパイルできることの証跡です。Apple Developerの署名、実機iPhoneでのQA、Archive／Validate、TestFlight配布、App Store Connectへの提出と審査はまだ実施していません。
+
+Vercel本番では、正規URLに加えて`/privacy`、`/support`、`/manifest.webmanifest`、`/sw.js`がHTTP 200で応答することを再確認しました。最新の本番E2EはDesktop Chromium 6件、Pixel 7相当6件、iPhone 13 WebKit 5件が成功し、Windows WebKitのオフライン再起動1件だけを理由付きでスキップしています。実行した本番テストのコンソールエラーとページ例外は0件です。
+
 ## 実装結果
 
 | 項目 | 実装・確認内容 |
@@ -79,12 +89,15 @@ lint・型検査・99件の単体テスト・buildが成功し、ソースコミ
 | --- | --- |
 | `npm run lint` | PASS（警告0） |
 | `npm run typecheck` | PASS |
-| `npm test` | PASS、170件／6ファイル（最新ローカル） |
+| `npm test` | PASS、185件／7ファイル（2026年10月17日） |
 | `npm run build` | PASS、静的配信ファイルとオフライン資産を生成 |
+| `npm run verify:ios` | PASS、iOSリリース入力10/10。Node・依存関係・設定・静的出力・アイコン・Privacy Manifest・OCR資産・秘密情報を確認 |
+| `npm run ios:verify-native` | PASS、生成したiOS projectの14/14。Bundle ID・deployment target・plugin・AppIcon・Privacy Manifest・同梱Web／OCR資産を確認 |
 | 最新ローカルE2E | 17件成功、1件理由付きスキップ。X共有をDesktop Chromium／Pixel 7／iPhone 13 WebKitで確認 |
-| 本番E2E | 17件成功、1件理由付きスキップ |
+| 本番E2E | 17件成功、1件の意図したスキップ（Windows WebKitのオフライン再起動） |
 | 本番コンソール・ページ例外 | 実行した17件で0件 |
-| GitHub Actions | [機能・スクリーンショット公開コミットの全チェック成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/35526750493) |
+| GitHub Actions（品質） | [Quality checks成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746172) |
+| GitHub Actions（iOS） | [macOS 26.6.2／Xcode 26.6で署名なしSimulator build成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746142) |
 | Secret Scan | Gitleaks 8.30.0で公開直前の全ステージ差分および配信ファイルを検査、検出0件 |
 | 54本すべて早期補充 | 基本2,970円＋早期540円＋本数540円＝**4,050円** |
 | 段階の境界 | 0/1/19/20/49/50/99/100/149/150本・大量本数を確認 |
@@ -96,9 +109,9 @@ lint・型検査・99件の単体テスト・buildが成功し、ソースコミ
 
 | 構成 | 結果 | オフラインの確認範囲 |
 | --- | --- | --- |
-| Desktop Chromium | 5/5成功 | 通信断で再起動→入力→保存→再起動→履歴 |
-| Android Chrome相当（Pixel 7） | 5/5成功 | 通信断で再起動→入力→保存→再起動→履歴 |
-| iPhone Safari相当（iPhone 13 / WebKit） | 4件成功、1件スキップ | 通信断で入力・保存、オンライン復帰後に保持を確認 |
+| Desktop Chromium | 6/6成功 | 通信断で再起動→入力→保存→再起動→履歴 |
+| Android Chrome相当（Pixel 7） | 6/6成功 | 通信断で再起動→入力→保存→再起動→履歴 |
+| iPhone Safari相当（iPhone 13 / WebKit） | 5件成功、1件の意図したスキップ | 通信断で入力・保存、オンライン復帰後に保持を確認 |
 
 スマートフォンの320px・390px幅を含めて横はみ出しを確認しています。Dashboard、補充、取出、在庫・棚卸、報酬・ボーナス、Simulator、履歴、設定、Backup/Restore、PWA資産、Dark Modeを検証しました。[再現手順と詳細](../e2e/README.md)
 
@@ -132,6 +145,9 @@ READMEの`Screenshots`へ5枚すべて相対パスで埋め込み。[撮影元�
 
 ## 既知の制約・未検証事項
 
+- iOSのGitHub Actionsは**署名なしのSimulator build**です。Apple DeveloperのTeam設定と署名、実機iPhone、Archive／Validate、TestFlight、App Store Connectへの提出・審査は未完了です。
+- App Store用の実機／Simulatorスクリーンショットは未取得です。既存のREADME画像はWeb版の撮影で、App Store提出画像の代用にはしません。
+- iOSの最終Bundle ID、App Store上の名称、サポート連絡先は公開提出前に確定が必要です。現在のBundle ID候補は`com.shunsoco.spotjobsmanager`です。
 - **iPhone Safari実機でのオフライン再起動は未検証**です。Windows上のPlaywright WebKitでは通信断再起動がブラウザ内部エラーになるため、該当1件をスキップしました。実機Safari自体が非対応という判定ではありません。
 - iPhone・Androidはブラウザのエミュレーションによる確認です。実端末のホーム画面追加操作は未検証です。
 - 初回はオンラインで読み込み、オフライン準備が完了する必要があります。

@@ -40,5 +40,10 @@ scrolling or keyboard overlap is visible. Verify the dimensions and alpha
 channel with the Mac-side release audit before uploading them to App Store
 Connect.
 
+Screenshots made only from the app's demo data may be committed to this
+directory as App Store release assets. Never commit or submit screenshots that
+contain real job history, real store names, personal information, account
+details, notifications, or other private data.
+
 Official specification:
 https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/

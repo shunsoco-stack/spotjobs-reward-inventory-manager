@@ -46,7 +46,8 @@
 ## Bundle IDと署名
 
 - Bundle IDはApp Store Connectでアプリレコードを作成した後は変更できないため、勝手に確定しない。
-- 候補は `com.shunsoco.spotjobsmanager`。Apple Developer Portalで利用可能か確認し、ユーザーが別のreverse-DNS名を希望しない場合だけ採用する。
+- 候補は `com.shunsoco.spotjobsmanager`だが、この値にも第三者名称`spotjobs`が含まれる。名称・商標の許諾判断をApple Developer PortalへのBundle ID登録前に終え、許諾があり、Portalで利用可能で、ユーザーが別のreverse-DNS名を希望しない場合だけ採用する。
+- 許諾がない場合は、中立的なApp Store名とBundle ID候補を2〜3案提示し、ユーザーが選んだ値を`capacitor.config.ts`へ反映してから`npm run ios:add`を実行する。名称もBundle IDも勝手に変更・登録しない。
 - XcodeのSigning TeamはユーザーのApple Developer Programチームを選ぶ。認証ダイアログ、2要素認証、契約同意が必要なら、その画面でユーザーに操作してもらう。認証情報を質問文やログへ貼らせない。
 - App Store公開にはApple Developer Program加入が必要。未加入、契約未同意、税務・銀行情報未完了など外部アカウント側の不足があれば、ローカル実装と検証を先に完了してから、必要な操作だけを具体的に示す。
 
@@ -121,7 +122,8 @@
 - Light/Dark/SystemとStatus Barの文字色・背景を同期する。
 - 補充はオレンジ、取出は水色を維持し、色だけで状態を伝えない。
 - 保存成功時に軽いHapticsを追加してよい。頻繁な入力を遅くしたり、許可ダイアログを増やしたりしない。
-- iPhoneをv1の主対象とする。iPad対応をApp Store Connectで有効にする場合は、iPadで全画面QAとiPad用スクリーンショットまで完了する。未検証のままiPad対応を宣言しない。
+- ユーザーにv1をiPhone専用にするかiPadにも対応するかを確認し、Xcodeの対象device familyへ反映する。iPad対応を有効にする場合は、iPadで全画面QAとiPad用スクリーンショットまで完了する。未検証のままiPad対応を宣言しない。
+- ホーム画面表示名を最終App Store名と揃え、Version `1.0.0`、Build `1`から開始する。再upload時はBuildだけを増やす。
 
 ## アイコンとLaunch Screen
 
@@ -148,17 +150,19 @@ Next静的exportに次の専用ページを追加済み。内容をiOS実装の�
 
 ユーザーは将来Web/iOS/Androidへ広告を付ける予定だが、現行には広告SDK、analytics、広告アカウントID、同意設計がない。v1は広告なしで公開準備を進め、空の広告枠や休眠SDKも入れない。広告のためにリリースを止めない。
 
+App Store record作成前に、Version 1.0を広告SDK・広告枠なしで公開する前提をユーザーへ確認する。確認できた場合だけ現行のPrivacy Policy、App Privacy草案、metadataを使用する。
+
 広告をv1へ入れるようユーザーが明示し、広告networkと正式なApp ID/Ad Unit IDが揃った場合のみ別工程で追加する。その場合は、App Privacy、Privacy Policy、SDK Privacy Manifest/署名、同意、年齢rating、広告報告導線を更新する。cross-app/site trackingまたはIDFAを使う場合だけATTを適切な時点で求め、拒否時も主要機能を使えるようにする。fingerprintingは禁止。補充・取出の現場入力を全画面広告で遮らない。
 
 ## 商標・アプリ名の公開ゲート（最重要）
 
 ユーザーはアプリ名を「SPOTJOBS報酬・在庫管理アプリ」と指定している。開発中に勝手に改名しない。ただしApple Review Guideline 4.1(c)、5.2.1、5.2.2では、権利者の許諾なしに第三者ブランド/製品名をアプリ名やiconへ使うこと、第三者サービスを無許可で収益化することが拒否リスクになる。「非公式」と書くだけでは解消しない。
 
-- ローカル開発、実機QA、内部TestFlightまでは進める。
-- Public App Reviewへ送る前に、SPOTJOBS/ChargeSPOT/INFORICH側から名称・商標利用の明示的許諾があるかをユーザーへ1回だけ確認する。
+- ローカル開発、実機QA、必要に応じた暫定名称での内部TestFlightまでは進めてよい。暫定名称のbuildを外部公開しない。
+- Apple Developer PortalへのBundle ID登録、外部TestFlight／Beta App Review、Public App Reviewの前に、SPOTJOBS/ChargeSPOT/INFORICH側から名称・商標利用の明示的許諾があるかをユーザーへ1回だけ確認する。暫定候補`com.shunsoco.spotjobsmanager`にも第三者名称が含まれるため、同じ判断を適用する。
 - 許諾あり：契約書、メール等の証拠をApp Reviewへ提示できる形にし、現在名を維持する。
-- 許諾なし：勝手に改名せず、機能と背景を保った中立的なApp Store名候補を2〜3案提示し、ユーザーが選んだ名称へApp Store名、ホーム画面名、icon内文字、metadataを変更する。「SPOTJOBS」は用途・互換性の説明に必要な範囲だけで使い、非公式・非提携を明記する。
-- この判断が終わるまでPublic App Review送信だけは行わない。他の実装、TestFlight、metadata草案、スクリーンショット作成は止めない。
+- 許諾なし：勝手に改名せず、機能と背景を保った中立的なApp Store名とBundle IDの候補を2〜3案提示し、ユーザーが選んだ値へApp Store名、ホーム画面名、Bundle ID、icon内文字、metadataを変更する。「SPOTJOBS」は用途・互換性の説明に必要な範囲だけで使い、非公式・非提携を明記する。
+- この判断が終わるまで外部TestFlight／Beta App ReviewとPublic App Reviewへの送信は行わない。他の実装、内部TestFlight、metadata草案、スクリーンショット作成は止めない。
 - Review Notesには、公式API/ロゴ/素材を使わないこと、本人の手入力記録を端末内計算すること、公式サイトはユーザー操作時の外部リンクだけであること、ログイン不要であることを明記する。
 
 ## App Store Connect素材
@@ -171,9 +175,10 @@ Next静的exportに次の専用ページを追加済み。内容をiOS実装の�
 - 年齢rating、content rights、輸出コンプライアンス、価格（無料を第一候補）、配信地域、DSA trader status
 - Review contact、Review Notes、TestFlight Beta Description、What to Test
 - App Storeスクリーンショット5枚以上。実在作業記録や個人情報を使わずデモデータで撮る。最低でもDashboard、補充入力、報酬内訳、在庫/棚卸、OCRまたはシミュレーターを含める。
+- 個人情報のないデモApp Storeスクリーンショットは`docs/app-store/screenshots/`へ保存してcommitする。実作業履歴、実店舗名、個人情報を含む画像はcommitも提出もしない。
 - Appleがその時点で要求するiPhoneサイズを公式仕様で再確認する。PNG/JPG、alphaなし、端末frameや文言が誤認を招かないこと。iPadを有効にする場合はiPad素材も用意する。
 
-App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、最終App Store名を確定する。SKUは個人情報を含まない一意な値にする。
+App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、最終App Store名、ホーム画面表示名、iPhone専用／iPad対応、v1広告なしの前提を確定する。SKUは個人情報を含まない一意な値にする。
 
 ## TestFlightとQA
 
@@ -198,7 +203,7 @@ App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、
 6. GitHub Actionsの`iOS native build`が成功していることを確認する。このworkflowは`macos-26`で毎回cleanなCapacitor projectを生成し、署名なしのgeneric iOS Simulator buildを行う。失敗をローカル成功だけで無視しない。
 7. `npm run ios:verify-native`を再実行して、Bundle ID、iOS 15+、plugin登録、同梱asset、AppIcon、Privacy Manifest、offline OCRの同期を確認する。
 8. Archive→Validate Appでerror 0。Privacy Report、App Store icon、signing、version/build、symbolsを確認する。
-9. App Store Connectへuploadし、まず内部TestFlightで実機確認する。可能なら外部TestFlightも行う。外部初回はBeta App Reviewがあり、build有効期間は90日。
+9. App Store Connectへuploadし、まず内部TestFlightで実機確認する。外部TestFlightは名称・商標ゲートを通過した後だけ行う。外部初回はBeta App Reviewがあり、build有効期間は90日。
 
 既存の自動テスト185件、54本すべて早期補充で4,050円、19/20/49/50/99/100/149/150本のBonus境界を必ず維持する。native adapterにも単体テストを追加するが、実装をなぞるだけの無意味なテストは増やさない。
 
@@ -212,7 +217,7 @@ App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、
 
 ## Gitと秘密情報
 
-- `.env`、Apple ID、Teamの秘密値、証明書、`.p12`、provisioning profile、Auth Key `.p8`、広告secret、実作業履歴、実スクリーンショットをcommitしない。
+- `.env`、Apple ID、Teamの秘密値、証明書、`.p12`、provisioning profile、Auth Key `.p8`、広告secret、実作業履歴、実店舗名、個人情報を含む画像をcommitしない。個人情報のないデモApp Storeスクリーンショットは`docs/app-store/screenshots/`へcommitする。
 - commit前にsecret scanと`git diff --check`を行う。
 - native生成物を丸ごと無視せず、再現に必要なXcode project/SPM設定はcommitする。DerivedData、build、個人Workspace stateはignoreする。
 - READMEへiOSのbuild/sync/open手順、データ移行、対応OS、Privacy/Support、TestFlight/App Store URLを追記する。

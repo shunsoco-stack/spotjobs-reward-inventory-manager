@@ -33,9 +33,13 @@ current Apple submission requirements immediately before uploading a build.
    legal pages, icon dimensions/alpha, Privacy Manifest template, pinned
    Capacitor packages, unsafe `server.url` settings, committable credentials,
    and Xcode user-state files.
-4. Confirm the Apple Developer bundle identifier. The current
-   `com.shunsoco.spotjobsmanager` value in `capacitor.config.ts` is provisional.
-   Change it before the next step if another identifier will be registered.
+4. Resolve the name and trademark decision before registering a Bundle ID in
+   the Apple Developer Portal. The provisional
+   `com.shunsoco.spotjobsmanager` value also contains the third-party name
+   `spotjobs`. Use it only if the user confirms permission and chooses this ID.
+   Otherwise present neutral name and reverse-DNS candidates, let the user
+   choose, and update `capacitor.config.ts` before the next step. Do not invent
+   or register a replacement on the user's behalf.
 
 ## Generate and open the iOS project on macOS
 
@@ -90,8 +94,15 @@ npm run ios:run
 - Select the user's signing Team and keep Xcode's bundle identifier aligned
   with `capacitor.config.ts`.
 - Set the deployment target to iOS 15 or later.
+- Set the home-screen display name to the final approved app name, start with
+  marketing version `1.0.0` and build `1`, and increment only the build for a
+  replacement upload of the same version.
+- Confirm whether v1 is iPhone-only or also supports iPad, then set the target
+  device family accordingly. Enabling iPad requires iPad QA and screenshots.
 - Replace the generated AppIcon with `assets/app-icon-1024.png`; it is an
   opaque 1024 x 1024 source without baked-in rounded corners.
+- Configure the independent branded Launch Screen and verify Light and Dark
+  launches without a white/black flash or official-service branding.
 - Add `PrivacyInfo.xcprivacy` to the application target. The Filesystem plugin
   accesses file timestamps; the prepared template declares C617.1 for the
   app-container export use. Verify this still matches Apple's current approved

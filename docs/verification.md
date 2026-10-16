@@ -49,7 +49,7 @@ lint・型検査・99件の単体テスト・buildが成功し、ソースコミ
 
 Capacitor 8の共通層、外部ブラウザ起動、iOS共有シートによるJSON／CSV保存、native環境での同梱資産利用、App Store用アイコン、Privacy Manifestを準備しました。`npm run ios:preflight`でlint・型検査・185件／7ファイルの単体テスト・静的buildとiOS入力資産10項目を一括確認し、すべて成功しています。
 
-生成した一時iOS projectでは`npm run ios:verify-native`の14項目がすべて成功しました。Bundle ID、iOS 15以上のdeployment target、Capacitor plugin、独自AppIcon、Privacy Manifest、法務ページ、OCR資産を確認しています。GitHub Actionsの[macOS native build](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746142)では、macOS 26.6.2・Xcode 26.6上でprojectを生成し、Swift Packageを解決して、署名なしのgeneric iOS Simulator向け`App.app`をbuildできました。[Quality checks](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746172)も成功しています。
+生成した一時iOS projectでは`npm run ios:verify-native`の15項目がすべて成功しました。表示名、Bundle ID、iOS 15以上のdeployment target、Capacitor plugin、独自AppIcon、Privacy Manifest、法務ページ、OCR資産を確認しています。GitHub Actionsの[Mac用release preflight](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38942290722)では、macOS 26 runnerとXcode 26以上を使い、185件の単体テスト、ローカルProduction E2E 17件、Swift Package解決、署名なしgeneric iOS Simulator向け`App.app`のbuild、App内Privacy Manifestの同梱とXML検証まで一括で成功しました。WebKitのオフライン再起動1件だけを理由付きでスキップしています。[Quality checks](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38942290680)も成功しています。
 
 この確認は、ソースからiOS Simulator用アプリを生成・コンパイルできることの証跡です。Apple Developerの署名、実機iPhoneでのQA、Archive／Validate、TestFlight配布、App Store Connectへの提出と審査はまだ実施していません。
 
@@ -93,11 +93,12 @@ Vercel本番では、正規URLに加えて`/privacy`、`/support`、`/manifest.w
 | `npm run build` | PASS、静的配信ファイルとオフライン資産を生成 |
 | `npm run verify:ios` | PASS、iOSリリース入力10/10。Node・依存関係・設定・静的出力・アイコン・Privacy Manifest・OCR資産・秘密情報を確認 |
 | `npm run ios:verify-native` | PASS、生成したiOS projectの15/15。表示名・Bundle ID・deployment target・plugin・AppIcon・Privacy Manifest・同梱Web／OCR資産を確認 |
+| `npm run ios:release-preflight` | PASS、macOS上でWeb品質、E2E 17件、Capacitor生成、SPM解決、15/15 native監査、署名なしSimulator build、App内Privacy Manifestを一括確認 |
 | 最新ローカルE2E | 17件成功、1件理由付きスキップ。X共有をDesktop Chromium／Pixel 7／iPhone 13 WebKitで確認 |
 | 本番E2E | 17件成功、1件の意図したスキップ（Windows WebKitのオフライン再起動） |
 | 本番コンソール・ページ例外 | 実行した17件で0件 |
-| GitHub Actions（品質） | [Quality checks成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746172) |
-| GitHub Actions（iOS） | [macOS 26.6.2／Xcode 26.6で署名なしSimulator build成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38938746142) |
+| GitHub Actions（品質） | [Quality checks成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38942290680) |
+| GitHub Actions（iOS） | [Mac用release preflightと署名なしSimulator build成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38942290722) |
 | Secret Scan | Gitleaks 8.30.0で公開直前の全ステージ差分および配信ファイルを検査、検出0件 |
 | 54本すべて早期補充 | 基本2,970円＋早期540円＋本数540円＝**4,050円** |
 | 段階の境界 | 0/1/19/20/49/50/99/100/149/150本・大量本数を確認 |

@@ -12,3 +12,15 @@ playwright-report/
 next-env.d.ts
 .env*
 !.env.example
+
+# Capacitor / Xcode local build state (the ios project itself is committed)
+DerivedData/
+ios/.build/
+ios/App/.build/
+ios/App/DerivedData/
+ios/App/xcuserdata/
+ios/App/*.xcodeproj/xcuserdata/
+ios/App/*.xcworkspace/xcuserdata/
+ios/App/CapApp-SPM/.build/
+ios/App/CapApp-SPM/.swiftpm/xcode/package.xcworkspace/xcuserdata/
+*.xcuserstate

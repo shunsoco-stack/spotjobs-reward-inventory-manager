@@ -1,0 +1,99 @@
+# iOS build handoff
+
+The shared Capacitor 8 base is prepared in this repository. The generated
+Next.js static export in `out/` is bundled into the native app; no remote
+`server.url` is configured.
+
+## Pinned toolchain
+
+These versions were checked against the public npm registry on 2026-10-17 and
+are pinned exactly in `package-lock.json`:
+
+| Package | Version | Purpose |
+| --- | ---: | --- |
+| `@capacitor/core` | 8.5.3 | Web/native bridge |
+| `@capacitor/cli` | 8.5.3 | Local Capacitor CLI |
+| `@capacitor/ios` | 8.5.3 | iOS platform |
+| `@capacitor/inappbrowser` | 4.1.0 | Open requested links in the external browser |
+| `@capacitor/share` | 8.0.3 | iOS share sheet |
+| `@capacitor/filesystem` | 8.1.5 | Export backup and CSV files |
+
+Capacitor 8 requires Node.js 22 or newer, Xcode 26 or newer, and iOS 15 or
+newer. It creates a Swift Package Manager project by default. Recheck the
+current Apple submission requirements immediately before uploading a build.
+
+## Before generating the Xcode project
+
+1. Clone or pull the repository on the Mac and read `AGENTS.md`.
+2. Install Node.js 22 or newer and Xcode 26 or newer, then run
+   `xcode-select --install` if the Command Line Tools are missing.
+3. Run `npm ci` followed by `npm run lint`, `npm run typecheck`, `npm test`, and
+   `npm run build`.
+4. Confirm the Apple Developer bundle identifier. The current
+   `com.shunsoco.spotjobsmanager` value in `capacitor.config.ts` is provisional.
+   Change it before the next step if another identifier will be registered.
+
+## Generate and open the iOS project on macOS
+
+Run these commands only on the Mac:
+
+```bash
+npm run ios:add
+npm run ios:open
+```
+
+`ios:add` first rebuilds `out/` and then creates the native project with
+Capacitor 8's default Swift Package Manager template. Commit the resulting
+`ios/` project, including project configuration, asset catalogs,
+`Package.resolved`, and privacy manifests. Do not commit certificates,
+provisioning profiles, API keys, Apple IDs, or Xcode user state.
+
+After each web or plugin change, copy the current export and update native
+dependencies with:
+
+```bash
+npm run ios:sync
+```
+
+Open Xcode without rebuilding the web bundle with:
+
+```bash
+npm run ios:open
+```
+
+Build and launch a simulator after synchronization with:
+
+```bash
+npm run ios:run
+```
+
+## Native setup checklist
+
+- Select the user's signing Team and keep Xcode's bundle identifier aligned
+  with `capacitor.config.ts`.
+- Set the deployment target to iOS 15 or later.
+- Replace the generated AppIcon with `assets/app-icon-1024.png`; it is an
+  opaque 1024 x 1024 source without baked-in rounded corners.
+- Add `PrivacyInfo.xcprivacy` to the application target. The Filesystem plugin
+  accesses file timestamps; verify Apple's current approved reason and the
+  generated archive privacy report rather than copying an outdated value.
+- Verify that the runtime adapter opens `https://app.spot.jobs/` and X share
+  links outside the app, and that JSON/CSV exports use the share sheet.
+- Test the bundled OCR assets and all core flows in airplane mode.
+- Verify IndexedDB persistence after force quit, device restart, and app
+  update. Web and iOS storage are separate, so move existing data using JSON
+  export and restore.
+- Confirm safe areas, numeric keyboard behavior, Light/Dark/System, VoiceOver,
+  Dynamic Type, and absence of horizontal scrolling on a real iPhone.
+
+The full release, privacy, TestFlight, App Store Connect, trademark, and QA
+workflow is in `docs/MAC_IOS_RELEASE_PROMPT.md`.
+
+## Official references
+
+- [Capacitor 8 environment setup](https://capacitorjs.com/docs/getting-started/environment-setup)
+- [Installing Capacitor](https://capacitorjs.com/docs/getting-started)
+- [Capacitor Swift Package Manager](https://capacitorjs.com/docs/ios/spm)
+- [InAppBrowser API](https://capacitorjs.com/docs/apis/inappbrowser)
+- [Share API](https://capacitorjs.com/docs/apis/share)
+- [Filesystem API](https://capacitorjs.com/docs/apis/filesystem)

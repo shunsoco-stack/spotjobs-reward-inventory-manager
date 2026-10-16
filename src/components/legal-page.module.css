@@ -1,0 +1,327 @@
+.page {
+  --legal-bg: #f4f6f8;
+  --legal-surface: #ffffff;
+  --legal-subtle: #edf3f1;
+  --legal-text: #182b32;
+  --legal-muted: #61747c;
+  --legal-line: #dfe7e5;
+  --legal-accent: #087f61;
+  --legal-accent-soft: #e5f4ed;
+  min-height: 100dvh;
+  background: var(--legal-bg);
+  color: var(--legal-text);
+}
+
+:global(html[data-theme="dark"]) .page {
+  --legal-bg: #101917;
+  --legal-surface: #1a2623;
+  --legal-subtle: #22312c;
+  --legal-text: #eef7f2;
+  --legal-muted: #acbeb5;
+  --legal-line: #34463e;
+  --legal-accent: #75d9b1;
+  --legal-accent-soft: #203e31;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(html:not([data-theme])) .page {
+    --legal-bg: #101917;
+    --legal-surface: #1a2623;
+    --legal-subtle: #22312c;
+    --legal-text: #eef7f2;
+    --legal-muted: #acbeb5;
+    --legal-line: #34463e;
+    --legal-accent: #75d9b1;
+    --legal-accent-soft: #203e31;
+  }
+}
+
+.skipLink {
+  position: fixed;
+  z-index: 100;
+  top: max(.75rem, env(safe-area-inset-top));
+  left: max(.75rem, env(safe-area-inset-left));
+  padding: .75rem 1rem;
+  border-radius: 12px;
+  background: var(--legal-text);
+  color: var(--legal-surface);
+  font-weight: 700;
+  transform: translateY(-180%);
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+}
+
+.header {
+  padding: max(.75rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) .75rem max(1rem, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--legal-line);
+  background: color-mix(in srgb, var(--legal-surface) 94%, transparent);
+}
+
+.headerInner {
+  width: min(100%, 880px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.brand {
+  min-width: 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+  color: var(--legal-text);
+  text-decoration: none;
+  font-size: .875rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.brand img {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+}
+
+.nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem .7rem;
+  border-radius: 10px;
+  color: var(--legal-muted);
+  text-decoration: none;
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+.nav a[aria-current="page"] {
+  background: var(--legal-accent-soft);
+  color: var(--legal-accent);
+}
+
+.main {
+  width: min(100%, 800px);
+  margin: 0 auto;
+  padding: clamp(2rem, 7vw, 4.5rem) max(1rem, env(safe-area-inset-right)) 4rem max(1rem, env(safe-area-inset-left));
+}
+
+.backLink {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  color: var(--legal-accent);
+  font-size: .8125rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.hero {
+  margin-bottom: clamp(1.5rem, 5vw, 2.5rem);
+}
+
+.eyebrow {
+  color: var(--legal-accent);
+  font-size: .6875rem;
+  font-weight: 750;
+  letter-spacing: .13em;
+}
+
+.hero h1 {
+  margin-top: .5rem;
+  font-size: clamp(1.75rem, 7vw, 2.75rem);
+  line-height: 1.25;
+  letter-spacing: -.045em;
+}
+
+.lead {
+  max-width: 42rem;
+  margin-top: 1rem;
+  color: var(--legal-muted);
+  font-size: .9375rem;
+  line-height: 1.9;
+}
+
+.updated {
+  margin-top: .875rem;
+  color: var(--legal-muted);
+  font-size: .75rem;
+}
+
+.content {
+  display: grid;
+  gap: 1rem;
+}
+
+.section {
+  padding: clamp(1.25rem, 5vw, 1.75rem);
+  border: 1px solid var(--legal-line);
+  border-radius: 20px;
+  background: var(--legal-surface);
+  box-shadow: 0 4px 22px rgb(18 42 34 / 4%);
+}
+
+.section h2 {
+  margin-bottom: .8rem;
+  font-size: 1.0625rem;
+}
+
+.section h3 {
+  margin: 1.25rem 0 .45rem;
+  font-size: .9375rem;
+}
+
+.section p,
+.section li,
+.section dd {
+  color: var(--legal-muted);
+  font-size: .875rem;
+  line-height: 1.9;
+}
+
+.section p + p {
+  margin-top: .75rem;
+}
+
+.section ul,
+.section ol {
+  margin: .5rem 0 0;
+  padding-left: 1.35rem;
+}
+
+.section li + li {
+  margin-top: .5rem;
+}
+
+.section strong,
+.section dt {
+  color: var(--legal-text);
+}
+
+.details {
+  display: grid;
+  gap: .9rem;
+  margin: .75rem 0 0;
+}
+
+.details > div {
+  padding: 1rem;
+  border-radius: 14px;
+  background: var(--legal-subtle);
+}
+
+.details dt {
+  font-size: .8125rem;
+  font-weight: 750;
+}
+
+.details dd {
+  margin: .3rem 0 0;
+}
+
+.callout {
+  padding: 1rem;
+  border-left: 4px solid var(--legal-accent);
+  border-radius: 4px 14px 14px 4px;
+  background: var(--legal-accent-soft);
+}
+
+.callout strong {
+  display: block;
+  margin-bottom: .3rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .75rem 1rem;
+  border-radius: 12px;
+  font-size: .8125rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primaryAction {
+  background: var(--legal-accent);
+  color: #fff;
+}
+
+.secondaryAction {
+  border: 1px solid var(--legal-line);
+  background: var(--legal-surface);
+  color: var(--legal-text);
+}
+
+.footer {
+  padding: 1.75rem max(1rem, env(safe-area-inset-right)) calc(1.75rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  border-top: 1px solid var(--legal-line);
+  color: var(--legal-muted);
+  text-align: center;
+  font-size: .6875rem;
+  line-height: 1.8;
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .25rem 1rem;
+  margin-bottom: .65rem;
+}
+
+.footerLinks a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--legal-accent);
+  font-weight: 650;
+}
+
+@media (max-width: 520px) {
+  .headerInner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nav {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nav a {
+    width: 100%;
+  }
+
+  .actions {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skipLink {
+    transition: none;
+  }
+}

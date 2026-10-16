@@ -758,3 +758,6 @@ html[data-theme="dark"] .x-share-button { background: #f5f5f5; color: #0f1419; }
   .panel, .stat, .field :is(input, select, textarea), .area-options button, .button-secondary { border-color: var(--muted); }
   .bottom-nav { background: var(--surface); border-top-color: var(--muted); }
 }
+
+.app-footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: .25rem 1rem; margin-bottom: .55rem; }
+.app-footer nav a { min-height: 44px; display: inline-flex; align-items: center; color: var(--green); font-weight: 650; }

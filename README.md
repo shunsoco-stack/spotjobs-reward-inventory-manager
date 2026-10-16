@@ -234,6 +234,13 @@ Desktop Chromium、Pixel 7相当、iPhone 13相当で入力・報酬・棚卸・
 
 Vercel Production：[SPOTJOBS報酬・在庫管理アプリ](https://spotjobs-reward-inventory-manager.vercel.app)。未ログインのブラウザからアクセスできることを確認しています。
 
+App Store提出と利用者サポートに使う公開ページ：
+
+- [プライバシーポリシー](https://spotjobs-reward-inventory-manager.vercel.app/privacy)
+- [サポート](https://spotjobs-reward-inventory-manager.vercel.app/support)
+
+現在のバージョンでは、作業記録と設定を端末内のIndexedDBに保存し、スクリーンショットのOCRも端末内で実行します。利用者アカウント、クラウド同期、独自の送信API、アクセス解析SDK、広告SDKはありません。データの削除・保存期間、バックアップ、外部リンク利用時の扱いはプライバシーポリシーに明記しています。不具合・要望は公開GitHub Issuesで受け付けるため、実際の作業記録や個人情報を投稿しないようサポートページで案内しています。
+
 iOS版の実装、TestFlight、App Store公開をMac版Codexへ引き継ぐ場合は、[Mac版Codex向け iOSリリース引き継ぎプロンプト](docs/MAC_IOS_RELEASE_PROMPT.md)を使用してください。
 
 開発サーバー：

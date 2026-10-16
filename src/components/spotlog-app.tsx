@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Battery, Check, ChevronRight, Download, ExternalLink, History, House, ImagePlus, RotateCcw, ScanLine, Settings2, ShieldCheck, Smartphone, TrendingUp, Trash2, WifiOff, X } from 'lucide-react';
 import { addDays, adjacentWeekStart, calculate, createDemoRecords, createRewardSnapshot, defaultSettings, todayLocal, type WorkRecord } from '@/lib/core';
 import { exportCsv, inspectBackup, loadData, saveData, serializeBackup, MAX_BACKUP_BYTES, type AppData } from '@/lib/storage';
@@ -143,7 +144,7 @@ export default function SpotlogApp() {
         {view === 'simulator' && <SimulatorView summary={summary} settings={data.settings} today={today}/>}
         {view === 'history' && <><button className="button button-secondary screenshot-entry-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={19}/>スクショから取り込む</button><HistoryView summary={summary} settings={data.settings} today={today} onEdit={setEditing}/></>}
         {view === 'settings' && <><section className="panel pwa-panel"><div className="section-heading"><Smartphone size={23}/><h2>ホーム画面で、すぐ使える</h2></div><p>{offlineReady ? 'オフラインで使う準備ができています。' : '初回はインターネットに接続して開いてください。'}</p>{install && <button className="button button-primary" onClick={async () => { await install.prompt(); await install.userChoice; setInstall(null); }}><Download size={18}/>アプリをインストール</button>}<p className="field-hint">iPhone：Safariの共有 → ホーム画面に追加。Android：Chromeのメニュー → アプリをインストール。オフラインでも入力・履歴・計算を利用できます。</p></section><SettingsPanel key={`${demo}-${JSON.stringify(data.settings)}`} settings={data.settings} demo={demo} onSave={async settings => { const ok = await commit({ ...data, settings, lastArea: settings.defaultArea !== data.settings.defaultArea ? settings.defaultArea : data.lastArea }, '設定を保存しました'); if (!ok) throw new Error('設定を保存できませんでした。'); }} onBackup={() => exportFile()} onImport={() => fileRef.current?.click()} onCsv={() => exportFile(true)} onCsvImport={() => csvRef.current?.click()} onDemo={() => switchDemo(!demo)}/></>}
-        <footer className="app-footer"><p>個人制作の非公式管理ツールです。<br className="mobile-only"/>公式サービスとは関係ありません。</p><p>報酬は個人設定に基づく見込みです。確定額・適用条件は公式サービスで確認してください。</p></footer>
+        <footer className="app-footer"><nav aria-label="プライバシーとサポート"><Link href="/privacy">プライバシーポリシー</Link><Link href="/support">サポート</Link></nav><p>個人制作の非公式管理ツールです。<br className="mobile-only"/>公式サービスとは関係ありません。</p><p>報酬は個人設定に基づく見込みです。確定額・適用条件は公式サービスで確認してください。</p></footer>
       </main>
     </div>
     <nav className="bottom-nav" aria-label="モバイルナビゲーション">{nav.map(n => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><span><n.icon size={23}/></span>{n.label}</button>)}</nav>

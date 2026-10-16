@@ -196,7 +196,7 @@ App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、
 6. Archive→Validate Appでerror 0。Privacy Report、App Store icon、signing、version/build、symbolsを確認する。
 7. App Store Connectへuploadし、まず内部TestFlightで実機確認する。可能なら外部TestFlightも行う。外部初回はBeta App Reviewがあり、build有効期間は90日。
 
-既存の自動テスト170件、54本すべて早期補充で4,050円、19/20/49/50/99/100/149/150本のBonus境界を必ず維持する。native adapterにも単体テストを追加するが、実装をなぞるだけの無意味なテストは増やさない。
+既存の自動テスト185件、54本すべて早期補充で4,050円、19/20/49/50/99/100/149/150本のBonus境界を必ず維持する。native adapterにも単体テストを追加するが、実装をなぞるだけの無意味なテストは増やさない。
 
 ## 提出と公開
 

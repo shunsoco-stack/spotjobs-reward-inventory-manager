@@ -27,8 +27,12 @@ current Apple submission requirements immediately before uploading a build.
 1. Clone or pull the repository on the Mac and read `AGENTS.md`.
 2. Install Node.js 22 or newer and Xcode 26 or newer, then run
    `xcode-select --install` if the Command Line Tools are missing.
-3. Run `npm ci` followed by `npm run lint`, `npm run typecheck`, `npm test`, and
-   `npm run build`.
+3. Run `npm ci` followed by `npm run ios:preflight`. This one command runs lint,
+   type checking, all unit tests, the static export, and the cross-platform iOS
+   readiness audit. The audit checks the local bundle, offline OCR assets,
+   legal pages, icon dimensions/alpha, Privacy Manifest template, pinned
+   Capacitor packages, unsafe `server.url` settings, committable credentials,
+   and Xcode user-state files.
 4. Confirm the Apple Developer bundle identifier. The current
    `com.shunsoco.spotjobsmanager` value in `capacitor.config.ts` is provisional.
    Change it before the next step if another identifier will be registered.
@@ -43,16 +47,30 @@ npm run ios:open
 ```
 
 `ios:add` first rebuilds `out/` and then creates the native project with
-Capacitor 8's default Swift Package Manager template. Commit the resulting
-`ios/` project, including project configuration, asset catalogs,
-`Package.resolved`, and privacy manifests. Do not commit certificates,
-provisioning profiles, API keys, Apple IDs, or Xcode user state.
+Capacitor 8's default Swift Package Manager template. It then installs
+`assets/app-icon-1024.png` and `assets/ios/PrivacyInfo.xcprivacy`, adds the
+privacy file to the App target's Copy Bundle Resources phase, and runs
+`npm run ios:verify-native`. The preparation script is idempotent and fails
+closed if Capacitor changes the expected Xcode project structure. In that
+case, add the privacy file to the App target in Xcode instead of guessing at
+the project file.
+
+Commit the resulting `ios/` project, including project configuration, asset
+catalogs, `Package.resolved`, and privacy manifests. Do not commit
+certificates, provisioning profiles, API keys, Apple IDs, or Xcode user state.
 
 After each web or plugin change, copy the current export and update native
 dependencies with:
 
 ```bash
 npm run ios:sync
+```
+
+`ios:sync` also reapplies and verifies the release assets. To rerun only the
+native audit, use:
+
+```bash
+npm run ios:verify-native
 ```
 
 Open Xcode without rebuilding the web bundle with:
@@ -75,8 +93,10 @@ npm run ios:run
 - Replace the generated AppIcon with `assets/app-icon-1024.png`; it is an
   opaque 1024 x 1024 source without baked-in rounded corners.
 - Add `PrivacyInfo.xcprivacy` to the application target. The Filesystem plugin
-  accesses file timestamps; verify Apple's current approved reason and the
-  generated archive privacy report rather than copying an outdated value.
+  accesses file timestamps; the prepared template declares C617.1 for the
+  app-container export use. Verify this still matches Apple's current approved
+  reason and the generated archive privacy report rather than assuming the
+  template remains sufficient.
 - Verify that the runtime adapter opens `https://app.spot.jobs/` and X share
   links outside the app, and that JSON/CSV exports use the share sheet.
 - Test the bundled OCR assets and all core flows in airplane mode.
@@ -87,7 +107,16 @@ npm run ios:run
   Dynamic Type, and absence of horizontal scrolling on a real iPhone.
 
 The full release, privacy, TestFlight, App Store Connect, trademark, and QA
-workflow is in `docs/MAC_IOS_RELEASE_PROMPT.md`.
+workflow is in `docs/MAC_IOS_RELEASE_PROMPT.md`. Use
+`docs/APP_STORE_RELEASE_CHECKLIST.md` as the final evidence checklist and
+`docs/app-store/screenshots/README.md` for native screenshot capture.
+
+Every relevant push and pull request also runs `.github/workflows/ios-native.yml`
+on GitHub's `macos-26` runner. It generates a clean ephemeral `ios/` project,
+installs the release assets, runs the native verifier, and performs an unsigned
+Debug build for a generic iOS Simulator. This catches Capacitor/SPM/Xcode
+compile regressions without storing signing credentials; it does not replace
+Archive validation, signing, TestFlight, or real-device QA.
 
 ## Official references
 

@@ -221,11 +221,12 @@ npm test
 npm run typecheck
 npm run lint
 npm run build
+npm run verify:ios
 ```
 
 主なテスト対象は、報酬の段階境界、週の区切り、単価保存、先入先出、負在庫、棚卸、シミュレーション、JSON移行・復元、IndexedDBの保存完了・競合、CSVの引用符・列対応・不正行です。スクショ取り込みでは日時・本数の解析、重複除外、補正後の重複、単価保存、OCRの中止・タイムアウト・資源解放も検証します。X共有では今日・1週間の集計文、デモ表記、共有対象外の情報、`x.com`投稿URLを検証します。公開テストは合成データを使い、IndexedDBの単体テストはfake-indexeddb上で行います。
 
-テストファイルは `src/lib/core.test.ts`、`src/lib/storage.test.ts`、`src/lib/csv.test.ts`、`src/lib/job-screenshot.test.ts`、`src/lib/screenshot-ocr.test.ts`、`src/lib/native-runtime.test.ts`、`src/lib/share.test.ts`。GitHub Actionsでもlint、型検査、テスト、ビルド、静的ファイルとOCR資産の生成を確認する構成です。
+テストファイルは `src/lib/core.test.ts`、`src/lib/storage.test.ts`、`src/lib/csv.test.ts`、`src/lib/job-screenshot.test.ts`、`src/lib/screenshot-ocr.test.ts`、`src/lib/native-runtime.test.ts`、`src/lib/share.test.ts`。GitHub Actionsではlint、型検査、テスト、ビルド、静的ファイルとOCR資産に加え、`macos-26`上で毎回Capacitor projectを生成し、署名なしのiOS Simulator buildまで確認します。
 
 2026年10月17日の結果：lint・型検査・ビルド成功、単体テスト185件成功。54本すべて早期補充の4,050円、および19/20/49/50/99/100/149/150本の境界を含みます。ローカルのブラウザテストは17件成功・1件スキップで、Xの投稿URL、今日／1週間、過去週、オフライン表示をDesktop Chromium、Pixel 7相当、iPhone 13相当の3構成で確認しました。スキップは既知のWebKitオフライン再起動テストです。実行したテストのコンソールエラーは0件でした。スクショ取り込みは実画像でも読み取り・訂正・保存・取消・重複除外を別途確認しています。検証に使った個人画像・認識文字は公開リポジトリへ含めていません。
 
@@ -244,7 +245,7 @@ App Store提出と利用者サポートに使う公開ページ：
 
 iOS共通層にはCapacitor 8を導入済みです。nativeではService Workerを使わず同梱資産で動作し、公式サイトとXを外部ブラウザで開き、JSON／CSVをiOS共有シートから保存します。Web版とiOS版の保存領域は別なので、既存記録はJSONバックアップで移します。
 
-Macでの生成・同期手順は[iOS build handoff](docs/IOS_BUILD.md)、TestFlightからApp Store公開までMac版Codexへ引き継ぐ場合は[Mac版Codex向け iOSリリース引き継ぎプロンプト](docs/MAC_IOS_RELEASE_PROMPT.md)を使用してください。
+Macでの生成・同期手順は[iOS build handoff](docs/IOS_BUILD.md)、TestFlightからApp Store公開までMac版Codexへ引き継ぐ場合は[Mac版Codex向け iOSリリース引き継ぎプロンプト](docs/MAC_IOS_RELEASE_PROMPT.md)を使用してください。申請前の証跡は[App Store release readiness checklist](docs/APP_STORE_RELEASE_CHECKLIST.md)、native画像の撮影条件は[App Store screenshot plan](docs/app-store/screenshots/README.md)にまとめています。`npm run ios:preflight`でWeb品質とiOS入力資産を一括確認でき、生成後は`npm run ios:verify-native`でXcode project、Bundle ID、deployment target、plugin、AppIcon、Privacy Manifest、同梱OCRの同期を確認できます。
 
 開発サーバー：
 

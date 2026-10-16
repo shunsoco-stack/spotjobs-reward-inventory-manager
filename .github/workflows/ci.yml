@@ -36,11 +36,5 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Check static app and offline files
-        run: |
-          test -s out/index.html
-          test -s out/manifest.webmanifest
-          test -s out/sw.js
-          test -s out/ocr/worker.min.js
-          test -s out/ocr/lang/jpn.traineddata.gz
-          test -s out/ocr/lang/eng.traineddata.gz
+      - name: Verify static export and iOS release inputs
+        run: npm run verify:ios

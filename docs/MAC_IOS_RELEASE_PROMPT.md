@@ -23,12 +23,12 @@
 
 1. リポジトリをcloneまたは既存cloneを開き、`git status`、`git remote -v`、`git log`を確認する。
 2. `AGENTS.md`を全文読む。`DEVELOPMENT_RULES.md`があれば全文読む。
-3. `docs/IOS_BUILD.md`と`docs/APP_STORE_METADATA_JA.md`を読み、Windows側の準備済み範囲と未検証事項を確認する。
+3. `docs/IOS_BUILD.md`、`docs/APP_STORE_METADATA_JA.md`、`docs/APP_STORE_RELEASE_CHECKLIST.md`、`docs/app-store/screenshots/README.md`を読み、Windows側の準備済み範囲と未検証事項を確認する。
 4. このNext.jsは通常の知識で決め打ちせず、実装前に `node_modules/next/dist/docs/` の該当ガイドを読む。
 5. 利用可能なSkillに `apple-design` / `/apple-design` があれば必ず使う。
 6. Node.js 22以上、最新の安定版Xcode、Xcode Command Line Toolsを確認する。提出直前にApple公式のUpcoming Requirementsを再確認する。2026-10-17時点ではApp Store ConnectへのiOSアップロードにXcode 26以降とiOS 26 SDK以降が必要。
 7. 新しい作業ブランチ `codex/ios-release` を作る。既存Web版を壊さず、共通コードを再利用する。
-8. 最初に現行品質を固定するため、`npm ci`、`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、可能なら`npm run test:e2e`を実行し、結果を記録する。Windows側の基準は単体185件成功、ブラウザ17件成功・WebKitのオフライン再起動1件スキップ。
+8. 最初に現行品質を固定するため、`npm ci`、`npm run ios:preflight`、可能なら`npm run test:e2e`を実行し、結果を記録する。`ios:preflight`はlint、typecheck、unit、static buildに加え、Capacitor設定、local asset、OCR、法務ページ、icon、Privacy Manifest雛形、commit対象secret/Xcode stateを自動監査する。Windows側の基準は単体185件成功、ブラウザ17件成功・WebKitのオフライン再起動1件スキップ。
 
 ## 実装方針
 
@@ -40,6 +40,7 @@
 - iOS側はCapacitor 8標準のSwift Package Managerを優先する。必要性を説明できないCocoaPods依存やプラグインを増やさない。
 - iOS deployment targetはCapacitor 8の要件に合わせて15.0以上とし、使用するWeb APIの互換性も確認する。必要なら16.4以上を選ぶが、理由を記録する。
 - package scriptsの`ios:add`、`ios:sync`、`ios:open`、`ios:run`を使用し、不足するSimulator/Archive検証用コマンドだけ追加する。
+- `ios:add`と`ios:sync`は、`assets/app-icon-1024.png`と`assets/ios/PrivacyInfo.xcprivacy`をnative projectへ適用し、`npm run ios:verify-native`まで行う。自動処理がCapacitor template差分を検出して停止した場合は、XcodeでPrivacy ManifestをApp targetのCopy Bundle Resourcesへ追加し、再度native auditを通す。検証を削除・迂回しない。
 - `ios/`、Capacitor設定、必要なAsset Catalog、Privacy ManifestはGit管理する。証明書、provisioning profile、API key、Apple ID、Teamの秘密情報は絶対にcommitしない。
 
 ## Bundle IDと署名
@@ -138,6 +139,7 @@ Next静的exportに次の専用ページを追加済み。内容をiOS実装の�
 設定画面とApp Store Connectから到達できるようにし、Vercel Productionで200応答と内容を確認する。実装済みSDKと通信を監査し、広告・分析・Cloud Syncがなくデータ送信もしないv1なら、App Privacyの「データを収集しない」を事実に基づいて回答する。表現だけで決めない。
 
 - `PrivacyInfo.xcprivacy`をtargetに含める。
+- 雛形は`assets/ios/PrivacyInfo.xcprivacy`にあり、現行Filesystemのapp-container内一時export用途に対してFile Timestamp / C617.1を宣言している。`ios:add`がApp targetへ組み込むが、Archive Privacy Reportと提出時点のApple公式approved reasonsで用途の一致を再確認する。
 - CapacitorはAppleのprivacy manifest/SDK signature対象SDKであるため、最新版の署名・manifestとArchive Privacy Reportを確認する。
 - Required Reason APIをbinary scan/Privacy Reportで洗い出し、実際の利用理由だけを宣言する。
 - `ITSAppUsesNonExemptEncryption`は、全依存を確認し、Appleの質問に回答したうえで、免除対象のみなら`NO`を設定する。推測で設定しない。
@@ -193,8 +195,10 @@ App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、
    - background/foreground、低メモリ状況、OCR中断
 4. Safari Web Inspector/Xcode consoleでconsole error、network error、crash、constraint warningを確認する。
 5. Web版のlint/typecheck/unit/build/E2Eも再実行し、回帰がないことを確認する。
-6. Archive→Validate Appでerror 0。Privacy Report、App Store icon、signing、version/build、symbolsを確認する。
-7. App Store Connectへuploadし、まず内部TestFlightで実機確認する。可能なら外部TestFlightも行う。外部初回はBeta App Reviewがあり、build有効期間は90日。
+6. GitHub Actionsの`iOS native build`が成功していることを確認する。このworkflowは`macos-26`で毎回cleanなCapacitor projectを生成し、署名なしのgeneric iOS Simulator buildを行う。失敗をローカル成功だけで無視しない。
+7. `npm run ios:verify-native`を再実行して、Bundle ID、iOS 15+、plugin登録、同梱asset、AppIcon、Privacy Manifest、offline OCRの同期を確認する。
+8. Archive→Validate Appでerror 0。Privacy Report、App Store icon、signing、version/build、symbolsを確認する。
+9. App Store Connectへuploadし、まず内部TestFlightで実機確認する。可能なら外部TestFlightも行う。外部初回はBeta App Reviewがあり、build有効期間は90日。
 
 既存の自動テスト185件、54本すべて早期補充で4,050円、19/20/49/50/99/100/149/150本のBonus境界を必ず維持する。native adapterにも単体テストを追加するが、実装をなぞるだけの無意味なテストは増やさない。
 

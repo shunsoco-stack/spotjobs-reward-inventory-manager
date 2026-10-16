@@ -12,31 +12,34 @@
 - アプリ名：SPOTJOBS報酬・在庫管理アプリ
 - GitHub：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - Web本番：https://spotjobs-reward-inventory-manager.vercel.app/
-- 現行ブランチ：main（必ず最新をpull。少なくとも e869567 を含むこと）
-- 技術：Next.js 16.3.5 / React 19 / TypeScript / static export / IndexedDB / Tesseract.js 7 / PWA
+- 現行ブランチ：main（必ず`origin/main`の最新までpullし、Windows側で準備したCapacitor共通層を含むこと）
+- 技術：Next.js 16.4.2 / React 19 / TypeScript / static export / IndexedDB / Tesseract.js 7 / PWA / Capacitor 8.5.3
 - 現行ビルド：`npm run build` で `out/` を生成する。`next.config.ts` は `output: 'export'`。
+- 準備済み：`capacitor.config.ts`、Capacitor packageとnpm script、native runtime adapter、native時のService Worker停止、外部ブラウザ、共有シート経由のJSON/CSV書出し、custom scheme対応OCR URL、safe area、1024px icon、`/privacy`、`/support`、申請metadata草案。
+- 未生成：`ios/`。Macで`docs/IOS_BUILD.md`を読み、Bundle IDを確認してから生成する。
 - アプリは個人制作の非公式管理ツールで、SPOTJOBS、ChargeSPOT、株式会社INFORICHの公式サービスではない。公式ロゴや公式素材は使わない。
 
 ## 最初に必ず行うこと
 
 1. リポジトリをcloneまたは既存cloneを開き、`git status`、`git remote -v`、`git log`を確認する。
 2. `AGENTS.md`を全文読む。`DEVELOPMENT_RULES.md`があれば全文読む。
-3. このNext.jsは通常の知識で決め打ちせず、実装前に `node_modules/next/dist/docs/` の該当ガイドを読む。
-4. 利用可能なSkillに `apple-design` / `/apple-design` があれば必ず使う。
-5. Node.js 22以上、最新の安定版Xcode、Xcode Command Line Toolsを確認する。提出直前にApple公式のUpcoming Requirementsを再確認する。2026-10-17時点ではApp Store ConnectへのiOSアップロードにXcode 26以降とiOS 26 SDK以降が必要。
-6. 新しい作業ブランチ `codex/ios-release` を作る。既存Web版を壊さず、共通コードを再利用する。
-7. 最初に現行品質を固定するため、`npm ci`、`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、可能なら`npm run test:e2e`を実行し、結果を記録する。
+3. `docs/IOS_BUILD.md`と`docs/APP_STORE_METADATA_JA.md`を読み、Windows側の準備済み範囲と未検証事項を確認する。
+4. このNext.jsは通常の知識で決め打ちせず、実装前に `node_modules/next/dist/docs/` の該当ガイドを読む。
+5. 利用可能なSkillに `apple-design` / `/apple-design` があれば必ず使う。
+6. Node.js 22以上、最新の安定版Xcode、Xcode Command Line Toolsを確認する。提出直前にApple公式のUpcoming Requirementsを再確認する。2026-10-17時点ではApp Store ConnectへのiOSアップロードにXcode 26以降とiOS 26 SDK以降が必要。
+7. 新しい作業ブランチ `codex/ios-release` を作る。既存Web版を壊さず、共通コードを再利用する。
+8. 最初に現行品質を固定するため、`npm ci`、`npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、可能なら`npm run test:e2e`を実行し、結果を記録する。Windows側の基準は単体185件成功、ブラウザ17件成功・WebKitのオフライン再起動1件スキップ。
 
 ## 実装方針
 
 既存の静的exportを端末へ同梱するCapacitor方式を第一候補とする。リモートURLだけを表示するWebViewは禁止。Apple Guideline 4.2対策として、通信なしで主要機能が動き、iOSの写真・ファイル・共有・外部ブラウザ・safe area等と統合された実用アプリにする。
 
 - 2026-10-17時点の安定版はCapacitor 8。作業時点の公式安定版と互換性を確認し、pre-release版は使わない。
-- `@capacitor/core`、`@capacitor/cli`、`@capacitor/ios`は同じmajorで固定し、`capacitor.config.ts`の`webDir`を`out`にする。
+- 導入済みの`@capacitor/core`、`@capacitor/cli`、`@capacitor/ios` 8.5.3と各公式pluginの互換性を再確認する。`capacitor.config.ts`の`webDir`は`out`。
 - Capacitor標準のlocal server/custom schemeから同梱assetを配信する。`file://`直読みや`server.url`による本番Webサイトのラップは使わない。
 - iOS側はCapacitor 8標準のSwift Package Managerを優先する。必要性を説明できないCocoaPods依存やプラグインを増やさない。
 - iOS deployment targetはCapacitor 8の要件に合わせて15.0以上とし、使用するWeb APIの互換性も確認する。必要なら16.4以上を選ぶが、理由を記録する。
-- package scriptsに、少なくとも `ios:sync`、`ios:open`、Simulator/Archive検証に使うコマンドを追加する。
+- package scriptsの`ios:add`、`ios:sync`、`ios:open`、`ios:run`を使用し、不足するSimulator/Archive検証用コマンドだけ追加する。
 - `ios/`、Capacitor設定、必要なAsset Catalog、Privacy ManifestはGit管理する。証明書、provisioning profile、API key、Apple ID、Teamの秘密情報は絶対にcommitしない。
 
 ## Bundle IDと署名
@@ -64,11 +67,11 @@
 - `https://app.spot.jobs/`をワンタップで端末の外部ブラウザに開く
 - アプリ内の適切な場所では、非公式・非提携であることを明示する
 
-## iOS互換対応で必ず直す箇所
+## Windows側のiOS互換実装をMacで検証・補完する箇所
 
 ### 1. 実行環境Adapter
 
-UI ComponentへCapacitor APIを直書きせず、Web/nativeの差を吸収するruntime serviceを作る。Web版の動作とテストを維持する。
+`src/lib/native-runtime.ts`にWeb/nativeの差を吸収するruntime serviceと単体テストがある。UIへCapacitor APIを直書きせず、この境界を維持し、実機で不足する機能だけ補完する。
 
 - `isNativePlatform`
 - 外部URLを開く
@@ -79,7 +82,7 @@ UI ComponentへCapacitor APIを直書きせず、Web/nativeの差を吸収する
 
 ### 2. Service Worker/PWA
 
-現行はproductionで`/sw.js`を登録する。Capacitor内ではService Workerを登録しない。nativeでは同梱assetにより最初からオフライン利用可能と表示し、PWAインストール案内も出さない。Web版では従来どおりPWAを維持する。
+実装済みコードはWeb productionだけで`/sw.js`を登録し、Capacitor内では登録しない。nativeでは同梱assetにより最初からオフライン利用可能と表示し、PWAインストール案内を出さない。Web版のPWAを維持できていることと、iOS実機でこの分岐が正しく動くことを確認する。
 
 ### 3. 端末内保存とWeb版からの移行
 
@@ -94,9 +97,9 @@ UI ComponentへCapacitor APIを直書きせず、Web/nativeの差を吸収する
 
 ### 4. OCR
 
-`src/lib/screenshot-ocr.ts`は`window.location.origin + /ocr/...`でTesseract worker/WASM/langを参照する。`out/ocr`は約49.8MB、全`out`は約50.7MB。
+`src/lib/screenshot-ocr.ts`はHTTPSと`capacitor://localhost`の両方でTesseract worker/WASM/langを解決するhelperへ変更済み。2026-10-17のbuildでは`out/ocr`は約47.5MB、全`out`は約48.6MB。
 
-- `capacitor://localhost/ocr/...`でWorker、WASM、gzip、MIMEが動くよう、native base URL helperまたは安全な相対URLへ直す。
+- `capacitor://localhost/ocr/...`でWorker、WASM、gzip、MIMEが実際に読み込めることをSimulatorと実機で確認し、問題がある場合だけ既存helperを修正する。
 - nativeではOCR資産を全て同梱するため「初回は通信が必要」という表示を出さない。Webでは現行条件に合わせる。
 - iOSの写真/Files pickerから最大5枚を選択し、端末内OCR→候補修正→一括保存まで実機確認する。
 - OCR画像・認識文字を外部送信しない。不要なCamera/Photo Library権限は追加しない。pluginで権限が必要になった場合だけ、具体的な日本語Usage DescriptionをInfo.plistへ入れる。
@@ -121,13 +124,13 @@ UI ComponentへCapacitor APIを直書きせず、Web/nativeの差を吸収する
 
 ## アイコンとLaunch Screen
 
-- 既存`public/icon.svg`を基に、公式ロゴを使わず、1024×1024、alphaなし、角丸を画像へ焼き込まないApp Store iconを作る。既存180/192/512 PNGは不透明である。
+- `assets/app-icon-1024.png`は既存`public/icon.svg`を基に作成済みで、1024×1024、alphaなし、公式ロゴ不使用。Macで見た目と画像属性を再確認し、必要なら同じ独自モチーフの範囲で調整する。
 - Asset Catalogへ必要なiconを設定し、ArchiveでMissing Icon/alpha警告がないことを確認する。
 - 同じ独自モチーフで簡潔なLaunch Screenを作り、起動直後の白/黒flashを防ぐ。広告や公式サービスに見える表現を入れない。
 
 ## Privacy Policy、Support、App Privacy
 
-現状は専用ページがない。Next静的exportで、Web本番に少なくとも次を公開する。
+Next静的exportに次の専用ページを追加済み。内容をiOS実装の最終状態へ合わせ、Web本番で公開する。
 
 - `/privacy`：収集データ、保存場所、OCRが端末内であること、用途、第三者SDK、外部リンク、保持・削除方法、問い合わせ先、改定日
 - `/support`：使い方、Backup/Restore、データ削除、既知の制約、連絡方法

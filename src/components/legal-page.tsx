@@ -17,18 +17,18 @@ export function LegalPage({ current, eyebrow, title, description, updated, child
     <a className={styles.skipLink} href="#main-content">本文へ移動</a>
     <header className={styles.header}>
       <div className={styles.headerInner}>
-        <Link className={styles.brand} href="/" aria-label="SPOTJOBS報酬・在庫管理アプリのホームへ">
+        <Link className={styles.brand} href="/" prefetch={false} aria-label="SPOTJOBS報酬・在庫管理アプリのホームへ">
           <Image src="/icon.svg" width={38} height={38} alt="" priority />
           <span>SPOTJOBS報酬・在庫管理アプリ</span>
         </Link>
         <nav className={styles.nav} aria-label="情報ページ">
-          <Link href="/privacy" aria-current={current === "privacy" ? "page" : undefined}>プライバシー</Link>
-          <Link href="/support" aria-current={current === "support" ? "page" : undefined}>サポート</Link>
+          <a href="/privacy.html" aria-current={current === "privacy" ? "page" : undefined}>プライバシー</a>
+          <a href="/support.html" aria-current={current === "support" ? "page" : undefined}>サポート</a>
         </nav>
       </div>
     </header>
     <main className={styles.main} id="main-content">
-      <Link className={styles.backLink} href="/">← アプリへ戻る</Link>
+      <Link className={styles.backLink} href="/" prefetch={false}>← アプリへ戻る</Link>
       <div className={styles.hero}>
         <p className={styles.eyebrow}>{eyebrow}</p>
         <h1>{title}</h1>
@@ -39,9 +39,9 @@ export function LegalPage({ current, eyebrow, title, description, updated, child
     </main>
     <footer className={styles.footer}>
       <nav className={styles.footerLinks} aria-label="フッターナビゲーション">
-        <Link href="/">アプリ</Link>
-        <Link href="/privacy">プライバシーポリシー</Link>
-        <Link href="/support">サポート</Link>
+        <Link href="/" prefetch={false}>アプリ</Link>
+        <a href="/privacy.html">プライバシーポリシー</a>
+        <a href="/support.html">サポート</a>
       </nav>
       <p>個人制作の非公式管理ツールです。SPOTJOBS、ChargeSPOT、株式会社INFORICHとの提携・関係はありません。</p>
     </footer>

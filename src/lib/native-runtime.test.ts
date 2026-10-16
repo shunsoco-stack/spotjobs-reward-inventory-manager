@@ -197,13 +197,14 @@ describe("text sharing", () => {
 describe("text file export", () => {
   it("writes UTF-8 content to native cache and shares the resulting file URI", async () => {
     const writeFile = vi.fn(async () => ({ uri: "file:///cache/exports/spotjobs-backup.json" }));
+    const deleteFile = vi.fn(async () => undefined);
     const share = vi.fn(async () => ({}));
     const adapter = createNativeRuntimeAdapter(dependencies({
       getCapacitor: () => ({ isNativePlatform: () => true, getPlatform: () => "ios" }),
       loadFilesystem: async () => asFilesystemModule({
         Directory: { Cache: "CACHE" },
         Encoding: { UTF8: "utf8" },
-        Filesystem: { writeFile },
+        Filesystem: { writeFile, deleteFile },
       }),
       loadShare: async () => ({ Share: { canShare: async () => ({ value: true }), share } }),
     }));
@@ -229,6 +230,7 @@ describe("text file export", () => {
       title: "SPOTJOBSバックアップ",
       files: ["file:///cache/exports/spotjobs-backup.json"],
     });
+    expect(deleteFile).toHaveBeenCalledWith({ path: "exports/spotjobs-backup.json", directory: "CACHE" });
   });
 
   it("downloads a Blob on the web and revokes its object URL", async () => {
@@ -273,12 +275,13 @@ describe("text file export", () => {
 
   it("removes path separators before writing a native export", async () => {
     const writeFile = vi.fn(async () => ({ uri: "file:///cache/exports/.._backup.json" }));
+    const deleteFile = vi.fn(async () => undefined);
     const adapter = createNativeRuntimeAdapter(dependencies({
       getCapacitor: () => ({ isNativePlatform: () => true, getPlatform: () => "ios" }),
       loadFilesystem: async () => asFilesystemModule({
         Directory: { Cache: "CACHE" },
         Encoding: { UTF8: "utf8" },
-        Filesystem: { writeFile },
+        Filesystem: { writeFile, deleteFile },
       }),
       loadShare: async () => ({
         Share: { canShare: async () => ({ value: true }), share: async () => ({}) },

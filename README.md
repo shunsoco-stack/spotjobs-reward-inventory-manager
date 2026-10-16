@@ -207,6 +207,7 @@ HTTPSまたはlocalhostで利用します。開発モードではService Worker�
 | スクリーンショット読取 | Tesseract.js 7、日本語・英語モデル、Web Worker / WebAssemblyによる端末内OCR |
 | ファイル | JSONバックアップ、CSV解析・出力 |
 | オフライン | Web App Manifest、Service Worker、静的エクスポート |
+| iOS準備 | Capacitor 8、Share、Filesystem、外部ブラウザ連携 |
 | 品質確認 | Vitest、fake-indexeddb、Playwright、TypeScript、ESLint、GitHub Actions |
 | 配信構成 | Vercel対応の静的ホスティング設定 |
 
@@ -224,9 +225,9 @@ npm run build
 
 主なテスト対象は、報酬の段階境界、週の区切り、単価保存、先入先出、負在庫、棚卸、シミュレーション、JSON移行・復元、IndexedDBの保存完了・競合、CSVの引用符・列対応・不正行です。スクショ取り込みでは日時・本数の解析、重複除外、補正後の重複、単価保存、OCRの中止・タイムアウト・資源解放も検証します。X共有では今日・1週間の集計文、デモ表記、共有対象外の情報、`x.com`投稿URLを検証します。公開テストは合成データを使い、IndexedDBの単体テストはfake-indexeddb上で行います。
 
-テストファイルは `src/lib/core.test.ts`、`src/lib/storage.test.ts`、`src/lib/csv.test.ts`、`src/lib/job-screenshot.test.ts`、`src/lib/screenshot-ocr.test.ts`、`src/lib/share.test.ts`。GitHub Actionsでもlint、型検査、テスト、ビルド、静的ファイルとOCR資産の生成を確認する構成です。
+テストファイルは `src/lib/core.test.ts`、`src/lib/storage.test.ts`、`src/lib/csv.test.ts`、`src/lib/job-screenshot.test.ts`、`src/lib/screenshot-ocr.test.ts`、`src/lib/native-runtime.test.ts`、`src/lib/share.test.ts`。GitHub Actionsでもlint、型検査、テスト、ビルド、静的ファイルとOCR資産の生成を確認する構成です。
 
-2026年9月21日の結果：lint・型検査・ビルド成功、単体テスト170件成功。54本すべて早期補充の4,050円、および19/20/49/50/99/100/149/150本の境界を含みます。ローカルとVercel Productionのブラウザテストはいずれも17件成功・1件スキップで、Xの投稿URL、今日／1週間、過去週、オフライン表示をDesktop Chromium、Pixel 7相当、iPhone 13相当の3構成で確認しました。スキップは既知のWebKitオフライン再起動テストです。実行した本番テストのコンソールエラーは0件でした。スクショ取り込みは実画像でも読み取り・訂正・保存・取消・重複除外を別途確認しています。検証に使った個人画像・認識文字は公開リポジトリへ含めていません。
+2026年10月17日の結果：lint・型検査・ビルド成功、単体テスト185件成功。54本すべて早期補充の4,050円、および19/20/49/50/99/100/149/150本の境界を含みます。ローカルのブラウザテストは17件成功・1件スキップで、Xの投稿URL、今日／1週間、過去週、オフライン表示をDesktop Chromium、Pixel 7相当、iPhone 13相当の3構成で確認しました。スキップは既知のWebKitオフライン再起動テストです。実行したテストのコンソールエラーは0件でした。スクショ取り込みは実画像でも読み取り・訂正・保存・取消・重複除外を別途確認しています。検証に使った個人画像・認識文字は公開リポジトリへ含めていません。
 
 Desktop Chromium、Pixel 7相当、iPhone 13相当で入力・報酬・棚卸・履歴・JSON/CSV・テーマを検証しています。Chromiumでは完全オフラインで再起動・保存・再読込も成功しました。WebKitではオフライン入力・保存を確認しましたが、オフライン再起動は検証環境の制約でスキップしています。**iPhone Safari実機でのオフライン再起動は未検証**です。実行方法と構成別の結果は[ブラウザ検証](e2e/README.md)を参照してください。
 
@@ -239,9 +240,11 @@ App Store提出と利用者サポートに使う公開ページ：
 - [プライバシーポリシー](https://spotjobs-reward-inventory-manager.vercel.app/privacy)
 - [サポート](https://spotjobs-reward-inventory-manager.vercel.app/support)
 
-現在のバージョンでは、作業記録と設定を端末内のIndexedDBに保存し、スクリーンショットのOCRも端末内で実行します。利用者アカウント、クラウド同期、独自の送信API、アクセス解析SDK、広告SDKはありません。データの削除・保存期間、バックアップ、外部リンク利用時の扱いはプライバシーポリシーに明記しています。不具合・要望は公開GitHub Issuesで受け付けるため、実際の作業記録や個人情報を投稿しないようサポートページで案内しています。
+現在のバージョンでは、作業記録と設定を端末内のIndexedDBに保存し、スクリーンショットのOCRも端末内で実行します。利用者アカウント、クラウド同期、独自の送信API、アクセス解析SDK、広告SDKはありません。データの削除・保存期間、バックアップ、外部リンク利用時の扱いはプライバシーポリシーに明記しています。不具合・要望は公開GitHub Issuesで受け付けるため、実際の作業記録や個人情報を投稿しないようサポートページで案内しています。Web・iOS・Androidへの広告掲載は将来計画で、事業者、広告ID、同意設計が確定してから各版へ追加します。
 
-iOS版の実装、TestFlight、App Store公開をMac版Codexへ引き継ぐ場合は、[Mac版Codex向け iOSリリース引き継ぎプロンプト](docs/MAC_IOS_RELEASE_PROMPT.md)を使用してください。
+iOS共通層にはCapacitor 8を導入済みです。nativeではService Workerを使わず同梱資産で動作し、公式サイトとXを外部ブラウザで開き、JSON／CSVをiOS共有シートから保存します。Web版とiOS版の保存領域は別なので、既存記録はJSONバックアップで移します。
+
+Macでの生成・同期手順は[iOS build handoff](docs/IOS_BUILD.md)、TestFlightからApp Store公開までMac版Codexへ引き継ぐ場合は[Mac版Codex向け iOSリリース引き継ぎプロンプト](docs/MAC_IOS_RELEASE_PROMPT.md)を使用してください。
 
 開発サーバー：
 

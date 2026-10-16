@@ -3,10 +3,12 @@
 import { useMemo, useState } from 'react';
 import { ExternalLink, Share2, ShieldCheck, WifiOff } from 'lucide-react';
 import type { Calculation } from '@/lib/core';
+import { isNativeRuntime, openExternalUrl } from '@/lib/native-runtime';
 import { buildPerformanceShareText, CANONICAL_APP_URL, createXShareUrl, type PerformanceShareScope } from '@/lib/share';
 
 export default function SharePanel({ todaySummary, weekSummary, today, demo, online }: { todaySummary: Calculation; weekSummary: Calculation; today: string; demo: boolean; online: boolean }) {
   const [scope, setScope] = useState<PerformanceShareScope>('today');
+  const [shareError, setShareError] = useState('');
   const summary = scope === 'today' ? todaySummary : weekSummary;
   const text = useMemo(() => buildPerformanceShareText({ scope, summary, today, demo }), [scope, summary, today, demo]);
   const shareUrl = useMemo(() => createXShareUrl(text), [text]);
@@ -28,8 +30,14 @@ export default function SharePanel({ todaySummary, weekSummary, today, demo, onl
     </div>
 
     {online
-      ? <a className="button x-share-button" data-testid="x-share-link" href={shareUrl} target="_blank" rel="noopener noreferrer external" aria-label="Xの共有画面を別画面で開く"><Share2 size={19} aria-hidden="true"/>Xで共有画面を開く<ExternalLink size={17} aria-hidden="true"/></a>
+      ? <a className="button x-share-button" data-testid="x-share-link" href={shareUrl} target="_blank" rel="noopener noreferrer external" aria-label="Xの共有画面を別画面で開く" onClick={event => {
+        if (!isNativeRuntime()) return;
+        event.preventDefault();
+        setShareError('');
+        void openExternalUrl(shareUrl).catch(error => setShareError(error instanceof Error ? error.message : 'Xの共有画面を開けませんでした。'));
+      }}><Share2 size={19} aria-hidden="true"/>Xで共有画面を開く<ExternalLink size={17} aria-hidden="true"/></a>
       : <button className="button share-offline-button" type="button" disabled><WifiOff size={19} aria-hidden="true"/>Xへの共有には通信が必要です</button>}
+    {shareError && <p className="form-error" role="alert">{shareError}</p>}
     <p className="field-hint">投稿内容はXの画面で確認・編集してから送信できます。このアプリから自動投稿はしません。</p>
   </div>;
 }

@@ -266,8 +266,9 @@ export function createNativeRuntimeAdapter(
         return browserDownload(dependencies, options, filename);
       }
 
+      const path = `exports/${filename}`;
       const { uri } = await Filesystem.writeFile({
-        path: `exports/${filename}`,
+        path,
         data: options.content,
         directory: Directory.Cache,
         encoding: Encoding.UTF8,
@@ -275,17 +276,23 @@ export function createNativeRuntimeAdapter(
       });
 
       try {
-        await Share.share({
-          ...(options.title ? { title: options.title } : {}),
-          files: [uri],
-          ...(options.dialogTitle ? { dialogTitle: options.dialogTitle } : {}),
-        });
-      } catch (error) {
-        if (isCancelled(error)) return { method: "cancelled", filename, uri };
-        throw error;
-      }
+        try {
+          await Share.share({
+            ...(options.title ? { title: options.title } : {}),
+            files: [uri],
+            ...(options.dialogTitle ? { dialogTitle: options.dialogTitle } : {}),
+          });
+        } catch (error) {
+          if (isCancelled(error)) return { method: "cancelled", filename, uri };
+          throw error;
+        }
 
-      return { method: "native-share", filename, uri };
+        return { method: "native-share", filename, uri };
+      } finally {
+        // The chosen destination receives its own copy. Avoid accumulating
+        // backups and CSV files in the app's temporary cache afterwards.
+        await Filesystem.deleteFile({ path, directory: Directory.Cache }).catch(() => {});
+      }
     } catch (error) {
       if (isCancelled(error)) return { method: "cancelled", filename };
       return browserDownload(dependencies, options, filename);

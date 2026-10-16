@@ -109,4 +109,21 @@ describe('local OCR lifecycle', () => {
     });
     await expect(recognizeScreenshot(file())).rejects.toThrow('オンライン');
   });
+  it('does not tell native users to go online when bundled OCR initialization fails', async () => {
+    vi.stubGlobal('window', {
+      location: { href: 'capacitor://localhost/', origin: 'null' },
+      Capacitor: { isNativePlatform: () => true, getPlatform: () => 'ios' },
+    });
+    sdk.createWorker.mockImplementation((_languages, _mode, options) => {
+      queueMicrotask(() => options.errorHandler('load failed'));
+      return new Promise(() => {});
+    });
+
+    const error = await recognizeScreenshot(file()).then(
+      () => new Error('expected OCR initialization to fail'),
+      reason => reason instanceof Error ? reason : new Error(String(reason)),
+    );
+    expect(error.message).toContain('アプリを開き直して');
+    expect(error.message).not.toContain('オンライン');
+  });
 });

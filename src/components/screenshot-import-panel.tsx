@@ -6,6 +6,7 @@ import { Check, ImagePlus, ShieldCheck, X } from 'lucide-react';
 import { buildJobScreenshotRecords, parseJobScreenshotText, type JobScreenshotCandidate } from '@/lib/job-screenshot';
 import { isValidDate, type Area, type WorkRecord } from '@/lib/core';
 import type { AppData } from '@/lib/storage';
+import { isNativeRuntime } from '@/lib/native-runtime';
 import { AREAS, dateLabel, money, typeLabel } from './ui';
 
 type Draft = JobScreenshotCandidate & { selected: boolean; sourceName: string };
@@ -24,6 +25,7 @@ export default function ScreenshotImportPanel({ data, today, onImport }: {
   const [messages, setMessages] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
   const [hasRead, setHasRead] = useState(false);
+  const [nativeRuntime, setNativeRuntime] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController | null>(null);
   const imageUrls = useRef<string[]>([]);
@@ -37,6 +39,7 @@ export default function ScreenshotImportPanel({ data, today, onImport }: {
 
   useEffect(() => {
     mounted.current = true;
+    setNativeRuntime(isNativeRuntime());
     return () => { mounted.current = false; abort.current?.abort(); imageUrls.current.forEach(url => URL.revokeObjectURL(url)); };
   }, []);
   useEffect(() => { setConfirmed(false); }, [data.settings, data.records]);
@@ -80,7 +83,9 @@ export default function ScreenshotImportPanel({ data, today, onImport }: {
           failures.push(`${file.name}：${error instanceof Error ? error.message : '読み取れませんでした。画像を確認してください。'}`);
         }
       }
-    } catch { failures.push('読み取り機能を開けませんでした。初回は通信に接続して、もう一度お試しください。'); }
+    } catch { failures.push(isNativeRuntime()
+      ? '読み取り機能を開けませんでした。アプリを開き直して、もう一度お試しください。'
+      : '読み取り機能を開けませんでした。初回は通信に接続して、もう一度お試しください。'); }
     finally {
       if (mounted.current) {
         setReading(false); setHasRead(true);
@@ -106,7 +111,7 @@ export default function ScreenshotImportPanel({ data, today, onImport }: {
     <p className="screenshot-privacy"><ShieldCheck size={17}/>画像はこの端末内で読み取り、外部へ送信・保存しません。</p>
     <input ref={picker} hidden type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" multiple aria-label="ジョブ履歴のスクリーンショット" onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ''; void readImages(files); }}/>
     <button type="button" className="button button-secondary screenshot-pick" disabled={reading || saving} onClick={() => picker.current?.click()}><ImagePlus size={20}/>{hasRead ? '画像を選び直す' : 'スクリーンショットを選ぶ'}</button>
-    <p className="field-hint">JPEG・PNG・WebP、1枚12MBまで、最大5枚。「完了」タブの日時・種類・本数が切れないように撮影してください。初回の読み取りには通信が必要です。</p>
+    <p className="field-hint">JPEG・PNG・WebP、1枚12MBまで、最大5枚。「完了」タブの日時・種類・本数が切れないように撮影してください。{nativeRuntime ? '文字認識データはアプリに同梱され、オフラインで読み取れます。' : 'Web版では初回の読み取りに通信が必要です。'}</p>
     {reading && <div className="ocr-progress" role="status"><strong>{progress.label || '読み取りの準備中…'}</strong><progress max="1" value={progress.value}/><p className="field-hint">端末によって数十秒かかります。この画面を開いたままお待ちください。</p><button type="button" className="button button-secondary" onClick={() => abort.current?.abort()}><X size={18}/>読み取りを中止</button></div>}
     {messages.length > 0 && <div className="warning" role="alert"><div>{messages.map((message, i) => <p key={i}>{message}</p>)}</div></div>}
     {sources.length > 0 && <details className="screenshot-sources"><summary>元の画像と見比べる（{sources.length}枚）</summary><div>{sources.map(source => <figure key={source.url}><Image unoptimized src={source.url} alt="選択したジョブ履歴のスクリーンショット" width={600} height={1200}/><figcaption>{source.name}</figcaption></figure>)}</div></details>}

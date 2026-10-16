@@ -1,4 +1,5 @@
 import type { Worker as OcrWorker } from 'tesseract.js';
+import { isNativeRuntime } from './native-runtime';
 
 export const MAX_SCREENSHOT_BYTES = 12 * 1024 * 1024;
 export const MAX_SCREENSHOT_PIXELS = 24_000_000;
@@ -46,6 +47,7 @@ export async function recognizeScreenshot(file: File, options: ScreenshotOcrOpti
   if (options.signal?.aborted) throw abortError();
   if (running) throw new Error('前の画像を読み取り中です。画像は 1 枚ずつ処理してください。');
   if (typeof window === 'undefined') throw new Error('画像の読み取りはブラウザで実行してください。');
+  const bundledAssets = isNativeRuntime();
   running = true;
   let finished = false;
   let worker: OcrWorker | undefined;
@@ -70,7 +72,9 @@ export async function recognizeScreenshot(file: File, options: ScreenshotOcrOpti
   options.signal?.addEventListener('abort', onAbort, { once: true });
   const requestedTimeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const timeoutMs = Number.isFinite(requestedTimeout) && requestedTimeout > 0 ? Math.min(requestedTimeout, 600_000) : DEFAULT_TIMEOUT_MS;
-  const timer = setTimeout(() => stop(new Error('画像の読み取りが時間内に終わりませんでした。通信状況を確認するか、画像を分割して再度お試しください。')), timeoutMs);
+  const timer = setTimeout(() => stop(new Error(bundledAssets
+    ? '画像の読み取りが時間内に終わりませんでした。画像を分割するか、アプリを開き直して再度お試しください。'
+    : '画像の読み取りが時間内に終わりませんでした。通信状況を確認するか、画像を分割して再度お試しください。')), timeoutMs);
 
   try {
     // Attach the cancellation race before beginning asynchronous work. Tesseract's
@@ -113,11 +117,15 @@ export async function recognizeScreenshot(file: File, options: ScreenshotOcrOpti
         cachePath: MODEL_CACHE,
         logger: event => {
           if (event.status === 'recognizing text') report(0.45 + event.progress * 0.54, '画像から文字を読み取っています');
-          else if (event.status === 'loading language traineddata') report(0.15 + event.progress * 0.22, '日本語・英語モデルを準備しています（初回は通信が必要です）');
+          else if (event.status === 'loading language traineddata') report(0.15 + event.progress * 0.22, bundledAssets
+            ? '同梱された日本語・英語モデルを準備しています'
+            : '日本語・英語モデルを準備しています（初回は通信が必要です）');
           else if (event.status === 'initializing api') report(0.38 + event.progress * 0.05, '文字の読み取りを開始しています');
           else report(0.08, '端末内の読み取り機能を準備しています');
         },
-        errorHandler: () => stop(new Error('読み取り機能を準備・実行できませんでした。初回はオンラインで開き直してお試しください。')),
+        errorHandler: () => stop(new Error(bundledAssets
+          ? '読み取り機能を準備・実行できませんでした。アプリを開き直して再度お試しください。'
+          : '読み取り機能を準備・実行できませんでした。初回はオンラインで開き直してお試しください。')),
       });
       // The public API gives access to the worker only after initialization.
       // If cancelled during initialization, discard it as soon as it resolves.

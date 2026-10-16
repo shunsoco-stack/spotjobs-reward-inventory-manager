@@ -24,8 +24,8 @@ export default function SupportPage() {
         <p>ログインやクラウド同期はありません。別の端末・ブラウザ・公開URLへ自動では移りません。端末変更前には設定画面からJSONバックアップを保存してください。</p>
       </div>
       <div className={styles.actions}>
-        <Link className={styles.primaryAction} href="/">アプリを開く</Link>
-        <Link className={styles.secondaryAction} href="/privacy">データの取り扱いを見る</Link>
+        <Link className={styles.primaryAction} href="/" prefetch={false}>アプリを開く</Link>
+        <a className={styles.secondaryAction} href="/privacy.html">データの取り扱いを見る</a>
       </div>
     </section>
 

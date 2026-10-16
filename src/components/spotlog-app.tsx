@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Battery, Check, ChevronRight, Download, ExternalLink, History, House, ImagePlus, RotateCcw, ScanLine, Settings2, ShieldCheck, Smartphone, TrendingUp, Trash2, WifiOff, X } from 'lucide-react';
@@ -12,6 +12,7 @@ import CsvImportPanel from './csv-import-panel';
 import ScreenshotImportPanel from './screenshot-import-panel';
 import SharePanel from './share-panel';
 import { parseCsv } from '@/lib/csv';
+import { exportTextFile, isNativeRuntime, openExternalUrl } from '@/lib/native-runtime';
 import { dateLabel, Sheet, typeLabel } from './ui';
 import { HistoryView, HomeView, InventoryView, SimulatorView, WeeklyView, type View } from './work-views';
 
@@ -44,6 +45,7 @@ export default function SpotlogApp() {
   const [entryVersion, setEntryVersion] = useState(0);
   const [online, setOnline] = useState(true);
   const [offlineReady, setOfflineReady] = useState(false);
+  const [nativeRuntime, setNativeRuntime] = useState(false);
   const [install, setInstall] = useState<InstallEvent | null>(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -66,9 +68,14 @@ export default function SpotlogApp() {
     const timer = window.setInterval(refreshDate, 30000);
     const network = () => setOnline(navigator.onLine); network();
     const installPrompt = (event: Event) => { event.preventDefault(); setInstall(event as InstallEvent); };
+    const runningNative = isNativeRuntime();
+    setNativeRuntime(runningNative);
+    document.documentElement.dataset.runtime = runningNative ? 'native' : 'web';
     window.addEventListener('online', network); window.addEventListener('offline', network);
-    window.addEventListener('focus', refreshDate); window.addEventListener('beforeinstallprompt', installPrompt);
-    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+    window.addEventListener('focus', refreshDate);
+    if (!runningNative) window.addEventListener('beforeinstallprompt', installPrompt);
+    if (runningNative) setOfflineReady(true);
+    else if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
       void navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready).then(() => { if (active) setOfflineReady(true); }).catch(() => { if (active) setOfflineReady(false); });
     }
     const sync = async () => {
@@ -77,7 +84,7 @@ export default function SpotlogApp() {
     };
     if ('BroadcastChannel' in window) { channel.current = new BroadcastChannel('spotjobs-data'); channel.current.onmessage = () => { void sync(); }; }
     window.addEventListener('focus', sync);
-    return () => { active = false; clearInterval(timer); channel.current?.close(); window.removeEventListener('online', network); window.removeEventListener('offline', network); window.removeEventListener('focus', refreshDate); window.removeEventListener('focus', sync); window.removeEventListener('beforeinstallprompt', installPrompt); };
+    return () => { active = false; clearInterval(timer); channel.current?.close(); window.removeEventListener('online', network); window.removeEventListener('offline', network); window.removeEventListener('focus', refreshDate); window.removeEventListener('focus', sync); if (!runningNative) window.removeEventListener('beforeinstallprompt', installPrompt); };
   }, []);
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -114,13 +121,23 @@ export default function SpotlogApp() {
   function changeView(next: View) { setView(next); window.scrollTo({ top: 0, behavior: 'instant' }); }
   function changeWeek(next: string) { setSelectedWeek(next === currentWeek ? null : next === addDays(week, -7) ? adjacentWeekStart(week, -1, data.records, data.settings) : next === addDays(week, 7) ? adjacentWeekStart(week, 1, data.records, data.settings) : next); }
   function switchDemo(next: boolean) { setDemo(next); setUndo(null); setNotice({ text: next ? 'デモデータを表示しています。自分の記録には影響しません。' : '自分の記録に戻りました' }); setSelectedWeek(null); changeView('home'); }
-  function download(content: string, filename: string, type: string) {
-    const url = URL.createObjectURL(new Blob([content], { type })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.hidden = true; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
-    setNotice({ text: 'ファイルを作成しました。ダウンロード先を確認してください。' });
-  }
-  function exportFile(csv = false) {
-    try { download(csv ? exportCsv(data.records, data.settings) : serializeBackup(data), `spotjobs-${csv ? 'records' : 'backup'}-${today}${demo ? '-demo' : ''}.${csv ? 'csv' : 'json'}`, csv ? 'text/csv;charset=utf-8' : 'application/json'); }
+  async function exportFile(csv = false) {
+    try {
+      const result = await exportTextFile({
+        content: csv ? exportCsv(data.records, data.settings) : serializeBackup(data),
+        filename: `spotjobs-${csv ? 'records' : 'backup'}-${today}${demo ? '-demo' : ''}.${csv ? 'csv' : 'json'}`,
+        mimeType: csv ? 'text/csv;charset=utf-8' : 'application/json',
+        title: csv ? 'SPOTJOBS記録CSV' : 'SPOTJOBSバックアップ',
+        dialogTitle: csv ? 'CSVの保存先を選択' : 'バックアップの保存先を選択',
+      });
+      if (result.method !== 'cancelled') setNotice({ text: result.method === 'native-share' ? 'ファイルを作成しました。選択した保存先を確認してください。' : 'ファイルを作成しました。ダウンロード先を確認してください。' });
+    }
     catch (e) { setNotice({ text: e instanceof Error ? e.message : '出力できませんでした。', error: true }); }
+  }
+  function openOfficialService(event: MouseEvent<HTMLAnchorElement>) {
+    if (!isNativeRuntime()) return;
+    event.preventDefault();
+    void openExternalUrl('https://app.spot.jobs/').catch(error => setNotice({ text: error instanceof Error ? error.message : 'SPOTJOBSを開けませんでした。', error: true }));
   }
   async function readFile(file: File | undefined, csv = false) {
     if (!file) return;
@@ -132,7 +149,7 @@ export default function SpotlogApp() {
   if (!ready) return <div className="loading-screen"><Brand/><p>記録を開いています…</p></div>;
   return <div className="app-shell">
     <aside className="desktop-sidebar"><Brand/><p className="sidebar-caption">日々の活動を、手のひらで。</p><nav aria-label="メインナビゲーション">{nav.map(n => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><n.icon size={21}/>{n.label}</button>)}<div className="nav-divider"/>{[{ id: 'inventory' as const, label: '在庫・棚卸', icon: Battery }, { id: 'weekly' as const, label: '週次報酬', icon: History }, { id: 'simulator' as const, label: 'シミュレーター', icon: TrendingUp }].map(n => <button key={n.id} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><n.icon size={21}/>{n.label}</button>)}</nav><div className="sidebar-bottom"><ShieldCheck size={23}/><strong>記録はこの端末に。</strong><p>ログイン不要。<br/>電波がなくても、いつも通り。</p><span className="pill">個人制作・非公式ツール</span></div></aside>
-    <div className="main-shell"><header className="app-header"><div className="mobile-brand"><Brand/></div><span className="desktop-header">SPOTJOBSワーカーのための管理ツール</span><div className="header-actions"><span className={`connection-status ${!online ? 'offline' : ''}`}>{online ? <ShieldCheck size={16}/> : <WifiOff size={16}/>}<span>{!online ? 'オフライン' : saving ? '保存中' : '端末に保存'}</span></span><a className="official-service-link" href="https://app.spot.jobs/" target="_blank" rel="noopener noreferrer external" aria-label="SPOTJOBSを開く（外部ブラウザ・別タブ）" title="SPOTJOBSを外部ブラウザで開く"><span>SPOTJOBSを開く</span><ExternalLink size={16} aria-hidden="true"/></a></div></header>
+    <div className="main-shell"><header className="app-header"><div className="mobile-brand"><Brand/></div><span className="desktop-header">SPOTJOBSワーカーのための管理ツール</span><div className="header-actions"><span className={`connection-status ${!online ? 'offline' : ''}`}>{online ? <ShieldCheck size={16}/> : <WifiOff size={16}/>}<span>{!online ? 'オフライン' : saving ? '保存中' : '端末に保存'}</span></span><a className="official-service-link" href="https://app.spot.jobs/" target="_blank" rel="noopener noreferrer external" aria-label="SPOTJOBSを開く（外部ブラウザ・別タブ）" title="SPOTJOBSを外部ブラウザで開く" onClick={openOfficialService}><span>SPOTJOBSを開く</span><ExternalLink size={16} aria-hidden="true"/></a></div></header>
       <main id="main-content">
         {demo && <div className="demo-banner"><div><strong>デモデータでお試し中</strong><span>自分の記録には影響しません</span></div><button onClick={() => switchDemo(false)}>終了<X size={17}/></button></div>}
         {storageError && <div className="warning" role="alert"><div><strong>保存データを開けませんでした</strong><p>{storageError}</p><button className="text-button" onClick={() => changeView('settings')}>設定からバックアップを復元</button></div></div>}
@@ -143,13 +160,13 @@ export default function SpotlogApp() {
         {view === 'inventory' && <InventoryView summary={summary} settings={data.settings} today={today} onStocktake={() => setStocktaking(true)} onEdit={setEditing}/>}
         {view === 'simulator' && <SimulatorView summary={summary} settings={data.settings} today={today}/>}
         {view === 'history' && <><button className="button button-secondary screenshot-entry-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={19}/>スクショから取り込む</button><HistoryView summary={summary} settings={data.settings} today={today} onEdit={setEditing}/></>}
-        {view === 'settings' && <><section className="panel pwa-panel"><div className="section-heading"><Smartphone size={23}/><h2>ホーム画面で、すぐ使える</h2></div><p>{offlineReady ? 'オフラインで使う準備ができています。' : '初回はインターネットに接続して開いてください。'}</p>{install && <button className="button button-primary" onClick={async () => { await install.prompt(); await install.userChoice; setInstall(null); }}><Download size={18}/>アプリをインストール</button>}<p className="field-hint">iPhone：Safariの共有 → ホーム画面に追加。Android：Chromeのメニュー → アプリをインストール。オフラインでも入力・履歴・計算を利用できます。</p></section><SettingsPanel key={`${demo}-${JSON.stringify(data.settings)}`} settings={data.settings} demo={demo} onSave={async settings => { const ok = await commit({ ...data, settings, lastArea: settings.defaultArea !== data.settings.defaultArea ? settings.defaultArea : data.lastArea }, '設定を保存しました'); if (!ok) throw new Error('設定を保存できませんでした。'); }} onBackup={() => exportFile()} onImport={() => fileRef.current?.click()} onCsv={() => exportFile(true)} onCsvImport={() => csvRef.current?.click()} onDemo={() => switchDemo(!demo)}/></>}
-        <footer className="app-footer"><nav aria-label="プライバシーとサポート"><Link href="/privacy">プライバシーポリシー</Link><Link href="/support">サポート</Link></nav><p>個人制作の非公式管理ツールです。<br className="mobile-only"/>公式サービスとは関係ありません。</p><p>報酬は個人設定に基づく見込みです。確定額・適用条件は公式サービスで確認してください。</p></footer>
+        {view === 'settings' && <><section className="panel pwa-panel"><div className="section-heading"><Smartphone size={23}/><h2>{nativeRuntime ? 'アプリとして利用中' : 'ホーム画面で、すぐ使える'}</h2></div><p>{nativeRuntime ? '必要なアプリ資産は端末に保存済みです。基本機能をオフラインで利用できます。' : offlineReady ? 'オフラインで使う準備ができています。' : '初回はインターネットに接続して開いてください。'}</p>{!nativeRuntime && install && <button className="button button-primary" onClick={async () => { await install.prompt(); await install.userChoice; setInstall(null); }}><Download size={18}/>アプリをインストール</button>}<p className="field-hint">{nativeRuntime ? 'Web版や別端末の記録は自動では移りません。設定からJSONバックアップを作成し、このアプリで復元してください。' : 'iPhone：Safariの共有 → ホーム画面に追加。Android：Chromeのメニュー → アプリをインストール。オフラインでも入力・履歴・計算を利用できます。'}</p></section><SettingsPanel key={`${demo}-${JSON.stringify(data.settings)}`} settings={data.settings} demo={demo} onSave={async settings => { const ok = await commit({ ...data, settings, lastArea: settings.defaultArea !== data.settings.defaultArea ? settings.defaultArea : data.lastArea }, '設定を保存しました'); if (!ok) throw new Error('設定を保存できませんでした。'); }} onBackup={() => { void exportFile(); }} onImport={() => fileRef.current?.click()} onCsv={() => { void exportFile(true); }} onCsvImport={() => csvRef.current?.click()} onDemo={() => switchDemo(!demo)}/></>}
+        <footer className="app-footer"><nav aria-label="プライバシーとサポート">{nativeRuntime ? <><a href="/privacy.html">プライバシーポリシー</a><a href="/support.html">サポート</a></> : <><Link href="/privacy" prefetch={false}>プライバシーポリシー</Link><Link href="/support" prefetch={false}>サポート</Link></>}</nav><p>個人制作の非公式管理ツールです。<br className="mobile-only"/>公式サービスとは関係ありません。</p><p>報酬は個人設定に基づく見込みです。確定額・適用条件は公式サービスで確認してください。</p></footer>
       </main>
     </div>
     <nav className="bottom-nav" aria-label="モバイルナビゲーション">{nav.map(n => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><span><n.icon size={23}/></span>{n.label}</button>)}</nav>
     {(editing || stocktaking) && <Sheet title={editing ? '記録を編集' : '棚卸'} onClose={() => { setEditing(null); setStocktaking(false); setDeleteConfirm(false); }}><RecordForm data={data} today={today} type={editing?.type ?? 'adjustment'} record={editing ?? undefined} onSave={saveRecord}/>{editing && <div className="delete-section">{deleteConfirm ? <><p>この{typeLabel(editing.type)}記録（{editing.quantity}本）を削除しますか？<br/>在庫・報酬は再計算されます。</p><div className="dialog-actions"><button className="button button-secondary" onClick={() => setDeleteConfirm(false)}>キャンセル</button><button className="button button-danger" disabled={saving} onClick={async () => { const ok = await commit({ ...data, records: data.records.filter(r => r.id !== editing.id) }, '記録を削除しました'); if (ok) { setEditing(null); setDeleteConfirm(false); } }}>削除する</button></div></> : <button className="text-button danger" onClick={() => setDeleteConfirm(true)}><Trash2 size={18}/>この記録を削除</button>}</div>}</Sheet>}
-    {backup && <Sheet title="バックアップを復元" onClose={() => setBackup(null)}><p>以下のバックアップを確認してください。</p><dl className="breakdown-list"><div><dt>作成日時</dt><dd>{backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('ja-JP') : '旧形式のため不明'}</dd></div><div><dt>記録数</dt><dd>{backup.recordCount}件</dd></div><div><dt>対象期間</dt><dd>{backup.startDate ? `${backup.startDate} 〜 ${backup.endDate}` : '記録なし'}</dd></div></dl><div className="warning"><div><strong>現在の{demo ? 'デモ' : '端末'}データを上書きします</strong><p>{data.records.length}件の記録と設定が置き換わります。必要な場合は先にバックアップしてください。</p></div></div><button className="button button-secondary" onClick={() => exportFile()}><Download size={18}/>現在のデータをバックアップ</button><div className="dialog-actions"><button className="button button-secondary" onClick={() => setBackup(null)}>キャンセル</button><button className="button button-primary" disabled={saving} onClick={async () => { const ok = await commit(backup.data, 'バックアップを復元しました', true, true); if (ok) { setBackup(null); setSelectedWeek(null); } }}>確認して上書き復元</button></div></Sheet>}
+    {backup && <Sheet title="バックアップを復元" onClose={() => setBackup(null)}><p>以下のバックアップを確認してください。</p><dl className="breakdown-list"><div><dt>作成日時</dt><dd>{backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('ja-JP') : '旧形式のため不明'}</dd></div><div><dt>記録数</dt><dd>{backup.recordCount}件</dd></div><div><dt>対象期間</dt><dd>{backup.startDate ? `${backup.startDate} 〜 ${backup.endDate}` : '記録なし'}</dd></div></dl><div className="warning"><div><strong>現在の{demo ? 'デモ' : '端末'}データを上書きします</strong><p>{data.records.length}件の記録と設定が置き換わります。必要な場合は先にバックアップしてください。</p></div></div><button className="button button-secondary" onClick={() => { void exportFile(); }}><Download size={18}/>現在のデータをバックアップ</button><div className="dialog-actions"><button className="button button-secondary" onClick={() => setBackup(null)}>キャンセル</button><button className="button button-primary" disabled={saving} onClick={async () => { const ok = await commit(backup.data, 'バックアップを復元しました', true, true); if (ok) { setBackup(null); setSelectedWeek(null); } }}>確認して上書き復元</button></div></Sheet>}
     {csvText !== null && <Sheet wide title="CSVから記録を取り込む" onClose={() => setCsvText(null)}><CsvImportPanel text={csvText} data={data} onImport={async records => { const ok = await commit({ ...data, records: [...data.records, ...records] }, `${records.length}件を取り込みました`); if (ok) setCsvText(null); return ok; }}/></Sheet>}
     {screenshotImport && <Sheet wide title="スクショから取り込む" onClose={() => { if (!saving) setScreenshotImport(false); }}><ScreenshotImportPanel data={data} today={today} onImport={async records => { const ok = await commit({ ...data, records: [...data.records, ...records] }, `${records.length}件をスクショから登録しました`); if (ok) { setScreenshotImport(false); changeView('history'); } return ok; }}/></Sheet>}
     {shareOpen && <Sheet title="成績をXで共有" onClose={() => setShareOpen(false)}><SharePanel todaySummary={currentWeekSummary} weekSummary={summary} today={today} demo={demo} online={online}/></Sheet>}

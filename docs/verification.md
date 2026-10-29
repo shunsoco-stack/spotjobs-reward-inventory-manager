@@ -1,6 +1,6 @@
 # 公開・品質確認レポート
 
-確認日：2026年10月17日（日本時間）
+確認日：2026年10月30日（日本時間）
 
 - アプリ名：**SPOTJOBS報酬・在庫管理アプリ**
 - Vercel Production：https://spotjobs-reward-inventory-manager.vercel.app
@@ -55,6 +55,14 @@ Capacitor 8の共通層、外部ブラウザ起動、iOS共有シートによる
 
 Vercel本番では、正規URLに加えて`/privacy`、`/support`、`/manifest.webmanifest`、`/sw.js`がHTTP 200で応答することを再確認しました。最新の本番E2EはDesktop Chromium 6件、Pixel 7相当6件、iPhone 13 WebKit 5件が成功し、Windows WebKitのオフライン再起動1件だけを理由付きでスキップしています。実行した本番テストのコンソールエラーとページ例外は0件です。
 
+## iOS引き継ぎ更新（2026年10月30日）
+
+commit `a713b501621ba2e5d1e595df7cf4d7404c1fa563`で「現在庫を編集」を追加しました。実際の保有数へ在庫だけを補正し、補充・取出件数と報酬を変えず、変更前後と差分を履歴へ残して保存直後にUndoできることをWeb版E2Eで確認しています。Mac用プロンプト、App Store metadata草案、TestFlight What to Test、審査導線、実機QA、提出スクリーンショット計画へ同機能を反映しました。
+
+同commitのGitHub Actionsは[Quality checks](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/40906763723)と[iOS native build](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/40906763087)が成功しました。iOS workflowは`macos-26`上で`npm run ios:release-preflight -- --ci-ephemeral`を実行し、署名なしSimulator buildまでを確認した証跡です。`ios/`は最終名称・Bundle ID確定前のため、永続projectとしては意図的に未生成です。
+
+Appleの2026年10月30日時点の公式仕様を再確認し、App Store画像をDynamic Island medium固定とする古い記述を削除しました。Macでは撮影直前に公式Screenshot specificationsとApp Store Connectの必須slotを再確認し、受理対象のnative原寸画像を使用します。
+
 ## 実装結果
 
 | 項目 | 実装・確認内容 |
@@ -62,7 +70,7 @@ Vercel本番では、正規URLに加えて`/privacy`、`/support`、`/manifest.w
 | スマートフォン入力 | 大きな数字入力、Numeric Keyboard、+1/+2/+3/+5/+10、日付・曜日、メモ、前回地域、保存後通知と取消 |
 | 補充・取出 | 補充は在庫減少と報酬、取出は在庫増加のみ。履歴で編集・削除可能 |
 | ホーム | 今週の報酬・補充・取出・早期本数・現在庫・次ボーナスまでの本数 |
-| 在庫 | 取出−補充と反映済み調整を通常コードで計算。今日・昨日・一昨日を動的に表示 |
+| 在庫 | 取出−補充と反映済み調整を通常コードで計算。今日・昨日・一昨日を動的に表示。実際の保有数へ現在庫だけを直接修正し、差分履歴とUndoを保持 |
 | 棚卸 | 実数と差異を記録。確認だけでは在庫を変更せず、明示確認後に反映。差異履歴を保存 |
 | 地域別単価 | A55/B60/C65/D70/省略55円の初期値。名称・説明・単価を変更可能 |
 | 早期補充 | 初期値は取出日を含む3日、10円/本。先入先出の自動推定と手動指定 |
@@ -89,7 +97,7 @@ Vercel本番では、正規URLに加えて`/privacy`、`/support`、`/manifest.w
 | --- | --- |
 | `npm run lint` | PASS（警告0） |
 | `npm run typecheck` | PASS |
-| `npm test` | PASS、185件／7ファイル（2026年10月17日） |
+| `npm test` | PASS、185件／7ファイル（2026年10月30日再確認基準） |
 | `npm run build` | PASS、静的配信ファイルとオフライン資産を生成 |
 | `npm run verify:ios` | PASS、iOSリリース入力10/10。Node・依存関係・設定・静的出力・アイコン・Privacy Manifest・OCR資産・秘密情報を確認 |
 | `npm run ios:verify-native` | PASS、生成したiOS projectの15/15。表示名・Bundle ID・deployment target・plugin・AppIcon・Privacy Manifest・同梱Web／OCR資産を確認 |
@@ -97,8 +105,8 @@ Vercel本番では、正規URLに加えて`/privacy`、`/support`、`/manifest.w
 | 最新ローカルE2E | 17件成功、1件理由付きスキップ。X共有をDesktop Chromium／Pixel 7／iPhone 13 WebKitで確認 |
 | 本番E2E | 17件成功、1件の意図したスキップ（Windows WebKitのオフライン再起動） |
 | 本番コンソール・ページ例外 | 実行した17件で0件 |
-| GitHub Actions（品質） | [Quality checks成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38942290680) |
-| GitHub Actions（iOS） | [Mac用release preflightと署名なしSimulator build成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/38942290722) |
+| GitHub Actions（品質） | [Quality checks成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/40906763723) |
+| GitHub Actions（iOS） | [Mac用release preflightと署名なしSimulator build成功](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/40906763087) |
 | Secret Scan | Gitleaks 8.30.0で公開直前の全ステージ差分および配信ファイルを検査、検出0件 |
 | 54本すべて早期補充 | 基本2,970円＋早期540円＋本数540円＝**4,050円** |
 | 段階の境界 | 0/1/19/20/49/50/99/100/149/150本・大量本数を確認 |

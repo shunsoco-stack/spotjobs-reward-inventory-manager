@@ -13,6 +13,7 @@
 - GitHub：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - Web本番：https://spotjobs-reward-inventory-manager.vercel.app/
 - 現行ブランチ：main（必ず`origin/main`の最新までpullし、Windows側で準備したCapacitor共通層を含むこと）
+- Windows側の引き継ぎ基準：少なくともcommit `a713b501621ba2e5d1e595df7cf4d7404c1fa563`（`Add quick current inventory correction`）を含むこと。`origin/main`がそれより新しければ最新を使い、全検証をやり直す。
 - 技術：Next.js 16.4.2 / React 19 / TypeScript / static export / IndexedDB / Tesseract.js 7 / PWA / Capacitor 8.5.3
 - 現行ビルド：`npm run build` で `out/` を生成する。`next.config.ts` は `output: 'export'`。
 - 準備済み：`capacitor.config.ts`、Capacitor packageとnpm script、native runtime adapter、native時のService Worker停止、外部ブラウザ、共有シート経由のJSON/CSV書出し、custom scheme対応OCR URL、safe area、1024px icon、`/privacy`、`/support`、申請metadata草案。
@@ -26,7 +27,7 @@
 3. `docs/IOS_BUILD.md`、`docs/APP_STORE_METADATA_JA.md`、`docs/APP_STORE_RELEASE_CHECKLIST.md`、`docs/app-store/screenshots/README.md`を読み、Windows側の準備済み範囲と未検証事項を確認する。
 4. このNext.jsは通常の知識で決め打ちせず、実装前に `node_modules/next/dist/docs/` の該当ガイドを読む。
 5. 利用可能なSkillに `apple-design` / `/apple-design` があれば必ず使う。
-6. Node.js 22以上、最新の安定版Xcode、Xcode Command Line Toolsを確認する。提出直前にApple公式のUpcoming Requirementsを再確認する。2026-10-17時点ではApp Store ConnectへのiOSアップロードにXcode 26以降とiOS 26 SDK以降が必要。
+6. Node.js 22以上、最新の安定版Xcode、Xcode Command Line Toolsを確認する。提出直前にApple公式のUpcoming Requirementsを再確認する。2026-10-30の公式確認ではApp Store ConnectへのiOSアップロードにXcode 26以降とiOS 26 SDK以降が必要。
 7. 作業は手順1で用意した`codex/ios-release`（または衝突しない別の`codex/` branch）上で行う。既存Web版を壊さず、共通コードを再利用する。
 8. 最初に現行品質を固定するため、`npm ci`、`npm run ios:preflight`を実行し、結果を記録する。`ios:preflight`はlint、typecheck、unit、static buildに加え、Capacitor設定、local asset、OCR、法務ページ、icon、Privacy Manifest雛形、commit対象secret/Xcode stateを自動監査する。`npm run ios:release-preflight -- --plan`で、その後Mac上で実行する全検証をファイル変更なしで確認できる。ブラウザが未導入なら`npx playwright install chromium webkit`を一度実行し、公開中のbaselineは`E2E_BASE_URL=https://spotjobs-reward-inventory-manager.vercel.app npm run test:e2e`で確認する。`npm run test:e2e`単独は`http://localhost:3059`を参照するため、ローカル変更を手動検証するときは別processで`npm run preview`を起動してから実行する。Windows側の基準は単体185件成功、ブラウザ17件成功・WebKitのオフライン再起動1件スキップ。
 
@@ -48,7 +49,7 @@
 
 既存の静的exportを端末へ同梱するCapacitor方式を第一候補とする。リモートURLだけを表示するWebViewは禁止。Apple Guideline 4.2対策として、通信なしで主要機能が動き、iOSの写真・ファイル・共有・外部ブラウザ・safe area等と統合された実用アプリにする。
 
-- 2026-10-17時点の安定版はCapacitor 8。作業時点の公式安定版と互換性を確認し、pre-release版は使わない。
+- 2026-10-30時点の採用版はCapacitor 8.5.3。作業時点の公式安定版と互換性を確認し、理由なく更新せず、pre-release版は使わない。
 - 導入済みの`@capacitor/core`、`@capacitor/cli`、`@capacitor/ios` 8.5.3と各公式pluginの互換性を再確認する。`capacitor.config.ts`の`webDir`は`out`。
 - Capacitor標準のlocal server/custom schemeから同梱assetを配信する。`file://`直読みや`server.url`による本番Webサイトのラップは使わない。
 - iOS側はCapacitor 8標準のSwift Package Managerを優先する。必要性を説明できないCocoaPods依存やプラグインを増やさない。
@@ -77,6 +78,7 @@
 - 地域A/B/C/D/省略と各地域の解説
 - 早期補充、週間Bonus、週次表、日別・地域別集計
 - 在庫、棚卸、差異確認、履歴、編集、削除、Undo
+- 「現在庫を編集」：現在値を初期表示し、実際の保有数へ直接修正。補充・取出件数と報酬は変えず、変更前後・差分を確認して履歴へ残し、保存直後はUndo可能
 - 報酬シミュレーター、Tier到達、Goal、あと何本で目標
 - JSON Backup/Restore、CSV Import/Export、事前Preview
 - ジョブ履歴スクリーンショットからの端末内OCR取込・修正・重複除外
@@ -116,7 +118,7 @@ JSON／CSV／画像の読込は現状`input type="file"`を使っており、run
 
 ### 4. OCR
 
-`src/lib/screenshot-ocr.ts`はHTTPSと`capacitor://localhost`の両方でTesseract worker/WASM/langを解決するhelperへ変更済み。2026-10-17のbuildでは`out/ocr`は約47.5MB、全`out`は約48.6MB。
+`src/lib/screenshot-ocr.ts`はHTTPSと`capacitor://localhost`の両方でTesseract worker/WASM/langを解決するhelperへ変更済み。2026-10-30の検証では`out/ocr`は約47.5MB。Macでも生成後の実サイズを再確認する。
 
 - `capacitor://localhost/ocr/...`でWorker、WASM、gzip、MIMEが実際に読み込めることをSimulatorと実機で確認し、問題がある場合だけ既存helperを修正する。
 - nativeではOCR資産を全て同梱するため「初回は通信が必要」という表示を出さない。Webでは現行条件に合わせる。
@@ -193,7 +195,7 @@ App Store record作成前に、Version 1.0を広告SDK・広告枠なしで公�
 - Review contact、Review Notes、TestFlight Beta Description、What to Test
 - App Storeスクリーンショット5枚以上。実在作業記録や個人情報を使わずデモデータで撮る。最低でもDashboard、補充入力、報酬内訳、在庫/棚卸、OCRまたはシミュレーターを含める。
 - 個人情報のないデモApp Storeスクリーンショットは`docs/app-store/screenshots/`へ保存してcommitする。実作業履歴、実店舗名、個人情報を含む画像はcommitも提出もしない。
-- Appleがその時点で要求するiPhoneサイズを公式仕様で再確認する。PNG/JPG、alphaなし、端末frameや文言が誤認を招かないこと。iPadを有効にする場合はiPad素材も用意する。
+- Appleがその時点で要求するiPhoneサイズを公式仕様とApp Store Connectのupload slotで再確認する。2026-10-30の公式仕様にあるlarge Dynamic Island portrait（`1260×2736`、`1290×2796`、`1320×2868`）等の受理対象から、実際のSimulator／端末が原寸で出力するサイズを使う。小さいWeb画像を引き伸ばさない。PNG/JPG、alphaなし、端末frameや文言が誤認を招かないこと。Appleが明示的に許可するdevice class間のscaleはApp Store Connect側へ任せる。iPadを有効にする場合はiPad素材も用意する。
 
 App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、最終App Store名、ホーム画面表示名、iPhone専用／iPad対応、v1広告なしの前提を確定する。SKUは個人情報を含まない一意な値にする。identity確定後は、(1) Apple Developer Portalで同じBundle IDの明示的なApp IDを登録、(2) App Store ConnectでそのBundle IDと確定SKUを選んでiOSアプリレコードを作成、(3) Xcode Signingと`capacitor.config.ts`のBundle IDが一致することを確認、(4) Archive／Validate／upload、(5) 内部TestFlight、の順で進める。
 
@@ -205,6 +207,7 @@ App Store recordを作る前に、Bundle ID、表示するdeveloper/seller名、
    - 初回起動、デモ、自分の記録
    - 補充、取出、編集、削除、Undo
    - 在庫増減、棚卸、差異反映確認
+   - 「現在庫を編集」の現在値初期表示、変更前→変更後、差分、確認、履歴、Undo。補充・取出件数と報酬が変わらないこと
    - 早期補充、地域別単価、週間Bonusの境界、報酬、Goal、Simulator
    - 今日/1週間のX共有と`#SPOTJOBS`
    - SPOTJOBS URLが外部ブラウザで開く

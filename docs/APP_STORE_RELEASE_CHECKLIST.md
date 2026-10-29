@@ -1,6 +1,6 @@
 # App Store release readiness checklist
 
-更新日：2026-10-17
+更新日：2026-10-30
 
 この文書は、Windowsで準備できる申請物と、Mac／Apple Developer Accountでしか完了できない作業を分けるための監査表です。申請文面の原本は `APP_STORE_METADATA_JA.md`、実行手順は `MAC_IOS_RELEASE_PROMPT.md` と `IOS_BUILD.md` を使用します。
 
@@ -16,6 +16,7 @@
 - [x] Capacitor Filesystem 8.1.5向けのPrivacy Manifest雛形を `assets/ios/PrivacyInfo.xcprivacy` に用意した。File Timestamp APIをアプリcontainer内の一時exportファイルへ使うため、pluginが案内する `C617.1` を宣言している。
 - [x] Web版とiOS版は保存領域が別で、JSON Export → iOS Restoreを移行方法とすることをREADME、Support、iOS手順へ明記した。
 - [x] App Store用スクリーンショットの撮影順、個人情報除外、保存先を `docs/app-store/screenshots/README.md` に定義した。
+- [x] 「現在庫を編集」は、補充・取出件数と報酬を変えず、差分履歴とUndoを残す仕様としてWeb版E2Eで確認した。iOSでは下記の実機確認を残す。
 
 ## Macでbinary生成後に確認する項目
 
@@ -29,8 +30,9 @@
 - [ ] Filesystem以外のapp code／SDKがrequired-reason APIを使う場合は、実際の用途に合うapproved reasonを追加する。雛形のまま決め打ちしない。
 - [ ] 全依存を監査して、OS標準HTTPSなど免除対象の暗号だけなら`ITSAppUsesNonExemptEncryption = NO`を設定する。事実が異なる場合はexport complianceを申告する。
 - [ ] AppIcon asset catalogへ1024px原本を登録し、XcodeのApp Icon検証に合格する。
-- [ ] デモデータで実機／SimulatorのApp Store画像を撮影し、`docs/app-store/screenshots/`へ保存・commitする。2026-10-17時点の必須iPhone枠はDynamic Islandのmedium display（portrait `1179×2556`または`1206×2622`）。iPad対応時は13-inch（portrait `2064×2752`または`2048×2732`）も必須。提出直前に公式仕様を再確認し、既存の`docs/screenshots/`はWeb版ポートフォリオ画像なので提出しない。
+- [ ] デモデータで実機／SimulatorのApp Store画像を撮影し、`docs/app-store/screenshots/`へ保存・commitする。2026-10-30の公式仕様にあるlarge Dynamic Island portrait（`1260×2736`、`1290×2796`、`1320×2868`）等の受理対象から原寸出力を使い、App Store Connectの必須slotをupload直前にも確認する。iPad対応時は13-inch iPad素材も用意する。既存の`docs/screenshots/`はWeb版ポートフォリオ画像なので提出しない。
 - [ ] iPhone実機で初回起動、force quit、端末再起動、機内モード、アプリ更新後のIndexedDB保持を確認する。
+- [ ] iPhone実機で「現在庫を編集」を確認する。現在値の事前入力、変更前後と差分の確認、保存後の差分履歴、Undoに加え、補充・取出件数と報酬が変わらないことを確認する。
 - [ ] Web版でJSONを出力し、iOS版でRestore Previewの作成日時・件数・期間を確認して復元する。設定、全記録、在庫、週間報酬が一致することを確認する。
 - [ ] JSON／CSV書出し、Filesへの保存、画像／JSON／CSVのpicker、X共有、SPOTJOBS公式サイトの外部ブラウザ起動を実機で確認する。
 - [ ] VoiceOver、Dynamic Type、Light／Dark／System、safe area、横スクロールなし、numeric keyboardを実機で確認する。
@@ -70,7 +72,7 @@ Version 1.0の現状は広告なしです。将来Web／iOS／Androidへ広告�
 
 AppleはiPhoneのdevice size／localizationごとに1〜10枚を受け付け、alpha/transparencyを認めていません。UIが同じなら、最も高い必須解像度を提出して小さいdeviceへscaleできます。提出時点の公式仕様を再確認してください。
 
-現行のREADME画像は次の寸法で、いずれもApp Storeで必須のDynamic Island medium-display提出画像としては使用できません。
+現行のREADME画像は次の寸法で、いずれもApp Storeの現行iPhone提出slotへ使える原寸画像ではありません。
 
 | ファイル | 現在の寸法 | 用途 |
 | --- | ---: | --- |

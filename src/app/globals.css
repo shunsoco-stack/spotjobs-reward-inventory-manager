@@ -230,6 +230,11 @@ progress::-moz-progress-bar { background: var(--green); border-radius: 20px; }
 .inventory-message > div { min-width: 0; }
 .inventory-message strong { font-size: .8125rem; }
 .inventory-message p { color: var(--muted); font-size: .6875rem; margin-top: .25rem; }
+.inventory-edit-shortcut { width: 100%; margin-top: 1rem; justify-content: flex-start; text-align: left; }
+.inventory-edit-shortcut > svg:first-child { color: var(--amber); }
+.inventory-edit-shortcut > svg:last-child { margin-left: auto; color: var(--muted); }
+.inventory-edit-shortcut > span { display: flex; flex-direction: column; gap: .15rem; font-size: .8125rem; }
+.inventory-edit-shortcut small { color: var(--muted); font-size: .625rem; font-weight: 450; }
 .welcome-panel { text-align: center; padding: 1.75rem 1.25rem; }
 .welcome-panel > p { color: var(--muted); font-size: .8125rem; }
 .welcome-panel > .button { margin-top: 1.25rem; }
@@ -311,6 +316,9 @@ progress::-moz-progress-bar { background: var(--green); border-radius: 20px; }
 .stocktake-preview > div { display: flex; justify-content: space-between; gap: .75rem; padding: .45rem 0; }
 .stocktake-preview > div > span { color: var(--muted); font-size: .8125rem; }
 .stocktake-preview > .check-field { border-top: 1px solid color-mix(in srgb, var(--amber) 20%, transparent); margin-top: .5rem; padding-top: .875rem; }
+.inventory-edit-date { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 48px; padding: .75rem .875rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-subtle); font-size: .8125rem; }
+.inventory-edit-date span { color: var(--muted); }
+.inventory-edit-preview > .field-hint { margin-top: .5rem; padding-top: .75rem; border-top: 1px solid color-mix(in srgb, var(--amber) 20%, transparent); }
 .reward-total { padding: .5rem 0 1.25rem; }
 .reward-total > span { font-size: .8125rem; color: var(--muted); }
 .reward-total > strong { display: block; font-size: clamp(2.5rem, 10vw, 3.5rem); line-height: 1.35; letter-spacing: -.05em; margin-top: .4rem; overflow-wrap: anywhere; }
@@ -359,7 +367,9 @@ tfoot th, tfoot td { font-weight: 750; border-bottom: 0; }
 .inventory-numbers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding: 1rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 1.25rem; }
 .inventory-numbers span { display: block; color: var(--muted); font-size: .6875rem; margin-bottom: .3rem; }
 .inventory-numbers b { font-size: 1.25rem; }
-.inventory-hero > .button { width: 100%; }
+.inventory-actions { display: grid; gap: .625rem; }
+.inventory-actions .button { width: 100%; }
+.inventory-actions > p { margin: -.125rem 0 .25rem; color: var(--muted); font-size: .6875rem; line-height: 1.65; }
 .stocktake-list, .batch-list { display: grid; }
 .stocktake-list > button, .batch-list > div { display: flex; gap: 1rem; justify-content: space-between; align-items: center; text-align: left; padding: 1rem 0; border-bottom: 1px solid var(--line); }
 .stocktake-list > button > div, .batch-list > div > div { min-width: 0; display: flex; flex-direction: column; gap: .2rem; }

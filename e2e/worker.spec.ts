@@ -22,6 +22,7 @@ test('fresh dashboard, explicit demo separation, and responsive screens', async 
     await expect(page.getByRole('button', { name: /本を補充として保存$/ })).toBeDisabled();
     await navigate(page, 'ホーム');
     await inventoryView(page);
+    await expect(page.getByRole('button', { name: '現在庫を編集', exact: true })).toBeVisible();
     await noHorizontalOverflow(page);
     await simulatorView(page);
     await noHorizontalOverflow(page);
@@ -150,6 +151,37 @@ test('reference rewards, simulator, editing, delete undo, stocktake, snapshots a
     await expect(editor).not.toBeVisible();
     await expect(page.locator('.inventory-count')).toHaveText('4本');
     await expect(page.locator('.stocktake-list')).toContainText('在庫へ反映済み');
+    await closeNotice(page);
+  });
+
+  await test.step('current inventory can be corrected without changing rewards and undone', async () => {
+    await navigate(page, 'ホーム');
+    await page.locator('.inventory-preview').getByRole('button', { name: '現在庫を編集', exact: true }).click();
+    const inventoryEditor = page.getByRole('dialog', { name: '現在庫を編集', exact: true });
+    const quantity = inventoryEditor.getByRole('textbox', { name: '本数', exact: true });
+    await expect(quantity).toHaveValue('4');
+    await expect(inventoryEditor.getByRole('button', { name: '現在庫は4本です', exact: true })).toBeDisabled();
+    await quantity.fill('2');
+    await expect(inventoryEditor.locator('.inventory-edit-preview')).toContainText('変更前');
+    await expect(inventoryEditor.locator('.inventory-edit-preview')).toContainText('変更後');
+    await expect(inventoryEditor.locator('.inventory-edit-preview')).toContainText('-2');
+    await inventoryEditor.getByRole('button', { name: '現在庫を2本に変更', exact: true }).click();
+    const confirmation = page.getByRole('dialog', { name: '現在庫を変更しますか？', exact: true });
+    await expect(confirmation).toContainText('4本 → 2本');
+    await confirmation.getByRole('button', { name: '確認して変更する', exact: true }).click();
+    await expect(inventoryEditor).not.toBeVisible();
+    await expect(page.locator('.toast')).toContainText('現在庫を2本に修正しました');
+    await inventoryView(page);
+    await expect(page.locator('.inventory-count')).toHaveText('2本');
+    await expect(page.locator('.stocktake-list button')).toHaveCount(2);
+    await expect(page.locator('.stocktake-list button').first()).toContainText('在庫へ反映済み');
+    await expect(page.locator('.stocktake-list button').first()).toContainText('差異 -2本');
+    await navigate(page, 'ホーム');
+    await expect(page.locator('.hero-amount')).toHaveText('¥4,050');
+    await page.getByRole('button', { name: '元に戻す', exact: true }).click();
+    await inventoryView(page);
+    await expect(page.locator('.inventory-count')).toHaveText('4本');
+    await expect(page.locator('.stocktake-list button')).toHaveCount(1);
     await closeNotice(page);
   });
 

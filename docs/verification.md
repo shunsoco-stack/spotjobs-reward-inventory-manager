@@ -1,11 +1,54 @@
 # 公開・品質確認レポート
 
-確認日：2026年10月30日（日本時間）
+最新確認日：2026年11月2日（日本時間。過去の検証は各節の日付を参照）
 
 - アプリ名：**SPOTJOBS報酬・在庫管理アプリ**
 - Vercel Production：https://spotjobs-reward-inventory-manager.vercel.app
 - GitHub Public：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - 個人制作の非公式管理ツール。公式サービスとの関係はありません。
+
+## Macリリース作業の現状（2026年11月2日）
+
+**iOS公開は未完了です。** 以下はこのMacでの準備状況です。後続の過去レポートにあるCI上のSimulator成功は、実機・署名・TestFlight・公開の証跡ではありません。
+
+- `codex/ios-release`は引き継ぎcommit `46d237d`を含み、追加のUI motion変更 `031d4b3e21b61bfb59524ba669b64693ecf83014`も取り込みました。
+- Node.js 22.14.0、Xcode 26.4（17E192）、iOS SDK／Simulator runtime 26.4を確認しました。
+- Capacitor core／CLI／iOSを8.6.0へ揃え、Vitestを4.1.12へ更新しました。CLIのxcode／uuid依存とVitest mockerの修正を採用し、互換範囲内でVite、Zod、brace-expansionなどのlockfileも更新しています。[Capacitorの変更履歴](https://github.com/ionic-team/capacitor/releases/tag/8.6.0)、[Vitestの変更履歴](https://github.com/vitest-dev/vitest/releases/tag/v4.1.12)を確認しました。npm 10の依存解決エラーは一時的なnpm 11で更新後、npm 10でlockfileを整合させ、通常の`npm ci`成功まで確認しています。グローバルnpmは変更していません。
+- `npm audit --omit=dev`は0件。全依存のauditには開発専用のmoderate 19件が残っています。根本の指摘は[globのキャンセル後の走査](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)と[minimatchのパターン展開によるDoS](https://github.com/advisories/GHSA-g3hv-75wg-m249)で、19は依存元への波及も含む数です。npmが提示する強制修正はCapacitor CLI 4／ESLint 4への非互換変更のため採用していません。これらの開発ツールは静的アプリへ同梱されませんが、開発環境の残存リスクとして扱います。
+- 最終名称、Bundle ID、名称利用許諾、Team、device family、広告方針、連絡先、配信地域、DSA、公開方式、SKUは本人確認待ちです。候補値を確定値として扱っていません。
+- `ios/`は未生成のままです。`ios:release-preflight -- --plan`は確認済みですが、identity guardを迂回していません。`ios:verify-native`は`ios/ is missing`で失敗することを確認しており、成功扱いにはしていません。
+- App ID／App Store Connect recordの作成、署名、Archive、Validate、upload、実機／TestFlight QA、App Review、App Store公開は未実施です。提出用6枚も未撮影です。
+
+### ソース・提出準備の監査
+
+- `webDir: out`、`output: export`を維持し、`server.url`／`allowNavigation`はありません。UIからのネイティブ操作は`src/lib/native-runtime.ts`を経由します。
+- 保存先はIndexedDB。補充・取出・報酬・在庫の計算モデル、Web／PWAと将来のAndroid向け共通コードは変更していません。
+- OCR worker／WASM／日本語・英語モデル22ファイル、47.5 MBを同梱対象として確認しました。画像を外部送信する処理はソース上なく、nativeではService Worker登録を行わない構成です。実際の`capacitor://localhost`上のOCR、Files／写真picker、機内モードはまだ実機で確認していません。
+- 現行依存には広告・analytics・Cloud Sync SDKを追加していません。Capacitor／CordovaのPrivacy Manifestは収集・trackingなしを宣言し、アプリのFilesystem用雛形はFile Timestamp／C617.1です。ただしSwift Packageの全依存とArchive Privacy Reportの確認はnative生成後に行います。App Privacy／暗号化の申告は未確定です。
+- アイコン原本を目視し、1024×1024、8-bit RGB、alphaなしを自動監査で確認しました。
+- 本番の`/`、`/privacy`、`/support`、`/manifest.webmanifest`、`/sw.js`はHTTP 200を確認しました。SupportはGitHub Issuesの案内のままで、本人が指定する公開連絡先の反映が残っています。
+- [Appleの提出要件](https://developer.apple.com/news/upcoming-requirements/)と[画像仕様](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)を2026年10月30日に確認しました。実際の提出・撮影直前にも再確認します。
+
+### CIの履歴について
+
+引き継ぎcommit `46d237d`の[Quality checks](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/40909231086)は成功しています。一方、同commitの[iOS native build](https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/actions/runs/40909591238)は失敗しています。annotation原文は`The job was not acquired by Runner of type hosted even after multiple attempts`で、macOS arm64 runnerのcapacity不足も通知されていました。jobにはstep実行履歴がなく、コンパイル失敗ではありません。今回の変更については別途PRのCI結果を確認します。
+
+### このMacでの再検証
+
+| 検証 | 結果 |
+| --- | --- |
+| `npm ci` | 成功。Node.js 22.14.0／npm 10.9.2でlockfileを再現 |
+| `npm run ios:preflight` | lint、typecheck、185件／7ファイル、静的build、iOS入力監査10/10すべて成功 |
+| 公開Web E2E | 23件成功、既存のWebKitオフライン再起動1件スキップ。終了code 0 |
+| ローカル静的出力 E2E | 23件成功、同じ既存制約の1件スキップ。終了code 0 |
+| 54本すべて早期補充／Bonus境界 | 単体・E2Eで4,050円を維持。19/20/49/50/99/100/149/150本の単体テスト成功 |
+| Privacy Manifest XML | アプリ雛形、Capacitor、Cordovaの3ファイルが`plutil -lint`成功 |
+| Secret scan | Gitleaks 8.30.0でGit履歴33commitと`out/`を検査し、検出0件。commit前のstage差分も別途検査 |
+| `ios:verify-native` | **未達**。`ios/`未生成のため10項目成功・1項目失敗。identity確定後に再実行 |
+
+E2EはDesktop Chromium、Pixel 7相当Chromium、iPhone 13相当WebKitを使い、補充／取出、在庫修正、棚卸、編集／削除／Undo、JSON／CSV、X共有画面への受渡し、テーマ、画面幅、オフライン、通常motion／Reduce Motionを確認します。各テストはconsole error／pageerrorも検査します。新しいskipは追加していません。ブラウザの結果をiPhone実機やCapacitorでの結果へ読み替えません。
+
+ローカルログはGit対象外の`.artifacts/release-evidence/`へ保存します。最初のsandbox内ブラウザ起動失敗、および依存再インストール中のレポート出力失敗は、成功証跡から除外し、確定した依存環境で再実行しました。
 
 ## 表記・配色の更新（2026年9月18日）
 

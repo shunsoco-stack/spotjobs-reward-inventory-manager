@@ -57,15 +57,17 @@ async function demoPage(viewport) {
   await expect(page).toHaveTitle('SPOTJOBS報酬・在庫管理アプリ');
   await page.getByRole('button', { name: 'デモデータで試す', exact: true }).click();
   await expect(page.locator('.demo-banner')).toContainText('デモデータでお試し中');
-  await expect(page.locator('.hero-amount')).toHaveText(/^¥[\d,]+$/);
+  const heroValue = page.locator('.hero-amount .kinetic-readable');
+  const nextTierValue = page.locator('.next-tier .next-number .kinetic-readable');
+  await expect(heroValue).toHaveText(/^[\d,]+円$/);
   await expect(page.locator('.stats-grid .stat').nth(0)).toContainText(/\d+本/);
   await expect(page.locator('.stock-stat')).toContainText(/\d+本/);
-  await expect(page.locator('.next-tier .next-number')).toContainText(/あと\s*\d+\s*本|達成/);
+  await expect(nextTierValue).toHaveText(/あと\s*\d+\s*本/);
   const metrics = {
-    weeklyReward: numberFrom(await page.locator('.hero-amount').innerText()),
+    weeklyReward: numberFrom(await heroValue.innerText()),
     weeklyRefills: numberFrom(await page.locator('.stats-grid .stat').nth(0).innerText()),
     inventory: numberFrom(await page.locator('.stock-stat').innerText()),
-    remainingToNextTier: numberFrom(await page.locator('.next-tier .next-number').innerText()),
+    remainingToNextTier: numberFrom(await nextTierValue.innerText()),
   };
   await closeNotice(page);
   return { page, metrics };

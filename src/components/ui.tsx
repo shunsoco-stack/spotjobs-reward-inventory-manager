@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { addDays, type Area } from '@/lib/core';
 
@@ -10,6 +10,19 @@ export const shortDate = (date: string) => `${Number(date.slice(5, 7))}/${Number
 export const weekday = (date: string) => new Intl.DateTimeFormat('ja-JP', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
 export const dateLabel = (date: string) => `${shortDate(date)}（${weekday(date)}）`;
 export const typeLabel = (type: string) => type === 'refill' ? '補充' : type === 'pickup' ? '取出' : '棚卸';
+type KineticStyle = CSSProperties & { '--kinetic-delay'?: string };
+
+export function KineticGlyphs({ text, className = '', startDelay = 30, step = 45 }: { text: string; className?: string; startDelay?: number; step?: number }) {
+  return <span key={text} className={`kinetic-glyphs ${className}`.trim()} data-text={text} aria-hidden="true">
+    {Array.from(text).map((character, index) => <span
+      key={`${character}-${index}`}
+      className={`kinetic-glyph ${character === ' ' ? 'space' : ''}`}
+      data-character={character}
+      style={{ '--kinetic-delay': `${startDelay + index * step}ms` } as KineticStyle}
+    >{character === ' ' ? '\u00a0' : character}</span>)}
+  </span>;
+}
+
 export function newRecordId() {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('');

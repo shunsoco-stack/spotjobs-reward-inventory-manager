@@ -2,12 +2,12 @@ import { test, expect, boot, chooseFile, closeNotice, downloadText, homeTotals, 
 
 test('fresh dashboard, explicit demo separation, and responsive screens', async ({ page }) => {
   await boot(page);
-  await expect(page.locator('.hero-amount')).toHaveText('¥0');
+  await expect(page.locator('.hero-amount .kinetic-readable')).toHaveText('0円');
   await expect(page.getByRole('heading', { name: '今日の1本から、はじめよう。' })).toBeVisible();
   await noHorizontalOverflow(page);
   await page.getByRole('button', { name: 'デモデータで試す', exact: true }).click();
   await expect(page.getByText('デモデータでお試し中', { exact: true })).toBeVisible();
-  await expect(page.locator('.hero-amount')).not.toHaveText('¥0');
+  await expect(page.locator('.hero-amount .kinetic-readable')).not.toHaveText('0円');
   await page.locator('.demo-banner').getByRole('button', { name: '終了', exact: true }).click();
   await homeTotals(page, 0, 0);
   await closeNotice(page);
@@ -177,7 +177,7 @@ test('reference rewards, simulator, editing, delete undo, stocktake, snapshots a
     await expect(page.locator('.stocktake-list button').first()).toContainText('在庫へ反映済み');
     await expect(page.locator('.stocktake-list button').first()).toContainText('差異 -2本');
     await navigate(page, 'ホーム');
-    await expect(page.locator('.hero-amount')).toHaveText('¥4,050');
+    await expect(page.locator('.hero-amount .kinetic-readable')).toHaveText('4,050円');
     await page.getByRole('button', { name: '元に戻す', exact: true }).click();
     await inventoryView(page);
     await expect(page.locator('.inventory-count')).toHaveText('4本');

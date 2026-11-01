@@ -140,6 +140,6 @@ test('reduced motion removes transitions while every action remains usable', asy
   const toastMotion = await motionStyle(page, '.toast');
   expect(toastMotion.animationName).toBe('none');
   expect(toastMotion.animationDuration).toBe('0s');
-  await expect(page.locator('.hero-amount')).not.toHaveText('¥0');
+  await expect(page.locator('.hero-amount .kinetic-readable')).not.toHaveText('0円');
   await noHorizontalOverflow(page);
 });

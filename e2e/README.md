@@ -19,11 +19,17 @@ npm run test:e2e
 - JSON のダウンロードと上書き復元、UTF-8 CSV のプレビューと不正行の拒否
 - テーマ切替と再読込、PWA 資産、通信断中の入力と保存
 - 今日／1週間の共有切替、集計プレビュー、`x.com`投稿URL、共有対象外の情報とデモ表記
+- 画面切替、Sheet、Toast、選択状態のUI/UX Animationと、Reduced Motion時の停止・操作継続
+- Sheet開閉後のスクロール復帰、Quick Buttonの即時入力、横はみ出し、コンソールエラー
 - Chromium では Service Worker による通信断状態の再起動と保存継続
 
 スクリーンショット、コンソール検証、失敗時のトレースは `test-results/`、HTML レポートは `playwright-report/` に保存します。
 
 WebKit は実機 iPhone の Safari ではありません。Playwright の [Service Worker サポート](https://playwright.dev/docs/service-workers)は Chromium に限定されており、この Windows WebKit では通信断状態のページ再起動がブラウザ内部エラーになります。そのテスト1件を理由付きでスキップします。WebKit の通信断後の入力・保存・オンライン復帰後の再読込は別のテストで検証します。iPhone Safari 実機のオフライン再起動は未検証です。
+
+## UI/UX Animationの検証
+
+2026年11月2日に、ビルド済み静的プレビューで通常モーションとReduced Motionを検証しました。画面・Sheet・ToastのAnimation、Bottom NavigationのTransition、Quick Button、Sheetのスクロールロック解除、横スクロール、Console ErrorをDesktop Chromium、Pixel 7 Chromium、iPhone 13 WebKitで確認し、モーション専用テストは6件すべて成功しました。既存機能を含む全体は23件成功・WebKitのオフライン再起動1件スキップ、コンソールエラー0件です。
 
 ## X共有の本番検証
 

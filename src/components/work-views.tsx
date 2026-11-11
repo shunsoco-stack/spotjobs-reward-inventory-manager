@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState, type CSSProperties } from 'react';
-import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, Battery, Check, ChevronRight, CircleAlert, History, Pencil, ScanLine, Share2, Target, TrendingUp, Zap } from 'lucide-react';
-import { addDays, earningsOverview, goalAdditional, inventoryDays, simulateAdditional, tierProjections, type Area, type Calculation, type EnrichedRecord, type Settings, type WorkRecord } from '@/lib/core';
+import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, Battery, Check, ChevronLeft, ChevronRight, CircleAlert, History, Pencil, ScanLine, Share2, Target, TrendingUp, Zap } from 'lucide-react';
+import { addDays, earningsOverview, goalAdditional, inventoryDays, monthStartFor, simulateAdditional, tierProjections, type Area, type Calculation, type EnrichedRecord, type Settings, type WorkRecord } from '@/lib/core';
 import { AREAS, dateLabel, Empty, KineticGlyphs, money, shortDate, typeLabel, weekday, WeekPicker } from './ui';
 
 interface Shared { summary: Calculation; settings: Settings; today: string; }
@@ -36,7 +36,36 @@ function RewardComposition({ base, early, bonus }: { base: number; early: number
 
 function PeriodEarning({ period, label, caption, total }: { period: 'month' | 'year'; label: string; caption: string; total: number }) {
   const value = money(total);
-  return <div className="period-earning" data-period={period} data-value={`${value}円`}><span><b>{label}</b><small>{caption}</small></span><strong key={`${period}-${value}`}><span className="kinetic-readable">{value}円</span><KineticGlyphs text={`¥${value}`} startDelay={55} step={36}/></strong></div>;
+  return <div className="period-earning" data-period={period} data-value={`${value}円`}><span><b>{label}</b><small>{caption}</small></span><strong key={`${period}-${caption}-${value}`}><span className="kinetic-readable">{value}円</span><KineticGlyphs text={`¥${value}`} startDelay={55} step={36}/></strong></div>;
+}
+
+function monthCaption(date: string) {
+  return `${Number(date.slice(0, 4))}年${Number(date.slice(5, 7))}月`;
+}
+
+function BrowsablePeriodEarnings({ summary, today }: { summary: Calculation; today: string }) {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const selectedMonth = monthStartFor(today, monthOffset);
+  const previousMonth = monthStartFor(selectedMonth, -1);
+  const nextMonth = monthStartFor(selectedMonth, 1);
+  const selected = earningsOverview(summary, selectedMonth);
+  const current = earningsOverview(summary, today);
+  const isCurrentMonth = monthOffset === 0;
+  const selectedCaption = monthCaption(selectedMonth);
+  const previousCaption = monthCaption(previousMonth);
+  const nextCaption = monthCaption(nextMonth);
+  const yearCaption = `${Number(current.year.start.slice(0, 4))}年`;
+
+  return <div className="period-earnings" role="group" aria-label="月次と今年の報酬">
+    <div className="period-earnings-heading"><span>期間別の合計</span><small>各週の本数ボーナスを反映</small></div>
+    <div className="period-month-picker" role="group" aria-label="月次報酬の表示月">
+      <button type="button" className="icon-button" aria-label={`前の月、${previousCaption}を表示`} onClick={() => setMonthOffset(value => value - 1)}><ChevronLeft size={19}/></button>
+      <button type="button" className="period-month-label" aria-label={isCurrentMonth ? `${selectedCaption}、今月を表示中` : '今月へ戻る'} disabled={isCurrentMonth} onClick={() => setMonthOffset(0)}><strong>{selectedCaption}</strong><span>{isCurrentMonth ? '今月を表示中' : '今月へ戻る'}</span></button>
+      <button type="button" className="icon-button" aria-label={`次の月、${nextCaption}を表示`} disabled={isCurrentMonth} onClick={() => setMonthOffset(value => Math.min(0, value + 1))}><ChevronRight size={19}/></button>
+    </div>
+    <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{selectedCaption}の月次報酬は{money(selected.month.total)}円、補充{selected.month.refillCount}本です。</p>
+    <div className="period-earnings-grid"><PeriodEarning period="month" label={isCurrentMonth ? '今月' : 'この月'} caption={selectedCaption} total={selected.month.total}/><PeriodEarning period="year" label="今年" caption={yearCaption} total={current.year.total}/></div>
+  </div>;
 }
 
 function AnimatedProgress({ value, max, label, tone = 'green' }: { value: number; max: number; label: string; tone?: 'green' | 'refill' }) {
@@ -63,13 +92,9 @@ export function HomeView({ summary: s, settings, today, week, currentWeek, onWee
   const goal = goalAdditional(s, settings, settings.weeklyGoal, area, true);
   const percent = Math.min(100, s.total / settings.weeklyGoal * 100);
   const percentLabel = String(Math.round(percent * 10) / 10);
-  const periodAnchor = week === currentWeek ? today : week;
-  const earnings = earningsOverview(s, periodAnchor);
   const currentPeriod = week === currentWeek;
-  const monthCaption = `${Number(earnings.month.start.slice(0, 4))}年${Number(earnings.month.start.slice(5, 7))}月`;
-  const yearCaption = `${Number(earnings.year.start.slice(0, 4))}年`;
   return <div className="home-grid">
-    <section className="reward-hero"><div className="hero-top"><div><span className="eyebrow">YOUR WEEK</span><h2>{currentPeriod ? '今週の報酬' : 'この週の報酬'}</h2></div><span className="hero-tag">見込み</span></div><div key={s.total} className="hero-amount" data-value={`${money(s.total)}円`}><span className="kinetic-readable">{money(s.total)}円</span><KineticGlyphs text="¥" className="hero-currency" startDelay={40} step={0}/><KineticGlyphs text={money(s.total)} startDelay={75} step={52}/></div><div className="hero-period">{dateLabel(week)} — {dateLabel(addDays(week, 6))}</div><RewardComposition base={s.base} early={s.earlyBonus} bonus={s.countBonus}/><div className="hero-breakdown"><div><span>基本報酬</span><strong>¥{money(s.base)}</strong></div><div><span>早期補充</span><strong>¥{money(s.earlyBonus)}</strong></div><div><span>本数ボーナス</span><strong>¥{money(s.countBonus)}</strong></div></div><div className="period-earnings" role="group" aria-label={`${currentPeriod ? '今月と今年' : 'この月とこの年'}の報酬`}><div className="period-earnings-heading"><span>期間別の合計</span><small>各週の本数ボーナスを反映</small></div><div className="period-earnings-grid"><PeriodEarning period="month" label={currentPeriod ? '今月' : 'この月'} caption={monthCaption} total={earnings.month.total}/><PeriodEarning period="year" label={currentPeriod ? '今年' : 'この年'} caption={yearCaption} total={earnings.year.total}/></div></div><button type="button" className="hero-share-action" aria-label="成績をXで共有" aria-haspopup="dialog" onClick={onShare}><Share2 size={20}/><span>成績をXで共有<small>今日・1週間を選べます</small></span><ChevronRight size={18}/></button><button className="hero-link" onClick={() => onView('weekly')}>日別の報酬を見る<ArrowRight size={18}/></button></section>
+    <section className="reward-hero"><div className="hero-top"><div><span className="eyebrow">YOUR WEEK</span><h2>{currentPeriod ? '今週の報酬' : 'この週の報酬'}</h2></div><span className="hero-tag">見込み</span></div><div key={s.total} className="hero-amount" data-value={`${money(s.total)}円`}><span className="kinetic-readable">{money(s.total)}円</span><KineticGlyphs text="¥" className="hero-currency" startDelay={40} step={0}/><KineticGlyphs text={money(s.total)} startDelay={75} step={52}/></div><div className="hero-period">{dateLabel(week)} — {dateLabel(addDays(week, 6))}</div><RewardComposition base={s.base} early={s.earlyBonus} bonus={s.countBonus}/><div className="hero-breakdown"><div><span>基本報酬</span><strong>¥{money(s.base)}</strong></div><div><span>早期補充</span><strong>¥{money(s.earlyBonus)}</strong></div><div><span>本数ボーナス</span><strong>¥{money(s.countBonus)}</strong></div></div><BrowsablePeriodEarnings summary={s} today={today}/><button type="button" className="hero-share-action" aria-label="成績をXで共有" aria-haspopup="dialog" onClick={onShare}><Share2 size={20}/><span>成績をXで共有<small>今日・1週間を選べます</small></span><ChevronRight size={18}/></button><button className="hero-link" onClick={() => onView('weekly')}>日別の報酬を見る<ArrowRight size={18}/></button></section>
     <section className="quick-actions" aria-label="作業を記録"><button className="button refill" onClick={() => onView('refill')}><ArrowDownToLine size={23}/><span>補充を記録<small>在庫から減らす</small></span><ChevronRight size={18}/></button><button className="button pickup" onClick={() => onView('pickup')}><ArrowUpFromLine size={23}/><span>取出を記録<small>在庫に追加する</small></span><ChevronRight size={18}/></button></section>
     <div className="stats-grid"><div className="stat refill-stat"><span><ArrowDownToLine size={16}/>週間補充</span><strong key={s.refillCount} className="metric-motion">{money(s.refillCount)}<small>本</small></strong></div><div className="stat pickup-stat"><span><ArrowUpFromLine size={16}/>週間取出</span><strong key={s.pickupCount} className="metric-motion">{money(s.pickupCount)}<small>本</small></strong></div><button className="stat stock-stat" onClick={() => onView('inventory')}><span><Battery size={16}/>現在庫 <ChevronRight size={14}/></span><strong key={s.inventory.total} className={`metric-motion ${s.inventory.total < 0 ? 'warning-text' : ''}`}>{money(s.inventory.total)}<small>本</small></strong></button><div className="stat"><span><Zap size={16}/>早期補充</span><strong key={s.earlyCount} className="metric-motion">{money(s.earlyCount)}<small>本</small></strong></div></div>
     <section className="panel next-tier"><div className="section-heading"><span className="round-icon green"><TrendingUp size={21}/></span><h2>次の本数ボーナス</h2><span className="pill">現在 ＋{s.countRate}円</span></div>{s.nextTier && next ? <><div key={s.nextTier.remaining} className="next-number" data-value={`あと${money(s.nextTier.remaining)}本`}><span className="kinetic-readable">あと{money(s.nextTier.remaining)}本</span><span className="kinetic-affix kinetic-prefix" aria-hidden="true">あと</span><strong><KineticGlyphs text={money(s.nextTier.remaining)} startDelay={80} step={56}/></strong><span className="kinetic-affix kinetic-suffix" aria-hidden="true">本</span></div><p className="next-caption">{s.nextTier.count}本到達で <strong>＋{s.nextTier.rate}円 / 本</strong></p><AnimatedProgress value={s.refillCount} max={s.nextTier.count} label="次の本数ボーナスまでの進捗" tone="refill"/><div className="progress-labels"><span>現在 {s.refillCount}本</span><span>次は {s.nextTier.count}本</span></div><div className="compare-reward"><div><span>現在</span><strong>¥{money(s.total)}</strong></div><ArrowRight size={20}/><div><span>{s.nextTier.count}本到達時</span><strong>¥{money(next.total)}</strong></div><b>＋¥{money(next.difference)}</b></div><p className="field-hint">追加分：{settings.regionNames[area]}・{settings.regionRates[area]}円/本、すべて早期補充で試算</p></> : <div className="achieved"><Check size={30}/><strong>最高ボーナスに到達</strong><p>今週の全補充に＋{s.countRate}円/本</p></div>}<button className="text-button" onClick={() => onView('simulator')}>追加本数・条件を変えて試算<ChevronRight size={17}/></button></section>

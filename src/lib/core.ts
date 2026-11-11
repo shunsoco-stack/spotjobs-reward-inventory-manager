@@ -156,6 +156,15 @@ export function isValidDate(date: string): boolean {
 export function addDays(date: string, amount: number): string {
   return new Date(new Date(`${date}T12:00:00Z`).getTime() + amount * DAY_MS).toISOString().slice(0, 10);
 }
+/** Returns the first civil day of a month without timezone conversion. */
+export function monthStartFor(date: string, offset = 0): string {
+  if (!isValidDate(date)) return date;
+  const shift = Number.isFinite(offset) ? Math.trunc(offset) : 0;
+  const absoluteMonth = Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1 + shift;
+  const year = Math.floor(absoluteMonth / 12);
+  const month = absoluteMonth - year * 12 + 1;
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`;
+}
 export function weekStartFor(date: string, weekStartsOn: number = 1): string {
   const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
   return addDays(date, -((weekday - weekStartsOn + 7) % 7));
@@ -375,12 +384,9 @@ function summarizeEarnings(records: EnrichedRecord[], start: string, end: string
 /** Calendar totals reuse each record's already-priced weekly bonus instead of applying a monthly or yearly tier. */
 export function earningsOverview(calculation: Calculation, anchorDate: string): EarningsOverview {
   const anchor = isValidDate(anchorDate) ? anchorDate : calculation.weekStart;
-  const monthStart = `${anchor.slice(0, 7)}-01`;
+  const monthStart = monthStartFor(anchor);
   const yearStart = `${anchor.slice(0, 4)}-01-01`;
-  const month = Number(anchor.slice(5, 7));
-  const nextMonthStart = month === 12
-    ? `${Number(anchor.slice(0, 4)) + 1}-01-01`
-    : `${anchor.slice(0, 4)}-${String(month + 1).padStart(2, "0")}-01`;
+  const nextMonthStart = monthStartFor(anchor, 1);
   return {
     week: {
       start: calculation.weekStart, end: addDays(calculation.weekStart, 6), total: calculation.total,

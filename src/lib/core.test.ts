@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, adjacentWeekStart, calculate, createDemoRecords, createRewardSnapshot, defaultSettings, earningsOverview, goalAdditional, inventoryDays, isValidDate, simulateAdditional, tierProjections, todayLocal, weekStartFor } from "./core";
+import { addDays, adjacentWeekStart, calculate, createDemoRecords, createRewardSnapshot, defaultSettings, earningsOverview, goalAdditional, inventoryDays, isValidDate, monthStartFor, simulateAdditional, tierProjections, todayLocal, weekStartFor } from "./core";
 import type { Area, Settings, WorkRecord } from "./core";
 
 const monday = "2026-09-14";
@@ -80,6 +80,13 @@ describe("weekly reward estimates", () => {
 });
 
 describe("weekly, monthly and yearly earnings overview", () => {
+  it("moves between civil months across year and leap-month boundaries", () => {
+    expect(monthStartFor("2026-01-31", -1)).toBe("2025-12-01");
+    expect(monthStartFor("2026-12-01", 1)).toBe("2027-01-01");
+    expect(monthStartFor("2028-02-29")).toBe("2028-02-01");
+    expect(monthStartFor("2028-02-29", -14)).toBe("2026-12-01");
+  });
+
   it("shows the 4,050-yen reference in every current period", () => {
     const summary = result([refill(54)]);
     expect(earningsOverview(summary, sunday)).toMatchObject({

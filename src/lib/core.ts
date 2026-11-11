@@ -110,6 +110,21 @@ export interface Calculation {
   records: EnrichedRecord[];
   errors: StockError[];
 }
+export interface EarningsPeriodSummary {
+  start: string;
+  end: string;
+  total: number;
+  base: number;
+  earlyBonus: number;
+  countBonus: number;
+  refillCount: number;
+  earlyCount: number;
+}
+export interface EarningsOverview {
+  week: EarningsPeriodSummary;
+  month: EarningsPeriodSummary;
+  year: EarningsPeriodSummary;
+}
 export interface RewardProjection {
   additional: number;
   count: number;
@@ -345,6 +360,35 @@ export function calculate(records: WorkRecord[], settings: Settings, weekStart: 
       expiredCount: liveBatches.reduce((sum, batch) => sum + (batch.expiresOn !== null && batch.expiresOn < today ? batch.remaining : 0), 0),
       unknownAgeCount: liveBatches.reduce((sum, batch) => sum + (batch.pickupDate === null ? batch.remaining : 0), 0), batches: liveBatches,
     },
+  };
+}
+
+function summarizeEarnings(records: EnrichedRecord[], start: string, end: string): EarningsPeriodSummary {
+  const refills = records.filter((record) => record.valid && record.type === "refill" && record.date >= start && record.date <= end);
+  const sum = (field: "quantity" | "base" | "earlyBonus" | "countBonus" | "total" | "earlyCount") => refills.reduce((value, record) => value + record[field], 0);
+  return {
+    start, end, total: sum("total"), base: sum("base"), earlyBonus: sum("earlyBonus"),
+    countBonus: sum("countBonus"), refillCount: sum("quantity"), earlyCount: sum("earlyCount"),
+  };
+}
+
+/** Calendar totals reuse each record's already-priced weekly bonus instead of applying a monthly or yearly tier. */
+export function earningsOverview(calculation: Calculation, anchorDate: string): EarningsOverview {
+  const anchor = isValidDate(anchorDate) ? anchorDate : calculation.weekStart;
+  const monthStart = `${anchor.slice(0, 7)}-01`;
+  const yearStart = `${anchor.slice(0, 4)}-01-01`;
+  const month = Number(anchor.slice(5, 7));
+  const nextMonthStart = month === 12
+    ? `${Number(anchor.slice(0, 4)) + 1}-01-01`
+    : `${anchor.slice(0, 4)}-${String(month + 1).padStart(2, "0")}-01`;
+  return {
+    week: {
+      start: calculation.weekStart, end: addDays(calculation.weekStart, 6), total: calculation.total,
+      base: calculation.base, earlyBonus: calculation.earlyBonus, countBonus: calculation.countBonus,
+      refillCount: calculation.refillCount, earlyCount: calculation.earlyCount,
+    },
+    month: summarizeEarnings(calculation.records, monthStart, addDays(nextMonthStart, -1)),
+    year: summarizeEarnings(calculation.records, yearStart, `${anchor.slice(0, 4)}-12-31`),
   };
 }
 

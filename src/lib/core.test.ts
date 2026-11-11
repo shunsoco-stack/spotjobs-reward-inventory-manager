@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, adjacentWeekStart, calculate, createDemoRecords, createRewardSnapshot, defaultSettings, goalAdditional, inventoryDays, isValidDate, simulateAdditional, tierProjections, todayLocal, weekStartFor } from "./core";
+import { addDays, adjacentWeekStart, calculate, createDemoRecords, createRewardSnapshot, defaultSettings, earningsOverview, goalAdditional, inventoryDays, isValidDate, simulateAdditional, tierProjections, todayLocal, weekStartFor } from "./core";
 import type { Area, Settings, WorkRecord } from "./core";
 
 const monday = "2026-09-14";
@@ -76,6 +76,56 @@ describe("weekly reward estimates", () => {
       thresholds: [{ count: 8, rate: 6 }, { count: 0, rate: 0 }],
     }, monday, sunday);
     expect(summary).toMatchObject({ base: 800, earlyBonus: 36, countBonus: 48, total: 884, nextTier: null });
+  });
+});
+
+describe("weekly, monthly and yearly earnings overview", () => {
+  it("shows the 4,050-yen reference in every current period", () => {
+    const summary = result([refill(54)]);
+    expect(earningsOverview(summary, sunday)).toMatchObject({
+      week: { total: 4050, refillCount: 54 },
+      month: { total: 4050, refillCount: 54 },
+      year: { total: 4050, refillCount: 54 },
+    });
+  });
+
+  it("adds independently priced weeks without applying a monthly quantity tier", () => {
+    const firstWeek = "2026-09-07";
+    const records = [refill(20, firstWeek, "A", 0), refill(50, monday, "B", 0)];
+    const overview = earningsOverview(calculate(records, defaultSettings, monday, sunday), sunday);
+    expect(overview.week.total).toBe(3500);
+    expect(overview.month).toMatchObject({ total: 4700, refillCount: 70, countBonus: 600 });
+    expect(overview.year.total).toBe(4700);
+  });
+
+  it("attributes a cross-month bonus week to each record's work date", () => {
+    const week = "2026-01-26";
+    const records = [refill(19, "2026-01-30", "A", 0), refill(1, "2026-02-01", "A", 0)];
+    const summary = calculate(records, defaultSettings, week, "2026-02-01");
+    expect(summary.total).toBe(1200);
+    expect(earningsOverview(summary, "2026-01-31").month).toMatchObject({ total: 1140, refillCount: 19, countBonus: 95 });
+    expect(earningsOverview(summary, "2026-02-01").month).toMatchObject({ total: 60, refillCount: 1, countBonus: 5 });
+  });
+
+  it("attributes a cross-year bonus week to each record's work date", () => {
+    const records = [refill(19, "2025-12-31", "A", 0), refill(1, "2026-01-01", "A", 0)];
+    const summary = calculate(records, defaultSettings, "2025-12-29", "2026-01-01");
+    expect(earningsOverview(summary, "2025-12-31").year).toMatchObject({ total: 1140, refillCount: 19 });
+    expect(earningsOverview(summary, "2026-01-01").year).toMatchObject({ total: 60, refillCount: 1 });
+  });
+
+  it("keeps saved rates and returns zero for an empty leap-month overview", () => {
+    const original = savedRefill(20, monday, "A");
+    const changed: Settings = {
+      ...defaultSettings, regionRates: { ...defaultSettings.regionRates, A: 999 }, earlyRate: 999,
+      thresholds: [{ count: 0, rate: 999 }],
+    };
+    const saved = earningsOverview(calculate([original], changed, monday, sunday), sunday);
+    expect(saved.month.total).toBe(1400);
+    const empty = earningsOverview(calculate([], defaultSettings, "2028-02-21", "2028-02-29"), "2028-02-29");
+    expect(empty).toMatchObject({
+      week: { total: 0 }, month: { start: "2028-02-01", end: "2028-02-29", total: 0 }, year: { total: 0 },
+    });
   });
 });
 

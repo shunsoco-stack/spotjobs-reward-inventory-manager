@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SPOTJOBS報酬・在庫管理 自動同期</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <img src="icons/icon.svg" alt="" width="42" height="42" />
+        <div>
+          <p class="eyebrow">SPOTJOBS → 報酬・在庫管理</p>
+          <h1>自動同期</h1>
+        </div>
+      </header>
+
+      <section class="status-card" aria-live="polite">
+        <span id="status-dot" class="status-dot" aria-hidden="true"></span>
+        <div>
+          <strong id="status-label">確認中…</strong>
+          <p id="status-message">状態を読み込んでいます。</p>
+          <time id="last-sync"></time>
+        </div>
+      </section>
+
+      <form id="setup-form">
+        <label for="sync-code">アプリの同期コード</label>
+        <div class="input-row">
+          <input
+            id="sync-code"
+            name="sync-code"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="設定画面で作成したコード"
+          />
+          <button id="toggle-code" class="icon-button" type="button" aria-label="同期コードを表示">表示</button>
+        </div>
+        <div class="utility-row">
+          <button id="copy-code" class="text-button" type="button">コピー</button>
+        </div>
+
+        <label for="interval">確認間隔</label>
+        <select id="interval" name="interval">
+          <option value="15">15分ごと</option>
+          <option value="30" selected>30分ごと</option>
+          <option value="60">60分ごと</option>
+        </select>
+
+        <details>
+          <summary>同期先の詳細設定</summary>
+          <label for="bridge-url">暗号化同期サーバー</label>
+          <input
+            id="bridge-url"
+            name="bridge-url"
+            type="url"
+            inputmode="url"
+            value="https://spotjobs-reward-inventory-sync.vercel.app"
+          />
+          <small>通常は変更不要です。開発時のみlocalhostを指定できます。</small>
+        </details>
+
+        <button id="connect-button" class="primary-button" type="submit">接続して同期</button>
+      </form>
+
+      <div class="actions">
+        <button id="sync-now" class="secondary-button" type="button">今すぐ同期</button>
+        <button id="disconnect" class="danger-button" type="button">このPCの接続を解除</button>
+      </div>
+
+      <p class="privacy-note">
+        パスワードやCookieは取得・保存しません。作業履歴はこのPCで暗号化してから送信します。
+      </p>
+      <p id="form-message" class="form-message" role="alert"></p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

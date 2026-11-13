@@ -6,7 +6,7 @@
   "scripts": {
     "prepare:ocr": "node scripts/prepare-ocr.mjs",
     "dev": "node scripts/prepare-ocr.mjs && next dev --hostname 0.0.0.0 --port 3058",
-    "build": "node scripts/prepare-ocr.mjs && next build && node scripts/build-offline.mjs",
+    "build": "node scripts/prepare-ocr.mjs && node --import ./scripts/windows-next-build-workaround.mjs ./node_modules/next/dist/bin/next build && node scripts/build-offline.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",

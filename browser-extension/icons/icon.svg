@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SPOTJOBS報酬・在庫管理 自動同期">
+  <defs>
+    <linearGradient id="g" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff9a5f"/>
+      <stop offset="1" stop-color="#ff6b35"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="30" fill="url(#g)"/>
+  <path d="M42 35h39a9 9 0 0 1 9 9v40a9 9 0 0 1-9 9H42a9 9 0 0 1-9-9V44a9 9 0 0 1 9-9Z" fill="#fff"/>
+  <path d="M91 53h6v22h-6z" fill="#fff"/>
+  <path d="m68 46-19 22h14l-4 18 20-25H65z" fill="#24afe8"/>
+</svg>

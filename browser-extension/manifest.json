@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "SPOTJOBS報酬・在庫管理 自動同期",
+  "version": "0.1.0",
+  "description": "ログイン済みのSPOTJOBSから完了した補充・取出を暗号化してSPOTJOBS報酬・在庫管理アプリへ同期します。",
+  "permissions": [
+    "alarms",
+    "notifications",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://app.spot.jobs/*",
+    "https://spotjobs-reward-inventory-sync.vercel.app/*"
+  ],
+  "optional_host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "SPOTJOBS報酬・在庫管理 自動同期",
+    "default_popup": "popup.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

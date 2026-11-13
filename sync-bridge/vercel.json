@@ -1,0 +1,41 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "regions": ["hnd1"],
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "rewrites": [
+    {
+      "source": "/api/v1/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/api/v1/snapshot/:channelId",
+      "destination": "/api/snapshot?channelId=:channelId"
+    }
+  ],
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 10
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    }
+  ]
+}

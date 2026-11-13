@@ -9,7 +9,22 @@ const STORE = "app";
 const DATA_KEY = "current";
 const AREAS: Area[] = ["A", "B", "C", "D", "omitted"];
 
-export interface AppData { version: 2; records: WorkRecord[]; settings: Settings; lastArea: Area }
+export interface SpotJobsRecordSource {
+  provider: "spotjobs";
+  externalId: string;
+  recordId: string;
+  completedAt: string;
+  syncedAt: string;
+  storeName: string;
+  estimatedReward?: number;
+  needsReview: boolean;
+}
+export interface AppSyncMetadata {
+  recordSources: SpotJobsRecordSource[];
+  ignoredExternalIds: string[];
+  lastSyncedAt?: string;
+}
+export interface AppData { version: 2; records: WorkRecord[]; settings: Settings; lastArea: Area; sync?: AppSyncMetadata }
 export interface BackupInspection { data: AppData; exportedAt: string | null; recordCount: number; startDate: string | null; endDate: string | null }
 
 function invalid(message: string): never { throw new Error(`データを読み込めません。${message}`); }
@@ -100,6 +115,39 @@ function snapshot(value: unknown, date: string): RewardSnapshot {
     thresholds: tiers(saved.thresholds),
   };
 }
+function syncMetadata(value: unknown): AppSyncMetadata {
+  const sync = object(value, "自動同期情報");
+  if (!Array.isArray(sync.recordSources) || sync.recordSources.length > MAX_RECORDS) return invalid(`同期元情報は ${MAX_RECORDS.toLocaleString("ja-JP")} 件以内で指定してください。`);
+  const externalIds = new Set<string>();
+  const recordSources = sync.recordSources.map((entry, index): SpotJobsRecordSource => {
+    const source = object(entry, `${index + 1} 件目の同期元情報`);
+    if (source.provider !== "spotjobs") return invalid(`${index + 1} 件目の同期元サービスを確認してください。`);
+    if (typeof source.externalId !== "string" || !source.externalId.trim() || source.externalId.length > 200 || externalIds.has(source.externalId)) return invalid(`${index + 1} 件目の同期元 ID が未設定、重複、または長すぎます。`);
+    externalIds.add(source.externalId);
+    if (typeof source.recordId !== "string" || !source.recordId.trim() || source.recordId.length > 200) return invalid(`${index + 1} 件目の同期先記録 ID を確認してください。`);
+    if (typeof source.storeName !== "string" || source.storeName.length > 500) return invalid(`${index + 1} 件目の店舗名は 500 文字以内で指定してください。`);
+    if (typeof source.needsReview !== "boolean") return invalid(`${index + 1} 件目の確認状態を確認してください。`);
+    const estimatedReward = source.estimatedReward === undefined ? undefined : number(source.estimatedReward, `${index + 1} 件目の概算報酬`, 0, Number.MAX_SAFE_INTEGER);
+    return {
+      provider: "spotjobs", externalId: source.externalId, recordId: source.recordId,
+      completedAt: timestamp(source.completedAt, `${index + 1} 件目の完了日時`),
+      syncedAt: timestamp(source.syncedAt, `${index + 1} 件目の同期日時`),
+      storeName: source.storeName, needsReview: source.needsReview,
+      ...(estimatedReward === undefined ? {} : { estimatedReward }),
+    };
+  });
+  if (!Array.isArray(sync.ignoredExternalIds) || sync.ignoredExternalIds.length > MAX_RECORDS) return invalid(`同期除外 ID は ${MAX_RECORDS.toLocaleString("ja-JP")} 件以内で指定してください。`);
+  const ignored = new Set<string>();
+  const ignoredExternalIds = sync.ignoredExternalIds.map((value, index) => {
+    if (typeof value !== "string" || !value.trim() || value.length > 200 || ignored.has(value)) return invalid(`${index + 1} 件目の同期除外 ID が未設定、重複、または長すぎます。`);
+    ignored.add(value);
+    return value;
+  });
+  return {
+    recordSources, ignoredExternalIds,
+    ...(sync.lastSyncedAt === undefined ? {} : { lastSyncedAt: timestamp(sync.lastSyncedAt, "最終同期日時") }),
+  };
+}
 export function validateRecords(value: unknown, legacy = false): WorkRecord[] {
   if (!Array.isArray(value) || value.length > MAX_RECORDS) return invalid(`作業記録は ${MAX_RECORDS.toLocaleString("ja-JP")} 件以内で指定してください。`);
   const ids = new Set<string>();
@@ -150,7 +198,10 @@ export function validateAppData(value: unknown): AppData {
   const data = object(value, "バックアップ");
   if (data.version === 1) return migrateLegacy(data);
   if (data.version !== 2) return invalid("対応していないバックアップのバージョンです。");
-  return { version: 2, records: validateRecords(data.records), settings: validateSettings(data.settings), lastArea: area(data.lastArea) };
+  return {
+    version: 2, records: validateRecords(data.records), settings: validateSettings(data.settings), lastArea: area(data.lastArea),
+    ...(data.sync === undefined ? {} : { sync: syncMetadata(data.sync) }),
+  };
 }
 export function inspectBackup(text: string): BackupInspection {
   if (typeof text !== "string" || text.length > MAX_BACKUP_CHARS) return invalid("ファイルが大きすぎます。");

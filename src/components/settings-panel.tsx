@@ -186,8 +186,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
   return <div className="settings-section">
     <SettingsForm key={JSON.stringify(props.settings)} settings={props.settings} onSave={props.onSave} />
     <section className="panel settings-section" aria-labelledby="data-heading">
-      <div className="section-heading"><div><h2 id="data-heading">記録を持ち運ぶ</h2><p className="muted">登録不要。記録はこのブラウザに保存します。</p></div></div>
-      <p className="muted">端末やブラウザを変える前に、JSONバックアップを保存してください。ブラウザのデータを削除すると記録も消えます。</p>
+      <div className="section-heading"><div><h2 id="data-heading">記録を持ち運ぶ</h2><p className="muted">記録の正本は、このブラウザに保存します。</p></div></div>
+      <p className="muted">自動取り込みは公式完了履歴だけが対象です。設定・棚卸・手入力記録を含む完全な端末間同期ではないため、端末やブラウザを変える前にJSONバックアップを保存してください。ブラウザのデータを削除すると記録も消えます。</p>
       <div className="field-grid">
         <button className="button button-secondary" type="button" onClick={props.onBackup}><Download size={18} aria-hidden="true" />バックアップを保存（JSON）</button>
         <button className="button button-secondary" type="button" onClick={props.onImport}><Upload size={18} aria-hidden="true" />バックアップを復元（JSON）</button>

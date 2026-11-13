@@ -1,0 +1,97 @@
+import { deriveSyncCredentials, encryptSyncSnapshot, generateSyncCode } from '../src/lib/sync/protocol';
+import { test, expect, boot, closeNotice, jstDate, navigate, noHorizontalOverflow } from './helpers';
+
+// Playwright cannot route requests initiated through an active Service Worker.
+// Offline behavior has dedicated coverage; this spec isolates the bridge flow.
+test.use({ serviceWorkers: 'block' });
+
+test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tombstones', async ({ page }) => {
+  const syncCode = generateSyncCode();
+  const credentials = await deriveSyncCredentials(syncCode);
+  const date = jstDate();
+  const collectedAt = new Date(`${date}T12:00:00+09:00`).toISOString();
+  const snapshot = {
+    version: 1 as const,
+    collectedAt,
+    sourceVersion: 'spotlog-edge/0.1.0' as const,
+    records: [
+      {
+        externalId: 'official-pickup-1',
+        workType: 'BATTERY_EJECT' as const,
+        completedAt: new Date(`${date}T09:00:00+09:00`).toISOString(),
+        quantity: 2,
+        storeName: '同期テスト取出店',
+        earlyRefill: null,
+      },
+      {
+        externalId: 'official-refill-1',
+        workType: 'BATTERY_INSERT' as const,
+        completedAt: new Date(`${date}T10:00:00+09:00`).toISOString(),
+        quantity: 1,
+        storeName: '同期テスト補充店',
+        estimatedReward: 65,
+        earlyRefill: true,
+      },
+    ],
+  };
+  const envelope = await encryptSyncSnapshot(snapshot, credentials);
+  let pulls = 0;
+  await page.route(`https://spotjobs-reward-inventory-sync.vercel.app/api/v1/snapshot/${credentials.channelId}`, async route => {
+    expect(route.request().headers().authorization).toBe(`Bearer ${credentials.bearerToken}`);
+    pulls += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:3059',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Vary': 'Origin',
+      },
+      body: JSON.stringify({
+        envelope,
+        storedAt: new Date(`${date}T12:01:00+09:00`).toISOString(),
+        expiresAt: new Date(new Date(`${date}T12:01:00+09:00`).getTime() + 90 * 86_400_000).toISOString(),
+      }),
+    });
+  });
+
+  await boot(page);
+  await navigate(page, '設定');
+  await page.setViewportSize({ width: 320, height: 844 });
+  await noHorizontalOverflow(page);
+  const panel = page.locator('.auto-sync-panel');
+  await expect(panel.getByRole('heading', { name: 'SPOTJOBS自動取り込み', exact: true })).toBeVisible();
+  await panel.getByLabel('同期コード', { exact: true }).fill(syncCode);
+  await panel.getByRole('button', { name: 'このコードで接続', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('2件を自動取り込みしました');
+  await expect(panel.getByText('自動同期 ON', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: /補充 1件の地域・早期対象を確認/ })).toBeVisible();
+  await noHorizontalOverflow(page);
+  await closeNotice(page);
+
+  await panel.getByRole('button', { name: /補充 1件の地域・早期対象を確認/ }).click();
+  await expect(page.getByRole('heading', { name: '履歴', exact: true })).toBeVisible();
+  await expect(page.locator('.record-row')).toHaveCount(2);
+  await expect(page.locator('.record-list')).toContainText('自動同期 · 同期テスト補充店');
+  await page.locator('.record-row').filter({ hasText: '補充' }).click();
+  const editor = page.getByRole('dialog', { name: '記録を編集', exact: true });
+  await editor.getByRole('button', { name: '変更を保存', exact: true }).click();
+  await expect(editor).not.toBeVisible();
+  await closeNotice(page);
+  await navigate(page, '設定');
+  await expect(panel.getByRole('button', { name: /地域・早期対象を確認/ })).toHaveCount(0);
+
+  await navigate(page, '履歴');
+  await page.locator('.record-row').filter({ hasText: '補充' }).click();
+  await editor.getByRole('button', { name: 'この記録を削除', exact: true }).click();
+  await editor.getByRole('button', { name: '削除する', exact: true }).click();
+  await expect(page.locator('.record-row')).toHaveCount(1);
+  await closeNotice(page);
+  await navigate(page, '設定');
+  await panel.getByRole('button', { name: '今すぐ同期', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('最新のSPOTJOBS履歴を確認しました');
+  await closeNotice(page);
+  await navigate(page, '履歴');
+  await expect(page.locator('.record-row')).toHaveCount(1);
+  expect(pulls).toBeGreaterThanOrEqual(2);
+});

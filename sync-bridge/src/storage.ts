@@ -89,7 +89,7 @@ export class VercelBlobSnapshotStore implements SnapshotStore {
 
   async get(channelId: string): Promise<StoredSnapshot | null> {
     const path = blobPath(channelId);
-    const result = await get(path, { access: "private", ...this.credentials() });
+    const result = await get(path, { access: "private", useCache: false, ...this.credentials() });
     if (!result || result.statusCode !== 200 || !result.stream) return null;
 
     let parsed: unknown;

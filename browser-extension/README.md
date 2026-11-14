@@ -28,9 +28,15 @@ npm test
 
 ブラウザー終了中、PCのSleep中、SPOTJOBSからログアウト中は取得できません。復帰後の次回同期で差分を取得します。
 
+既存の展開済み拡張を更新する場合は、同じフォルダのファイルを更新して `edge://extensions` でこの拡張を再読み込みしてください。同期コードは維持されます。v0.2.0以降にはスマホからの取得依頼への応答機能があり、Chromium 120以降のEdge / Chromeが必要です。
+
 ## 同期仕様
 
 - 初期値: 30分ごと（15 / 30 / 60分から選択）
+- スマホの「今すぐ同期」: 専用サーバーへ取得依頼 → PCが依頼を確認 → 公式履歴を取得・暗号化保存 → スマホへ反映。通常の自動取得間隔を待ちません。
+- PCの依頼確認: 30秒ごと。確認するのは依頼の有無のみで、公式履歴を30秒ごとに取得するわけではありません。ブラウザー起動・拡張の接続直後にも確認します。
+- 取得依頼は2分で失効します。PCが応答しなければスマホへ待機状況が表示されます。Sleep・ブラウザーの省電力処理・通信状態により30秒を超えて遅れる場合があり、PCをリモート起動する機能はありません。
+- 取得完了の通知は暗号化履歴の保存成功後に送ります。通信失敗時は依頼IDと結果だけをPCへ保存して再通知し、同じ依頼による重複取得を避けます。
 - 対象: `BATTERY_INSERT`、`BATTERY_EJECT`、`BL_BATTERY_EJECT`
 - 一意キー: `rounderWorkId`
 - 最大取得・同期Inbox: 最新500件（長期保管は端末のIndexedDBとJSONバックアップ）
@@ -62,3 +68,5 @@ type SyncSnapshot = {
 ## ビルド
 
 外部依存のないJavaScript/CSS/HTMLなのでBuildは不要です。フォルダをそのままEdgeへ読み込めます。Chrome Web Store等へ公開する場合は、このフォルダをZIP化してください。
+
+30秒周期は[Chromium 120以降のalarms API](https://developer.chrome.com/docs/extensions/whats-new#chrome_120_minimum_alarm_granularity_reduced_to_30_seconds)に基づきます。

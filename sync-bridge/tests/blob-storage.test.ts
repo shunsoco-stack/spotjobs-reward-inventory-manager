@@ -59,6 +59,7 @@ describe("private Vercel Blob storage", () => {
     await expect(store.get(channelId)).resolves.toEqual(stored);
     expect(blobMocks.get).toHaveBeenCalledWith(`snapshots/${channelId}.json`, {
       access: "private",
+      useCache: false,
       token: "private-token",
     });
   });

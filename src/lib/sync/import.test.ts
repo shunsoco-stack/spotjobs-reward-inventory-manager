@@ -24,6 +24,14 @@ const refill: SpotJobsSyncRecord = {
 };
 
 describe("SPOTJOBS snapshot import", () => {
+  it.each(["spotlog-edge/0.1.0", "spotlog-edge/0.2.0"] as const)("imports and preserves supported collector version %s", sourceVersion => {
+    const incoming = { ...snapshot([pickup, refill]), sourceVersion };
+    expect(validateSpotJobsSnapshot(incoming).sourceVersion).toBe(sourceVersion);
+    const result = mergeSpotJobsSnapshot(emptyData(), incoming, "2026-11-13T04:00:00.000Z");
+    expect(result.imported).toBe(2);
+    expect(result.data.records.map(record => record.type)).toEqual(["pickup", "refill"]);
+  });
+
   it("imports oldest-first, uses Tokyo civil dates, and keeps official rewards as metadata", () => {
     const result = mergeSpotJobsSnapshot(emptyData(), snapshot([refill, pickup]), "2026-11-13T04:00:00.000Z");
     expect(result).toMatchObject({ imported: 2, duplicates: 0, ignored: 0, needsReview: 1 });
@@ -90,6 +98,7 @@ describe("SPOTJOBS snapshot import", () => {
 
   it("strictly rejects unsupported types, missing early state, duplicate IDs, and oversized values", () => {
     expect(() => validateSpotJobsSnapshot({ ...snapshot([pickup]), sourceVersion: "future" })).toThrow("収集ツール");
+    expect(() => validateSpotJobsSnapshot({ ...snapshot([pickup]), sourceVersion: "spotlog-edge/0.3.0" })).toThrow("収集ツール");
     expect(() => validateSpotJobsSnapshot(snapshot([{ ...pickup, earlyRefill: undefined } as unknown as SpotJobsSyncRecord]))).toThrow("早期補充");
     expect(() => validateSpotJobsSnapshot(snapshot([pickup, pickup]))).toThrow("重複");
     expect(() => validateSpotJobsSnapshot(snapshot([{ ...pickup, quantity: 100_000 }]))).toThrow("本数");

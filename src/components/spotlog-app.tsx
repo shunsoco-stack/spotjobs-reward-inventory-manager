@@ -12,6 +12,7 @@ import CsvImportPanel from './csv-import-panel';
 import ScreenshotImportPanel from './screenshot-import-panel';
 import SharePanel from './share-panel';
 import SyncPanel, { type SyncImportMode } from './sync-panel';
+import HomeSyncAction, { type SyncPhase } from './sync-action';
 import { parseCsv } from '@/lib/csv';
 import { exportTextFile, isNativeRuntime, openExternalUrl } from '@/lib/native-runtime';
 import {
@@ -20,7 +21,9 @@ import {
   loadSyncPreferences,
   markSyncedRecordReviewed,
   removeRecordWithSyncTombstone,
+  requestPcRefresh,
   saveSyncPreferences,
+  SYNC_PREFERENCES_KEY,
   syncFromBridge,
   type SyncLocalPreferences,
 } from '@/lib/sync';
@@ -62,6 +65,7 @@ export default function SpotlogApp() {
   const [install, setInstall] = useState<InstallEvent | null>(null);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncPhase, setSyncPhase] = useState<SyncPhase>('pulling');
   const [syncReady, setSyncReady] = useState(false);
   const [syncPreferences, setSyncPreferences] = useState<SyncLocalPreferences>({ enabled: false });
   const [incomingSyncCode, setIncomingSyncCode] = useState<string>();
@@ -70,6 +74,7 @@ export default function SpotlogApp() {
   const channel = useRef<BroadcastChannel | null>(null);
   const savingRef = useRef(false);
   const syncingRef = useRef(false);
+  const syncAbortRef = useRef<AbortController | null>(null);
   const syncPreferencesRef = useRef<SyncLocalPreferences>({ enabled: false });
   const personalRef = useRef(personal);
   const persistedRef = useRef<AppData | null>(null);
@@ -80,7 +85,7 @@ export default function SpotlogApp() {
   const currentWeekSummary = useMemo(() => !shareOpen || week === currentWeek ? summary : calculate(data.records, data.settings, currentWeek, today), [shareOpen, week, currentWeek, summary, data, today]);
   const syncReviewCount = useMemo(() => data.sync?.recordSources.filter(source => source.needsReview).length ?? 0, [data.sync]);
 
-  const runSpotJobsSync = useCallback(async (manual = false): Promise<boolean> => {
+  const runSpotJobsSync = useCallback(async (manual = false, refreshPc = false): Promise<boolean> => {
     const preferences = syncPreferencesRef.current;
     if (syncingRef.current || savingRef.current || demo || !preferences.enabled || !preferences.syncCode) return false;
     if (!online) {
@@ -89,14 +94,34 @@ export default function SpotlogApp() {
     }
     syncingRef.current = true;
     setSyncing(true);
+    setSyncPhase(refreshPc ? 'requesting' : 'pulling');
+    const controller = new AbortController();
+    syncAbortRef.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), refreshPc ? 110_000 : 20_000);
     const attemptedAt = new Date().toISOString();
+    const preferencesUnchanged = () => {
+      const current = loadSyncPreferences();
+      return current.enabled && current.syncCode === preferences.syncCode && current.importAfter === preferences.importAfter;
+    };
     try {
+      const refreshed = refreshPc ? await requestPcRefresh({
+        syncCode: preferences.syncCode,
+        signal: controller.signal,
+        onProgress: setSyncPhase,
+      }) : undefined;
+      if (!preferencesUnchanged()) return false;
+      setSyncPhase(refreshPc ? 'importing' : 'pulling');
+      // Re-read after the PC wait so records entered meanwhile are preserved.
       const latest = await loadData();
       const base = latest ?? personalRef.current;
       const result = await syncFromBridge(base, {
         syncCode: preferences.syncCode,
         importAfter: preferences.importAfter,
+        signal: controller.signal,
+        minimumStoredAt: refreshed?.requestedAt,
       });
+      controller.signal.throwIfAborted();
+      if (!preferencesUnchanged()) return false;
       await saveData(result.data, { expected: latest });
       personalRef.current = result.data;
       persistedRef.current = result.data;
@@ -104,15 +129,17 @@ export default function SpotlogApp() {
       setStorageError('');
       setUndo(null);
       channel.current?.postMessage('saved');
+      if (!preferencesUnchanged()) return false;
       const reviewCount = result.data.sync?.recordSources.filter(source => source.needsReview).length ?? 0;
       const message = result.imported > 0
         ? `${result.imported}件を自動取り込みしました${reviewCount > 0 ? `（要確認 ${reviewCount}件）` : ''}`
-        : '最新のSPOTJOBS履歴を確認しました';
+        : refreshPc ? 'PCから最新の履歴を取得し、反映しました（追加0件）' : 'PC取得済みの履歴を確認しました';
       const nextPreferences = saveSyncPreferences({
         ...preferences,
         lastStatus: 'success',
         lastAttemptAt: attemptedAt,
         lastSuccessAt: new Date().toISOString(),
+        lastCollectedAt: result.collectedAt,
         lastMessage: message,
       });
       syncPreferencesRef.current = nextPreferences;
@@ -120,7 +147,8 @@ export default function SpotlogApp() {
       if (manual || result.imported > 0) setNotice({ text: message });
       return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : '自動同期に失敗しました。';
+      if (!preferencesUnchanged()) return false;
+      const message = controller.signal.aborted ? '同期を完了できませんでした。通信状態とPCの起動状態を確認し、もう一度お試しください。' : error instanceof Error ? error.message : '自動同期に失敗しました。';
       try {
         const nextPreferences = saveSyncPreferences({
           ...preferences,
@@ -134,10 +162,14 @@ export default function SpotlogApp() {
       if (manual) setNotice({ text: message, error: true });
       return false;
     } finally {
+      clearTimeout(timeout);
+      syncAbortRef.current = null;
       syncingRef.current = false;
       setSyncing(false);
     }
   }, [demo, online]);
+
+  useEffect(() => () => syncAbortRef.current?.abort(), []);
 
   useEffect(() => {
     let active = true;
@@ -160,6 +192,15 @@ export default function SpotlogApp() {
     };
     receivePairingLink();
     window.addEventListener('hashchange', receivePairingLink);
+    const receiveSyncSettings = (event: StorageEvent) => {
+      if (event.key !== SYNC_PREFERENCES_KEY && event.key !== null) return;
+      const next = loadSyncPreferences();
+      const previous = syncPreferencesRef.current;
+      if (next.enabled !== previous.enabled || next.syncCode !== previous.syncCode || next.importAfter !== previous.importAfter) syncAbortRef.current?.abort();
+      syncPreferencesRef.current = next;
+      setSyncPreferences(next);
+    };
+    window.addEventListener('storage', receiveSyncSettings);
     const date = todayLocal(); setToday(date); setSample({ ...emptyData(), records: createDemoRecords(date) });
     void loadData().then(stored => { if (active && stored) { setPersonal(stored); personalRef.current = stored; persistedRef.current = stored; } }).catch(error => { if (active) setStorageError(error instanceof Error ? error.message : '保存データを開けませんでした。'); }).finally(() => { if (active) setReady(true); });
     const refreshDate = () => setToday(todayLocal());
@@ -182,7 +223,7 @@ export default function SpotlogApp() {
     };
     if ('BroadcastChannel' in window) { channel.current = new BroadcastChannel('spotjobs-data'); channel.current.onmessage = () => { void sync(); }; }
     window.addEventListener('focus', sync);
-    return () => { active = false; clearInterval(timer); channel.current?.close(); window.removeEventListener('hashchange', receivePairingLink); window.removeEventListener('online', network); window.removeEventListener('offline', network); window.removeEventListener('focus', refreshDate); window.removeEventListener('focus', sync); if (!runningNative) window.removeEventListener('beforeinstallprompt', installPrompt); };
+    return () => { active = false; clearInterval(timer); channel.current?.close(); window.removeEventListener('storage', receiveSyncSettings); window.removeEventListener('hashchange', receivePairingLink); window.removeEventListener('online', network); window.removeEventListener('offline', network); window.removeEventListener('focus', refreshDate); window.removeEventListener('focus', sync); if (!runningNative) window.removeEventListener('beforeinstallprompt', installPrompt); };
   }, []);
   useEffect(() => {
     if (!ready || !syncReady || demo || !online || !syncPreferences.enabled || !syncPreferences.syncCode) return;
@@ -313,13 +354,15 @@ export default function SpotlogApp() {
         {storageError && <div className="warning" role="alert"><div><strong>保存データを開けませんでした</strong><p>{storageError}</p><button className="text-button" onClick={() => changeView('settings')}>設定からバックアップを復元</button></div></div>}
         <div key={view} className="view-motion-stage" data-view={view}>
         <div className="page-heading"><div>{['inventory', 'weekly', 'simulator'].includes(view) && <button className="text-button back-link" onClick={() => changeView('home')}><ArrowLeft size={17}/>ホーム</button>}<h1><span className="kinetic-readable">{titles[view]}</span><KineticGlyphs text={titles[view]} startDelay={35} step={42}/></h1></div><span>{dateLabel(today)}</span></div>
-        {view === 'home' && <><HomeView summary={summary} settings={data.settings} today={today} week={week} currentWeek={currentWeek} onWeek={changeWeek} onView={changeView} onInventoryEdit={() => setInventoryEditing(true)} onShare={() => setShareOpen(true)} onDemo={() => switchDemo(true)} onSyncSetup={() => changeView('settings')} syncConfigured={!!syncPreferences.syncCode} empty={!data.records.length}/><div className="home-tools"><button onClick={() => changeView('inventory')}><ScanLine size={21}/>在庫・棚卸<ChevronRight size={18}/></button><button onClick={() => changeView('simulator')}><TrendingUp size={21}/>報酬シミュレーター<ChevronRight size={18}/></button><button className="screenshot-home-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={21}/>スクショから取り込む<ChevronRight size={18}/></button></div></>}
+        {view === 'home' && <>
+          <HomeSyncAction preferences={syncPreferences} online={online} demo={demo} syncing={syncing} saving={saving} phase={syncPhase} onSync={() => { void runSpotJobsSync(true, true); }} onSetup={() => changeView('settings')} />
+          <HomeView summary={summary} settings={data.settings} today={today} week={week} currentWeek={currentWeek} onWeek={changeWeek} onView={changeView} onInventoryEdit={() => setInventoryEditing(true)} onShare={() => setShareOpen(true)} onDemo={() => switchDemo(true)} onSyncSetup={() => changeView('settings')} syncConfigured={!!syncPreferences.syncCode} empty={!data.records.length}/><div className="home-tools"><button onClick={() => changeView('inventory')}><ScanLine size={21}/>在庫・棚卸<ChevronRight size={18}/></button><button onClick={() => changeView('simulator')}><TrendingUp size={21}/>報酬シミュレーター<ChevronRight size={18}/></button><button className="screenshot-home-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={21}/>スクショから取り込む<ChevronRight size={18}/></button></div></>}
         {(view === 'refill' || view === 'pickup') && <div className="entry-layout"><section className="panel entry-panel"><button className="button button-secondary screenshot-entry-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={19}/>スクショから取り込む</button><RecordForm key={`${view}-${demo}-${entryVersion}`} data={data} today={today} type={view} onSave={saveRecord}/></section><aside className="entry-side"><div className="panel"><Battery size={26}/><h2>いまの手元在庫</h2><strong key={summary.inventory.total} className="side-number metric-motion">{summary.inventory.total}<small>本</small></strong><p>早期対象の見込み {summary.inventory.eligibleCount}本</p><button className="text-button" onClick={() => changeView('inventory')}>在庫の内訳を見る<ChevronRight size={17}/></button></div><p className="muted">{view === 'refill' ? '取出を先に記録すると、早期補充を自動判定できます。' : '取出時には報酬は発生しません。補充を記録すると報酬が加算されます。'}</p></aside></div>}
         {view === 'weekly' && <WeeklyView summary={summary} settings={data.settings} today={today} week={week} currentWeek={currentWeek} onWeek={changeWeek}/>}
         {view === 'inventory' && <InventoryView summary={summary} settings={data.settings} today={today} onInventoryEdit={() => setInventoryEditing(true)} onStocktake={() => setStocktaking(true)} onEdit={setEditing}/>}
         {view === 'simulator' && <SimulatorView summary={summary} settings={data.settings} today={today}/>}
         {view === 'history' && <><button className="button button-secondary screenshot-entry-action" onClick={() => setScreenshotImport(true)}><ImagePlus size={19}/>スクショから取り込む</button><HistoryView summary={summary} settings={data.settings} today={today} onEdit={setEditing}/></>}
-        {view === 'settings' && <><section className="panel pwa-panel"><div className="section-heading"><Smartphone size={23}/><h2>{nativeRuntime ? 'アプリとして利用中' : 'ホーム画面で、すぐ使える'}</h2></div><p>{nativeRuntime ? '必要なアプリ資産は端末に保存済みです。基本機能をオフラインで利用できます。' : offlineReady ? 'オフラインで使う準備ができています。' : '初回はインターネットに接続して開いてください。'}</p>{!nativeRuntime && install && <button className="button button-primary" onClick={async () => { await install.prompt(); await install.userChoice; setInstall(null); }}><Download size={18}/>アプリをインストール</button>}<p className="field-hint">{nativeRuntime ? '自動取り込みを設定すると、PCで取得した履歴をこのアプリにも反映できます。JSONバックアップも引き続き利用できます。' : 'iPhone：Safariの共有 → ホーム画面に追加。Android：Chromeのメニュー → アプリをインストール。オフラインでも入力・履歴・計算を利用できます。'}</p></section><SyncPanel preferences={syncPreferences} online={online} demo={demo} syncing={syncing} reviewCount={syncReviewCount} hasExistingRecords={data.records.length > 0} incomingSyncCode={incomingSyncCode} onConfigure={configureSync} onBackfill={backfillSync} onToggle={toggleSync} onSync={() => runSpotJobsSync(true).then(() => undefined)} onDisconnect={disconnectSync} onReview={() => changeView('history')}/><SettingsPanel key={`${demo}-${JSON.stringify(data.settings)}`} settings={data.settings} demo={demo} onSave={async settings => { const ok = await commit({ ...data, settings, lastArea: settings.defaultArea !== data.settings.defaultArea ? settings.defaultArea : data.lastArea }, '設定を保存しました'); if (!ok) throw new Error('設定を保存できませんでした。'); }} onBackup={() => { void exportFile(); }} onImport={() => fileRef.current?.click()} onCsv={() => { void exportFile(true); }} onCsvImport={() => csvRef.current?.click()} onDemo={() => switchDemo(!demo)}/></>}
+        {view === 'settings' && <><section className="panel pwa-panel"><div className="section-heading"><Smartphone size={23}/><h2>{nativeRuntime ? 'アプリとして利用中' : 'ホーム画面で、すぐ使える'}</h2></div><p>{nativeRuntime ? '必要なアプリ資産は端末に保存済みです。基本機能をオフラインで利用できます。' : offlineReady ? 'オフラインで使う準備ができています。' : '初回はインターネットに接続して開いてください。'}</p>{!nativeRuntime && install && <button className="button button-primary" onClick={async () => { await install.prompt(); await install.userChoice; setInstall(null); }}><Download size={18}/>アプリをインストール</button>}<p className="field-hint">{nativeRuntime ? '自動取り込みを設定すると、PCで取得した履歴をこのアプリにも反映できます。JSONバックアップも引き続き利用できます。' : 'iPhone：Safariの共有 → ホーム画面に追加。Android：Chromeのメニュー → アプリをインストール。オフラインでも入力・履歴・計算を利用できます。'}</p></section><SyncPanel preferences={syncPreferences} online={online} demo={demo} syncing={syncing} syncPhase={syncPhase} reviewCount={syncReviewCount} hasExistingRecords={data.records.length > 0} incomingSyncCode={incomingSyncCode} onConfigure={configureSync} onBackfill={backfillSync} onToggle={toggleSync} onSync={() => runSpotJobsSync(true, true).then(() => undefined)} onDisconnect={disconnectSync} onReview={() => changeView('history')}/><SettingsPanel key={`${demo}-${JSON.stringify(data.settings)}`} settings={data.settings} demo={demo} onSave={async settings => { const ok = await commit({ ...data, settings, lastArea: settings.defaultArea !== data.settings.defaultArea ? settings.defaultArea : data.lastArea }, '設定を保存しました'); if (!ok) throw new Error('設定を保存できませんでした。'); }} onBackup={() => { void exportFile(); }} onImport={() => fileRef.current?.click()} onCsv={() => { void exportFile(true); }} onCsvImport={() => csvRef.current?.click()} onDemo={() => switchDemo(!demo)}/></>}
         </div>
         <footer className="app-footer"><nav aria-label="プライバシーとサポート">{nativeRuntime ? <><a href="/privacy.html">プライバシーポリシー</a><a href="/support.html">サポート</a></> : <><Link href="/privacy" prefetch={false}>プライバシーポリシー</Link><Link href="/support" prefetch={false}>サポート</Link></>}</nav><p>個人制作の非公式管理ツールです。<br className="mobile-only"/>公式サービスとは関係ありません。</p><p>報酬は個人設定に基づく見込みです。確定額・適用条件は公式サービスで確認してください。</p></footer>
       </main>

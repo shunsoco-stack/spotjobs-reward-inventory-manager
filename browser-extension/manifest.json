@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SPOTJOBS報酬・在庫管理 自動同期",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "minimum_chrome_version": "120",
   "description": "ログイン済みのSPOTJOBSから完了した補充・取出を暗号化してSPOTJOBS報酬・在庫管理アプリへ同期します。",
   "permissions": [
     "alarms",

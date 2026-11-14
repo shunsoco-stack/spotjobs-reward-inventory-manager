@@ -38,7 +38,7 @@ export function evaluateCors(
 ): CorsDecision {
   const common = {
     Vary: "Origin",
-    "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Max-Age": "600",
   };

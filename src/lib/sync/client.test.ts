@@ -50,6 +50,44 @@ describe("sync bridge client", () => {
     await expect(pullSpotJobsSnapshot({ syncCode, bridgeUrl: "http://localhost", fetchImpl: invalid })).rejects.toThrow();
   });
 
+  it("rejects a snapshot uploaded before the PC refresh request without merging old history", async () => {
+    const credentials = await deriveSyncCredentials(syncCode);
+    const envelope = await encryptSyncSnapshot(payload, credentials);
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      envelope, storedAt: "2026-11-13T03:01:00.000Z", expiresAt: "2027-02-11T03:01:00.000Z",
+    }), { status: 200 }));
+    const data = { version: 2 as const, records: [], settings: structuredClone(defaultSettings), lastArea: "omitted" as const };
+    const before = structuredClone(data);
+
+    await expect(syncFromBridge(data, {
+      syncCode, bridgeUrl: "http://localhost", fetchImpl, minimumStoredAt: "2026-11-13T03:01:00.001Z",
+    })).rejects.toMatchObject({ code: "unavailable" });
+    expect(data).toEqual(before);
+
+    await expect(pullSpotJobsSnapshot({
+      syncCode, bridgeUrl: "http://localhost", fetchImpl, minimumStoredAt: "invalid-date",
+    })).rejects.toMatchObject({ code: "unavailable" });
+  });
+
+  it("accepts an upload at the requested minimum and preserves the PC collection timestamp", async () => {
+    const credentials = await deriveSyncCredentials(syncCode);
+    const envelope = await encryptSyncSnapshot(payload, credentials);
+    const storedAt = "2026-11-13T03:01:00.000Z";
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      envelope, storedAt, expiresAt: "2027-02-11T03:01:00.000Z",
+    }), { status: 200 }));
+    const data = { version: 2 as const, records: [], settings: structuredClone(defaultSettings), lastArea: "omitted" as const };
+    const result = await syncFromBridge(data, {
+      syncCode, bridgeUrl: "http://localhost", fetchImpl, minimumStoredAt: storedAt,
+      // A future-only filter can produce no records; it must not lose the actual collection time.
+      importAfter: "2026-11-13T02:30:00.000Z",
+    });
+    expect(result.imported).toBe(0);
+    expect(result.collectedAt).toBe(payload.collectedAt);
+    expect(result.storedAt).toBe(storedAt);
+    expect(result.collectedAt).not.toBe(result.storedAt);
+  });
+
   it("imports the full snapshot on a fresh cross-device connection without a cutoff", async () => {
     const credentials = await deriveSyncCredentials(syncCode);
     const envelope = await encryptSyncSnapshot(payload, credentials);
@@ -116,9 +154,11 @@ describe("device-local sync preferences", () => {
   it("keeps the pairing code outside AppData and records safe status metadata", () => {
     const saved = saveSyncPreferences({
       enabled: true, syncCode, lastStatus: "success", lastAttemptAt: "2026-11-13T03:00:00Z",
-      lastSuccessAt: "2026-11-13T03:00:01Z", importAfter: "2026-11-13T02:59:00Z", lastMessage: "2件を同期しました",
+      lastSuccessAt: "2026-11-13T03:00:01Z", lastCollectedAt: "2026-11-13T02:59:30Z",
+      importAfter: "2026-11-13T02:59:00Z", lastMessage: "2件を同期しました",
     });
     expect(saved.syncCode).toBe(syncCode);
+    expect(saved.lastCollectedAt).toBe("2026-11-13T02:59:30.000Z");
     expect(loadSyncPreferences()).toEqual(saved);
     expect(updateSyncPreferences({ lastMessage: "更新済み" })).toMatchObject({ enabled: true, syncCode, lastMessage: "更新済み" });
     expect(memory.get(SYNC_PREFERENCES_KEY)).toContain(syncCode);

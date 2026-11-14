@@ -15,6 +15,10 @@ describe("Vercel production routing", () => {
           source: "/api/v1/snapshot/:channelId",
           destination: "/api/snapshot?channelId=:channelId",
         },
+        {
+          source: "/api/v1/refresh/:channelId",
+          destination: "/api/refresh?channelId=:channelId",
+        },
       ]),
     );
   });

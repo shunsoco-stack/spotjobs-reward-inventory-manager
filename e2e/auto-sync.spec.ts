@@ -35,6 +35,10 @@ test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tom
     ],
   };
   const envelope = await encryptSyncSnapshot(snapshot, credentials);
+  await page.route(`https://spotjobs-reward-inventory-sync.vercel.app/api/v1/refresh/${credentials.channelId}`, async route => {
+    const requestedAt = new Date().toISOString();
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ requestId: 'e71f0f26-ddb7-4bd6-905c-dc229a12da03', requestedAt, expiresAt: new Date(Date.now() + 120_000).toISOString(), status: 'succeeded', completedAt: requestedAt }) });
+  });
   let pulls = 0;
   await page.route(`https://spotjobs-reward-inventory-sync.vercel.app/api/v1/snapshot/${credentials.channelId}`, async route => {
     expect(route.request().headers().authorization).toBe(`Bearer ${credentials.bearerToken}`);
@@ -49,7 +53,7 @@ test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tom
       },
       body: JSON.stringify({
         envelope,
-        storedAt: new Date(`${date}T12:01:00+09:00`).toISOString(),
+        storedAt: new Date().toISOString(),
         expiresAt: new Date(new Date(`${date}T12:01:00+09:00`).getTime() + 90 * 86_400_000).toISOString(),
       }),
     });
@@ -94,7 +98,7 @@ test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tom
   await closeNotice(page);
   await navigate(page, '設定');
   await panel.getByRole('button', { name: '今すぐ同期', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('最新のSPOTJOBS履歴を確認しました');
+  await expect(page.getByRole('status')).toContainText('PCから最新の履歴を取得し、反映しました');
   await closeNotice(page);
   await navigate(page, '履歴');
   await expect(page.locator('.record-row')).toHaveCount(1);

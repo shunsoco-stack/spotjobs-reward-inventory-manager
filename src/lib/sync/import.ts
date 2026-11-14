@@ -16,7 +16,7 @@ export interface SpotJobsSyncRecord {
 export interface SpotJobsSyncSnapshot {
   version: 1;
   collectedAt: string;
-  sourceVersion: "spotlog-edge/0.1.0";
+  sourceVersion: "spotlog-edge/0.1.0" | "spotlog-edge/0.2.0";
   records: SpotJobsSyncRecord[];
 }
 
@@ -45,7 +45,8 @@ export function validateSpotJobsSnapshot(value: unknown): SpotJobsSyncSnapshot {
   const snapshot = object(value, "同期履歴");
   if (snapshot.version !== 1) throw new Error("対応していない同期履歴です。");
   const collectedAt = timestamp(snapshot.collectedAt, "取得日時");
-  if (snapshot.sourceVersion !== "spotlog-edge/0.1.0") throw new Error("対応していない収集ツールの同期履歴です。");
+  const sourceVersion = snapshot.sourceVersion;
+  if (sourceVersion !== "spotlog-edge/0.1.0" && sourceVersion !== "spotlog-edge/0.2.0") throw new Error("対応していない収集ツールの同期履歴です。");
   if (!Array.isArray(snapshot.records) || snapshot.records.length > MAX_RECORDS) throw new Error(`同期履歴は${MAX_RECORDS.toLocaleString("ja-JP")}件以内にしてください。`);
   const externalIds = new Set<string>();
   const records = snapshot.records.map((entry, index): SpotJobsSyncRecord => {
@@ -65,7 +66,7 @@ export function validateSpotJobsSnapshot(value: unknown): SpotJobsSyncSnapshot {
       earlyRefill: record.earlyRefill,
     } as SpotJobsSyncRecord;
   });
-  return { version: 1, collectedAt, sourceVersion: "spotlog-edge/0.1.0", records };
+  return { version: 1, collectedAt, sourceVersion, records };
 }
 
 function japanDate(timestampValue: string): string {

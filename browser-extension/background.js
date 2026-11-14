@@ -8,12 +8,14 @@ import {
   normalizeSpotJobsItems
 } from "./lib/normalizer.js";
 import { collectSpotJobsFromPage } from "./lib/page-collector.js";
+import { createRemoteRefreshPoller } from "./lib/remote-refresh.js";
 
 const ALARM_NAME = "spotlog-periodic-sync";
+const REFRESH_ALARM_NAME = "spotlog-remote-refresh";
 const DEFAULT_BRIDGE_URL = "https://spotjobs-reward-inventory-sync.vercel.app";
 const DEFAULT_INTERVAL = 30;
 const SPOTJOBS_URL = "https://app.spot.jobs/user-job-list*";
-const SOURCE_VERSION = "spotlog-edge/0.1.0";
+const SOURCE_VERSION = "spotlog-edge/0.2.0";
 let runningSync = null;
 
 async function getState() {
@@ -72,12 +74,24 @@ function normalizedBridgeUrl(value) {
   return url.toString().replace(/\/$/u, "");
 }
 
-async function scheduleAlarm(intervalMinutes) {
-  await chrome.alarms.clear(ALARM_NAME);
-  chrome.alarms.create(ALARM_NAME, {
-    delayInMinutes: Math.min(intervalMinutes, 1),
-    periodInMinutes: intervalMinutes
-  });
+async function scheduleAlarms(config, reset = false) {
+  if (!config.enabled || !config.syncCode) {
+    await Promise.all([chrome.alarms.clear(ALARM_NAME), chrome.alarms.clear(REFRESH_ALARM_NAME)]);
+    return;
+  }
+  const intervals = [
+    [ALARM_NAME, config.intervalMinutes],
+    [REFRESH_ALARM_NAME, 0.5]
+  ];
+  for (const [name, periodInMinutes] of intervals) {
+    const existing = await chrome.alarms.get(name);
+    if (reset || !existing || existing.periodInMinutes !== periodInMinutes) {
+      await chrome.alarms.create(name, {
+        delayInMinutes: Math.min(periodInMinutes, 1),
+        periodInMinutes
+      });
+    }
+  }
 }
 
 async function findSpotJobsTab() {
@@ -106,7 +120,8 @@ async function fetchRemoteSnapshot(bridgeUrl, secrets) {
     {
       method: "GET",
       headers: { Authorization: `Bearer ${secrets.authToken}` },
-      cache: "no-store"
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000)
     }
   );
   if (response.status === 404) return [];
@@ -141,7 +156,8 @@ async function uploadSnapshot(bridgeUrl, secrets, records, collectedAt) {
         Authorization: `Bearer ${secrets.authToken}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(envelope)
+      body: JSON.stringify(envelope),
+      signal: AbortSignal.timeout(15_000)
     }
   );
   if (response.status === 401 || response.status === 403) {
@@ -169,8 +185,13 @@ async function maybeNotifyAuthRequired(message) {
   }
 }
 
-async function performSync(trigger = "scheduled") {
+async function performSync(trigger = "scheduled", expectedConfig) {
   const { config } = await getState();
+  // A phone request is tied to the channel it arrived on. A configuration
+  // change during an awaited read must never upload to a new channel and then
+  // acknowledge the old request as successful.
+  if (expectedConfig && (!config.enabled || config.syncCode !== expectedConfig.syncCode ||
+    config.bridgeUrl !== expectedConfig.bridgeUrl)) return { state: "not-configured" };
   if (!config.enabled || !config.syncCode) {
     return setStatus("not-configured", "同期コードを設定してください。");
   }
@@ -227,29 +248,51 @@ async function performSync(trigger = "scheduled") {
   }
 }
 
-function runSync(trigger) {
+function runSync(trigger, expectedConfig) {
+  if (expectedConfig && runningSync) {
+    return runningSync.then(() => runSync(trigger, expectedConfig));
+  }
   if (!runningSync) {
-    runningSync = performSync(trigger).finally(() => {
+    runningSync = performSync(trigger, expectedConfig).finally(() => {
       runningSync = null;
     });
   }
   return runningSync;
 }
 
+const pollRemoteRefresh = createRemoteRefreshPoller({
+  getConfig: async () => (await getState()).config,
+  deriveSecrets: deriveSyncSecrets,
+  normalizeBridgeUrl: normalizedBridgeUrl,
+  storage: chrome.storage.local,
+  synchronize: (_command, requestedConfig) => {
+    // A sync already in progress may have captured history before the phone
+    // requested it. Wait, then collect again instead of reporting old data.
+    return runSync("remote", requestedConfig);
+  }
+});
+
+// Chrome may discard alarms across sessions. Recreate missing alarms whenever
+// the worker wakes, without moving an existing alarm's scheduled time.
+void getState().then(({ config }) => scheduleAlarms(config)).catch(() => undefined);
+
 chrome.runtime.onInstalled.addListener(async () => {
   const { config } = await getState();
   await chrome.storage.local.set({ config });
-  await scheduleAlarm(config.intervalMinutes);
+  await scheduleAlarms(config, true);
+  await pollRemoteRefresh();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   const { config } = await getState();
-  await scheduleAlarm(config.intervalMinutes);
-  if (config.enabled) void runSync("startup");
+  await scheduleAlarms(config, true);
+  const result = await pollRemoteRefresh();
+  if (config.enabled && !result.handled) void runSync("startup");
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM_NAME) void runSync("scheduled");
+  if (alarm.name === ALARM_NAME) return runSync("scheduled");
+  if (alarm.name === REFRESH_ALARM_NAME) return pollRemoteRefresh();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -281,8 +324,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       };
       await deriveSyncSecrets(config.syncCode);
       await chrome.storage.local.set({ config });
-      await scheduleAlarm(intervalMinutes);
-      sendResponse({ ok: true, config, status: await runSync("configured") });
+      await scheduleAlarms(config, true);
+      const remote = await pollRemoteRefresh();
+      const status = remote.handled ? (await getState()).syncStatus : await runSync("configured");
+      sendResponse({ ok: true, config, status });
     })().catch((error) =>
       sendResponse({ ok: false, error: error instanceof Error ? error.message : String(error) })
     );
@@ -305,6 +350,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         }
       });
       await chrome.alarms.clear(ALARM_NAME);
+      await chrome.alarms.clear(REFRESH_ALARM_NAME);
+      await chrome.storage.local.remove("remoteRefreshResult");
       sendResponse({ ok: true });
     })();
     return true;

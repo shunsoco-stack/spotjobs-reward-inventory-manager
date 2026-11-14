@@ -272,6 +272,21 @@ html[data-theme="dark"] .button-primary.adjustment { color: #352510; }
 .round-icon.pickup { color: var(--pickup); background: var(--pickup-soft); }
 .round-icon.amber, .round-icon.adjustment { color: var(--amber); background: var(--amber-soft); }
 .home-grid { display: grid; gap: 1rem; }
+.home-sync { margin-bottom: 1rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--blue) 25%, var(--line)); border-radius: 18px; background: var(--surface); }
+.home-sync-main { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.home-sync-main > div { min-width: 0; }
+.home-sync-caption { display: flex; align-items: center; gap: .4rem; color: var(--blue); font-size: .75rem; font-weight: 750; }
+.home-sync-main p { margin-top: .3rem; color: var(--muted); font-size: .6875rem; overflow-wrap: anywhere; }
+.home-sync-main .button { flex: none; min-height: 48px; padding: .75rem; font-size: .8125rem; }
+.home-sync-message { margin-top: .65rem; font-size: .75rem; color: var(--muted); overflow-wrap: anywhere; }
+.home-sync-message.danger { color: var(--danger); }
+.sync-progress { display: grid; gap: .65rem; margin-top: .85rem; padding: .85rem; border-radius: 13px; background: var(--blue-soft); }
+.sync-progress > strong { color: var(--blue); font-size: .8125rem; }
+.sync-progress ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; list-style: none; padding: 0; margin: 0; }
+.sync-progress li { display: flex; align-items: center; justify-content: center; gap: .3rem; min-height: 40px; border-radius: 8px; color: var(--muted); font-size: .625rem; background: var(--surface); }
+.sync-progress li.active { color: var(--blue); box-shadow: inset 0 0 0 1px currentColor; }
+.sync-progress li[aria-current="step"] { font-weight: 750; }
+.sync-progress p { font-size: .6875rem; color: var(--muted); line-height: 1.7; }
 .reward-hero { background: var(--hero); color: var(--hero-text); border-radius: 22px; padding: 1.5rem; position: relative; overflow: hidden; min-width: 0; }
 .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .hero-top .eyebrow { color: var(--hero-muted); margin-bottom: .35rem; }

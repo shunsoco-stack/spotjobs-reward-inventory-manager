@@ -18,6 +18,7 @@ import {
 import { createSyncPairingUrl } from "@/lib/sync/pairing-link";
 import { parseSyncCode } from "@/lib/sync/protocol";
 import type { SyncLocalPreferences } from "@/lib/sync/preferences";
+import { SyncProgress, type SyncPhase } from './sync-action';
 
 export type SyncImportMode = "all" | "future";
 
@@ -26,6 +27,7 @@ export interface SyncPanelProps {
   online: boolean;
   demo: boolean;
   syncing: boolean;
+  syncPhase: SyncPhase;
   reviewCount: number;
   hasExistingRecords: boolean;
   incomingSyncCode?: string;
@@ -108,6 +110,7 @@ export default function SyncPanel({
   online,
   demo,
   syncing,
+  syncPhase,
   reviewCount,
   hasExistingRecords,
   incomingSyncCode,
@@ -317,10 +320,12 @@ export default function SyncPanel({
             <button className="button button-primary" type="button" disabled={!online || syncing || demo || !preferences.enabled} onClick={() => void onSync()}>
               <RefreshCw className={syncing ? "spin" : ""} size={19} aria-hidden="true" />{syncing ? "同期しています…" : "今すぐ同期"}
             </button>
-            <button className="button button-secondary" type="button" disabled={saving || demo} onClick={() => void onToggle(!preferences.enabled)}>
+            <button className="button button-secondary" type="button" disabled={saving || syncing || demo} onClick={() => void onToggle(!preferences.enabled)}>
               {preferences.enabled ? "自動同期を一時停止" : "自動同期を再開"}
             </button>
           </div>
+          {syncing && <SyncProgress phase={syncPhase} />}
+          <p className="field-hint">「今すぐ同期」はPCへ最新取得を依頼し、この端末への反映まで行います。通常は数十秒が目安です。PCがスリープ中・Edge終了中の場合は取得できません。</p>
           {!online && <p className="notice"><AlertTriangle size={18} aria-hidden="true" />オフラインです。入力はそのまま使え、再接続後に同期します。</p>}
 
           <details className="sync-code-details sync-device-pairing" onToggle={event => setPairingOpen(event.currentTarget.open)}>
@@ -349,7 +354,7 @@ export default function SyncPanel({
           </details>
 
           <div className="sync-extension">
-            <div><strong>PC側のEdge拡張</strong><p className="muted">展開して読み込み、上の同期コードを貼り付けます。初期設定は30分ごとです。ログイン済みのジョブ履歴タブを開いておきます。</p></div>
+            <div><strong>PC側のEdge拡張 v0.2</strong><p className="muted">定期取得は初期設定で30分ごと。スマホからの依頼は約30秒ごとに確認します。ログイン済みのジョブ履歴タブを開いておきます。旧版をお使いの場合は最新版に入れ替え、拡張機能を再読み込みしてください。</p></div>
             <a className="button button-secondary" href="/downloads/spotjobs-reward-inventory-edge-extension.zip" download>
               <Download size={18} aria-hidden="true" />Edge拡張をダウンロード
             </a>

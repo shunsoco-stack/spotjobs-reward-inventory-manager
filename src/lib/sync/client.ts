@@ -10,6 +10,8 @@ export interface PullSyncOptions {
   bridgeUrl?: string;
   signal?: AbortSignal;
   fetchImpl?: typeof fetch;
+  /** Server request time: reject a snapshot uploaded before a requested PC refresh. */
+  minimumStoredAt?: string;
 }
 
 export interface PulledSpotJobsSnapshot {
@@ -23,6 +25,7 @@ export type DeleteSyncOptions = PullSyncOptions;
 
 export interface SyncFromBridgeResult extends SyncMergeResult {
   channelId: string;
+  collectedAt: string;
   storedAt: string;
   expiresAt: string;
 }
@@ -73,6 +76,9 @@ export async function pullSpotJobsSnapshot(options: PullSyncOptions): Promise<Pu
   const wrapper = object(await responseJson(response));
   const envelope = validateEncryptedEnvelope(wrapper.envelope);
   const storedAt = timestamp(wrapper.storedAt);
+  if (options.minimumStoredAt && (!Number.isFinite(Date.parse(options.minimumStoredAt)) || Date.parse(storedAt) < Date.parse(options.minimumStoredAt))) {
+    throw new SyncBridgeError("PCが取得した最新履歴がまだ届いていません。少し待ってもう一度同期してください。", "unavailable");
+  }
   const expiresAt = timestamp(wrapper.expiresAt);
   const snapshot = validateSpotJobsSnapshot(await decryptSyncSnapshot(envelope, credentials));
   if (snapshot.records.length !== envelope.recordCount || snapshot.collectedAt !== envelope.collectedAt) {
@@ -93,7 +99,7 @@ export async function syncFromBridge(data: AppData, options: PullSyncOptions): P
     };
   }
   const merged = mergeSpotJobsSnapshot(data, snapshot);
-  return { ...merged, channelId: pulled.channelId, storedAt: pulled.storedAt, expiresAt: pulled.expiresAt };
+  return { ...merged, channelId: pulled.channelId, collectedAt: pulled.snapshot.collectedAt, storedAt: pulled.storedAt, expiresAt: pulled.expiresAt };
 }
 
 /** Deletes only the encrypted cloud snapshot. Local IndexedDB history is untouched. */

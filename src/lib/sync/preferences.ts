@@ -11,6 +11,7 @@ export interface SyncLocalPreferences {
   lastStatus?: "success" | "error";
   lastAttemptAt?: string;
   lastSuccessAt?: string;
+  lastCollectedAt?: string;
   lastMessage?: string;
 }
 
@@ -50,9 +51,11 @@ export function loadSyncPreferences(): SyncLocalPreferences {
   const importAfter = iso(saved.importAfter);
   const lastAttemptAt = iso(saved.lastAttemptAt);
   const lastSuccessAt = iso(saved.lastSuccessAt);
+  const lastCollectedAt = iso(saved.lastCollectedAt);
   if (importAfter) result.importAfter = importAfter;
   if (lastAttemptAt) result.lastAttemptAt = lastAttemptAt;
   if (lastSuccessAt) result.lastSuccessAt = lastSuccessAt;
+  if (lastCollectedAt) result.lastCollectedAt = lastCollectedAt;
   if (typeof saved.lastMessage === "string" && saved.lastMessage.length <= 500) result.lastMessage = saved.lastMessage;
   if (!result.syncCode) result.enabled = false;
   return result;
@@ -69,9 +72,11 @@ export function saveSyncPreferences(value: SyncLocalPreferences): SyncLocalPrefe
   const importAfter = iso(value.importAfter);
   const lastAttemptAt = iso(value.lastAttemptAt);
   const lastSuccessAt = iso(value.lastSuccessAt);
+  const lastCollectedAt = iso(value.lastCollectedAt);
   if (importAfter) next.importAfter = importAfter;
   if (lastAttemptAt) next.lastAttemptAt = lastAttemptAt;
   if (lastSuccessAt) next.lastSuccessAt = lastSuccessAt;
+  if (lastCollectedAt) next.lastCollectedAt = lastCollectedAt;
   if (value.lastMessage !== undefined) {
     if (typeof value.lastMessage !== "string" || value.lastMessage.length > 500) throw new Error("同期状態のメッセージが長すぎます。");
     next.lastMessage = value.lastMessage;

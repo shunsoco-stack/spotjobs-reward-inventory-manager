@@ -93,6 +93,7 @@ async function collectFromTab(tabId) {
     args: [{ pageSize: 50, maxRecords: 500 }]
   });
   const result = results?.[0]?.result;
+  if (result?.error) throw new Error(result.error);
   if (!result || !Array.isArray(result.records)) {
     throw new Error("SPOTJOBSの履歴を読み取れませんでした。");
   }
@@ -219,6 +220,8 @@ async function performSync(trigger = "scheduled") {
     }
     const message = rawMessage.includes("SPOTLOG_API_FORMAT_CHANGED")
       ? "SPOTJOBSの画面仕様が変わった可能性があります。拡張機能を更新してください。"
+      : rawMessage.includes("SPOTLOG_API_CAPTURE_TIMEOUT")
+        ? "SPOTJOBSの完了履歴を読み込めませんでした。履歴画面を開いたまま再実行してください。"
       : rawMessage.replace(/^Error:\s*/u, "");
     return setStatus("error", message, { trigger });
   }

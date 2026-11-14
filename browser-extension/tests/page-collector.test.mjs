@@ -2,66 +2,141 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { collectSpotJobsFromPage } from "../lib/page-collector.js";
 
-globalThis.location = { origin: "https://app.spot.jobs" };
+const originalWindow = globalThis.window;
 
 function jsonResponse(payload, status = 200) {
-  return {
+  return new Response(JSON.stringify(payload), {
     status,
-    ok: status >= 200 && status < 300,
-    headers: { get: () => "application/json; charset=utf-8" },
-    json: async () => payload
-  };
+    headers: { "content-type": "application/json; charset=utf-8" }
+  });
 }
 
-test("paginates until a short page", async () => {
-  const requested = [];
-  globalThis.fetch = async (url) => {
-    requested.push(url);
-    const page = Number(url.searchParams.get("pageNum"));
+function installPage(fetchImplementation, requestOverrides = {}) {
+  let officialFetchCalls = 0;
+  const unfinishedButton = { textContent: "未完了", click() {} };
+  const finishedButton = {
+    textContent: "完了",
+    click() {
+      officialFetchCalls += 1;
+      void globalThis.window.fetch(
+        requestOverrides.url || "https://prod.spotapi.jp/api/v1/rounder/work?lat=0&lng=0&pageNum=1&pageSize=10&taskStatus=FINISHED&workTypes=BATTERY_INSERT%2CBATTERY_EJECT",
+        {
+          method: requestOverrides.method || "GET",
+          headers: { Authorization: "Bearer test-only-token" }
+        }
+      );
+    }
+  };
+  const page = {
+    fetch: fetchImplementation,
+    setTimeout,
+    clearTimeout,
+    document: {
+      querySelectorAll(selector) {
+        assert.equal(selector, "button");
+        return [unfinishedButton, finishedButton];
+      }
+    }
+  };
+  globalThis.window = page;
+  return { page, officialFetchCalls: () => officialFetchCalls };
+}
+
+test.afterEach(() => {
+  globalThis.window = originalWindow;
+});
+
+test("captures the official authenticated request, paginates, and restores fetch", async () => {
+  const requests = [];
+  const originalFetch = async (input, init) => {
+    const officialRequest = !(input instanceof Request);
+    const request = input instanceof Request && init === undefined
+      ? input
+      : new Request(input, init);
+    requests.push(request);
+    const pageNum = Number(new URL(request.url).searchParams.get("pageNum"));
+    assert.equal(request.headers.get("Authorization"), "Bearer test-only-token");
+    if (officialRequest) {
+      return jsonResponse(Array.from({ length: 10 }, (_, index) => ({ rounderWorkId: `official-${index}` })));
+    }
+    return jsonResponse(
+      pageNum === 1
+        ? Array.from({ length: 10 }, (_, index) => ({ rounderWorkId: `page-${index}` }))
+        : []
+    );
+  };
+  const { page, officialFetchCalls } = installPage(originalFetch);
+
+  const result = await collectSpotJobsFromPage({ pageSize: 10, maxRecords: 50 });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.records.length, 10);
+  assert.equal(officialFetchCalls(), 1);
+  assert.equal(requests.length, 3);
+  assert.match(requests[0].url, /^https:\/\/prod\.spotapi\.jp\/api\/v1\/rounder\/work/u);
+  assert.equal(new URL(requests[1].url).searchParams.get("pageNum"), "1");
+  assert.equal(new URL(requests[2].url).searchParams.get("pageNum"), "2");
+  assert.equal(page.fetch, originalFetch);
+});
+
+test("accepts a nested official response payload", async () => {
+  const originalFetch = async (input, init) => {
+    const request = input instanceof Request && init === undefined
+      ? input
+      : new Request(input, init);
+    const pageSize = Number(new URL(request.url).searchParams.get("pageSize"));
     return jsonResponse({
       data: {
         result: {
-          list:
-            page === 1
-              ? Array.from({ length: 10 }, (_, index) => ({ rounderWorkId: `a-${index}` }))
-              : [{ rounderWorkId: "last" }]
+          list: pageSize === 10
+            ? [{ rounderWorkId: "captured" }]
+            : [{ rounderWorkId: "manual" }]
         }
       }
     });
   };
+  const { page } = installPage(originalFetch);
+
+  const result = await collectSpotJobsFromPage({ pageSize: 50, maxRecords: 50 });
+
+  assert.deepEqual(result.records.map((record) => record.rounderWorkId), ["manual"]);
+  assert.equal(page.fetch, originalFetch);
+});
+
+test("serializes authentication errors and restores fetch", async () => {
+  const originalFetch = async () => jsonResponse({}, 401);
+  const { page } = installPage(originalFetch);
+
   const result = await collectSpotJobsFromPage({ pageSize: 10, maxRecords: 50 });
-  assert.equal(requested.length, 2);
-  assert.equal(result.records.length, 11);
-  assert.equal(new URL(requested[0]).searchParams.get("taskStatus"), "FINISHED");
+
+  assert.equal(result.error, "SPOTLOG_AUTH_REQUIRED");
+  assert.equal(result.records, null);
+  assert.equal(page.fetch, originalFetch);
 });
 
-test("refreshes the full recent window even if a prior ID is supplied", async () => {
-  let calls = 0;
-  globalThis.fetch = async () => {
-    calls += 1;
-    return jsonResponse([
-      { rounderWorkId: "new-2" },
-      { rounderWorkId: "new-1" },
-      { rounderWorkId: "known" },
-      { rounderWorkId: "old" }
-    ]);
-  };
-  const result = await collectSpotJobsFromPage({
-    knownIds: ["known"],
-    pageSize: 10,
-    maxRecords: 50
+test("serializes changed payload formats and restores fetch", async () => {
+  const originalFetch = async () => jsonResponse({ unexpected: true });
+  const { page } = installPage(originalFetch);
+
+  const result = await collectSpotJobsFromPage({ pageSize: 10, maxRecords: 50 });
+
+  assert.equal(result.error, "SPOTLOG_API_FORMAT_CHANGED");
+  assert.equal(page.fetch, originalFetch);
+});
+
+test("ignores lookalike history requests outside the official API host", async () => {
+  const originalFetch = async () => jsonResponse([]);
+  const { page } = installPage(originalFetch, {
+    url: "https://example.com/api/v1/rounder/work?pageNum=1&pageSize=10&taskStatus=FINISHED"
   });
-  assert.equal(calls, 1);
-  assert.deepEqual(
-    result.records.map((record) => record.rounderWorkId),
-    ["new-2", "new-1", "known", "old"]
-  );
-});
 
-test("reports an authentication-required sentinel", async () => {
-  globalThis.fetch = async () => jsonResponse({}, 401);
-  await assert.rejects(
-    () => collectSpotJobsFromPage({ pageSize: 10, maxRecords: 50 }),
-    /SPOTLOG_AUTH_REQUIRED/u
-  );
+  const result = await collectSpotJobsFromPage({
+    pageSize: 10,
+    maxRecords: 50,
+    captureTimeoutMs: 500
+  });
+
+  assert.equal(result.error, "SPOTLOG_API_CAPTURE_TIMEOUT");
+  assert.equal(result.records, null);
+  assert.equal(page.fetch, originalFetch);
 });

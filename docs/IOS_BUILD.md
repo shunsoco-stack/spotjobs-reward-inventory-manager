@@ -6,14 +6,17 @@ Next.js static export in `out/` is bundled into the native app; no remote
 
 ## Pinned toolchain
 
-These versions were checked against the public npm registry on 2026-10-17 and
-are pinned exactly in `package-lock.json`:
+These versions are pinned exactly in `package-lock.json`. The Mac release
+branch updated Capacitor core, CLI, and iOS together to 8.6.0 on 2026-11-02
+to remove the CLI’s vulnerable xcode/uuid dependency. See the
+[upstream release notes](https://github.com/ionic-team/capacitor/releases/tag/8.6.0).
+The existing official plugin versions remain unchanged:
 
 | Package | Version | Purpose |
 | --- | ---: | --- |
-| `@capacitor/core` | 8.5.3 | Web/native bridge |
-| `@capacitor/cli` | 8.5.3 | Local Capacitor CLI |
-| `@capacitor/ios` | 8.5.3 | iOS platform |
+| `@capacitor/core` | 8.6.0 | Web/native bridge |
+| `@capacitor/cli` | 8.6.0 | Local Capacitor CLI |
+| `@capacitor/ios` | 8.6.0 | iOS platform |
 | `@capacitor/inappbrowser` | 4.1.0 | Open requested links in the external browser |
 | `@capacitor/share` | 8.0.3 | iOS share sheet |
 | `@capacitor/filesystem` | 8.1.5 | Export backup and CSV files |

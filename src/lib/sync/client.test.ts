@@ -50,7 +50,33 @@ describe("sync bridge client", () => {
     await expect(pullSpotJobsSnapshot({ syncCode, bridgeUrl: "http://localhost", fetchImpl: invalid })).rejects.toThrow();
   });
 
-  it("protects existing manual history with an explicit import cutoff", async () => {
+  it("imports the full snapshot on a fresh cross-device connection without a cutoff", async () => {
+    const credentials = await deriveSyncCredentials(syncCode);
+    const envelope = await encryptSyncSnapshot(payload, credentials);
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      envelope,
+      storedAt: "2026-11-13T03:01:00.000Z",
+      expiresAt: "2027-02-11T03:01:00.000Z",
+    }), { status: 200 })) as unknown as typeof fetch;
+    const data = { version: 2 as const, records: [], settings: structuredClone(defaultSettings), lastArea: "omitted" as const };
+
+    const result = await syncFromBridge(data, {
+      syncCode,
+      bridgeUrl: "http://localhost",
+      fetchImpl,
+    });
+
+    expect(result.imported).toBe(1);
+    expect(result.data.records).toHaveLength(1);
+    expect(result.data.records[0]).toMatchObject({
+      id: "spotjobs:job-1",
+      type: "pickup",
+      quantity: 2,
+      createdAt: "2026-11-13T02:00:00.000Z",
+    });
+  });
+
+  it("protects existing manual history only when an explicit future-only cutoff is set", async () => {
     const credentials = await deriveSyncCredentials(syncCode);
     const envelope = await encryptSyncSnapshot(payload, credentials);
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({

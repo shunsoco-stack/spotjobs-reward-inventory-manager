@@ -412,6 +412,9 @@ progress::-moz-progress-bar { background: var(--green); border-radius: 20px; }
 .welcome-panel { text-align: center; padding: 1.75rem 1.25rem; }
 .welcome-panel > p { color: var(--muted); font-size: .8125rem; }
 .welcome-panel > .button { margin-top: 1.25rem; }
+.welcome-panel > .round-icon { margin: 0 auto .75rem; color: var(--blue); background: var(--blue-soft); }
+.welcome-or { display: flex; align-items: center; gap: .75rem; margin: 1rem 0 -.25rem; color: var(--muted); font-size: .6875rem; }
+.welcome-or::before, .welcome-or::after { content: ""; height: 1px; flex: 1; background: var(--line); }
 .home-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: 1rem; }
 .home-tools button { display: flex; align-items: center; justify-content: flex-start; gap: .5rem; padding: .85rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; min-height: 64px; font-size: .6875rem; font-weight: 650; text-align: left; }
 .home-tools button > svg { color: var(--green); }
@@ -627,6 +630,20 @@ fieldset.settings-section > div.settings-section > .button-secondary { justify-s
 .secret-field { position: relative; display: block; }
 .secret-field input { width: 100%; padding-right: 3.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8125rem; letter-spacing: .02em; }
 .secret-field > button { position: absolute; inset: 0 0 0 auto; display: grid; place-items: center; width: 48px; min-height: 48px; color: var(--muted); }
+.sync-code-received { display: flex; align-items: flex-start; gap: .75rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--green) 32%, var(--line)); border-radius: 14px; color: var(--green); background: var(--green-soft); animation: view-enter var(--motion-view) var(--motion-ease-out) both; }
+.sync-code-received:focus { outline: 3px solid color-mix(in srgb, var(--green) 28%, transparent); outline-offset: 3px; }
+.sync-code-received > svg { margin-top: .1rem; }
+.sync-code-received strong { display: block; font-size: .8125rem; }
+.sync-code-received p { margin-top: .15rem; color: var(--muted); font-size: .75rem; }
+.sync-import-choice { display: grid; gap: .55rem; }
+.sync-import-choice legend { margin-bottom: .1rem; }
+.sync-import-choice label { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: flex-start; gap: .7rem; min-height: 64px; padding: .8rem; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-subtle); cursor: pointer; transition: background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast) var(--motion-ease-press); }
+.sync-import-choice label:active { transform: scale(.985); }
+.sync-import-choice label.selected { border-color: color-mix(in srgb, var(--green) 55%, var(--line)); background: var(--green-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 13%, transparent); }
+.sync-import-choice input { width: 20px; height: 20px; margin: .15rem 0 0; accent-color: var(--green); }
+.sync-import-choice span { display: flex; flex-direction: column; gap: .15rem; }
+.sync-import-choice strong { font-size: .8125rem; }
+.sync-import-choice small { color: var(--muted); font-size: .6875rem; line-height: 1.65; }
 .sync-connect-actions, .sync-actions { display: grid; gap: .6rem; }
 .sync-summary { display: grid; grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr); gap: .55rem; }
 .sync-summary > div { min-width: 0; padding: .8rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-subtle); }
@@ -642,6 +659,26 @@ fieldset.settings-section > div.settings-section > .button-secondary { justify-s
 .sync-code-details summary { display: flex; align-items: center; min-height: 48px; color: var(--green); font-size: .75rem; font-weight: 700; cursor: pointer; }
 .sync-code-details[open] { display: grid; gap: .75rem; }
 .sync-code-details > .button { justify-self: stretch; }
+.sync-device-pairing { padding: .7rem; border: 1px solid color-mix(in srgb, var(--blue) 22%, var(--line)); border-radius: 14px; background: var(--blue-soft); }
+.sync-device-pairing summary { gap: .7rem; min-height: 58px; color: var(--blue); list-style: none; }
+.sync-device-pairing summary::-webkit-details-marker { display: none; }
+.sync-device-pairing summary > span { display: flex; flex-direction: column; gap: .05rem; }
+.sync-device-pairing summary strong { font-size: .8125rem; }
+.sync-device-pairing summary small { color: var(--muted); font-size: .625rem; font-weight: 550; }
+.sync-device-pairing[open] { background: var(--surface); }
+.sync-pairing-qr { display: grid; gap: .75rem; padding-top: .25rem; }
+.sync-qr-frame { display: grid; place-items: center; padding: .75rem; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.sync-qr-frame canvas { display: block; width: min(232px, 100%); height: auto; image-rendering: pixelated; }
+.sync-qr-copy { display: grid; gap: .55rem; }
+.sync-qr-copy > strong { display: flex; align-items: center; gap: .45rem; font-size: .8125rem; }
+.sync-qr-copy > p { color: var(--muted); font-size: .6875rem; line-height: 1.7; }
+.sync-secret-warning { display: flex; align-items: flex-start; gap: .5rem; color: var(--amber); font-size: .6875rem; }
+.sync-secret-warning > svg { margin-top: .1rem; }
+.sync-backfill > div { min-width: 0; }
+.sync-backfill > div > p { margin-top: .15rem; }
+.sync-backfill .text-button { min-height: 44px; margin-top: .3rem; color: var(--blue); }
+.sync-backfill-confirm { margin-top: .6rem; }
+.sync-backfill-confirm .dialog-actions { margin-top: .75rem; }
 .sync-extension { display: grid; gap: .75rem; padding: .9rem; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-subtle); }
 .sync-extension strong { font-size: .8125rem; }
 .sync-extension p { margin-top: .25rem; line-height: 1.7; }
@@ -970,6 +1007,7 @@ html[data-theme="dark"] .x-share-button { background: #f5f5f5; color: #0f1419; }
   .home-grid > .weekly-mini { order: 6; }
   .home-grid > .inventory-preview { order: 7; }
   .home-grid > .welcome-panel { order: 8; }
+  .home-grid > .sync-welcome { order: 0; }
   .reward-hero { padding: 1rem; border-radius: 20px; }
   .hero-top .eyebrow { display: none; }
   .hero-top h2 { font-size: .875rem; line-height: 1.4; }

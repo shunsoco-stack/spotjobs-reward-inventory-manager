@@ -3,7 +3,12 @@ import { test, expect, boot, chooseFile, closeNotice, downloadText, homeTotals, 
 test('fresh dashboard, explicit demo separation, and responsive screens', async ({ page }) => {
   await boot(page);
   await expect(page.locator('.hero-amount .kinetic-readable')).toHaveText('0円');
-  await expect(page.getByRole('heading', { name: '今日の1本から、はじめよう。' })).toBeVisible();
+  const syncWelcome = page.getByRole('heading', { name: 'PCの履歴をこの端末へ', exact: true });
+  await expect(syncWelcome).toBeVisible();
+  if ((page.viewportSize()?.width ?? 1000) < 1000) {
+    const [welcomeBox, rewardBox] = await Promise.all([syncWelcome.boundingBox(), page.locator('.reward-hero').boundingBox()]);
+    expect(welcomeBox?.y ?? Infinity).toBeLessThan(rewardBox?.y ?? -Infinity);
+  }
   await noHorizontalOverflow(page);
   await page.getByRole('button', { name: 'デモデータで試す', exact: true }).click();
   await expect(page.getByText('デモデータでお試し中', { exact: true })).toBeVisible();

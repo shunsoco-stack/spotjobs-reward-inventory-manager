@@ -16,16 +16,17 @@ PCは約30秒ごとに取得依頼の有無を確認します。公式履歴の�
 | 確認 | 今回の結果 |
 | --- | --- |
 | lint / typecheck / build | PASS |
-| Web単体テスト | 242件PASS |
-| Edge拡張テスト | 27件PASS。Upload後の完了通知、既存同期後の再取得、設定変更の競合、再通知と期限を確認 |
+| Web単体テスト | 243件PASS |
+| Edge拡張テスト | 29件PASS。Upload後の完了通知、既存同期後の再取得、設定変更の競合、再通知と期限、画面再描画後の最新ボタン参照を確認 |
 | Bridgeテスト | 38件PASS。認証・CORS・期限・同時依頼の再利用・ETag競合・完了状態の保護・Cache迂回を確認 |
 | 遠隔同期ブラウザE2E | 9件PASS。Desktop Chromium／Pixel 7相当／iPhone WebKit相当で進行表示、新履歴取込、待機中手入力の保持、失敗時の保護、未接続導線、Offline無効化を確認。外部通信は合成データで再現 |
 | Bridge本番 | Health、新規Endpointの認証拒否、POSTのCORS Preflightを確認。個人データ・Allowlistの変更なし |
-| Web本番 | Vercel Production `dpl_BAf8TFooq7jZm6JfY8N2Raq43nmf`へ公開。実際の本番URLでも上記9件PASS、Console／Page Error 0件（外部応答は合成データ）。実PCの更新後連携は確認中 |
-| 公開差分Secret Scan | Gitleaks 8.30.0で変更／新規Text 36ファイルと拡張配布用Runtime 10ファイルを検査し、検出0件。`.env`は読取対象外 |
-| 配布ZIP | v0.2.0、Runtime 10ファイル。すべて現行SourceとByte単位で一致。tests／logs／`.env`／認証情報／実作業履歴なし |
+| Web本番 | 当日の本番URLで上記9件PASS、Console／Page Error 0件（外部応答は合成データ）。最終修正版v0.2.1対応はVercel Production `dpl_9crZnDQvXVSigiNNu9XqsvaN1tLi`へ公開 |
+| 実PCとの連携 | 利用者がEdge拡張v0.2.1を再読み込み後、本番ホームの「今すぐ同期」から実PCの公式履歴取得・暗号化Upload・端末への反映まで成功。操作から37秒以内の確認時点で完了表示とPC取得日時の更新を確認。実履歴・認証情報・画面画像は公開ファイルへ保存していない |
+| 公開差分Secret Scan | Gitleaks 8.30.0で変更／新規Text 36ファイルと拡張配布用Runtime 10ファイルを検査し、検出0件。v0.2.1の追加差分とZIP Runtimeも16 uniqueファイルを再検査し、検出0件。`.env`は読取対象外 |
+| 配布ZIP | v0.2.1、Runtime 10ファイルが現行SourceとByte単位で一致。tests／logs／`.env`／認証情報／実作業履歴なし |
 
-配布ZIPのSHA-256：`DCDEF3753E6D392FEB3F86A21F45444F71C11B1E80B75433BA73157B12FEF053`。新規テストの履歴は合成店舗・合成IDを使い、固定同期コードはByte列0〜31のテスト用Fixtureです。個人用コードや実履歴を公開ファイルへ保存していません。
+配布ZIPのSHA-256：`617151AFD2716E39027EF8ECD638792D0E5488D36387ACDBE6D0EE12A305B84A`。新規テストの履歴は合成店舗・合成IDを使い、固定同期コードはByte列0〜31のテスト用Fixtureです。個人用コードや実履歴を公開ファイルへ保存していません。
 
 ## 表記・配色の更新（2026年9月18日）
 

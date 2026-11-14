@@ -272,7 +272,7 @@ Desktop Chromium、Pixel 7相当、iPhone 13相当で入力・報酬・棚卸・
 
 ## Deployment
 
-2026年11月15日の「ホームからPCへ最新取得」更新：lint・typecheck・build成功。Web242件、Edge拡張27件、同期ブリッジ38件の単体テストが成功。遠隔同期のブラウザテストはローカル9件、本番URL9件が成功しました（Desktop Chromium／Pixel 7相当／iPhone 13 WebKit相当。取得応答は合成データで再現）。進捗、手入力の保持、失敗時の保護、オフライン、未接続時の案内とコンソールエラー0件を確認しています。
+2026年11月15日の「ホームからPCへ最新取得」更新：lint・typecheck・build成功。Web243件、Edge拡張29件、同期ブリッジ38件の単体テストが成功。遠隔同期のブラウザテストはローカル9件、本番URL9件が成功しました（Desktop Chromium／Pixel 7相当／iPhone 13 WebKit相当。取得応答は合成データで再現）。進捗、手入力の保持、失敗時の保護、オフライン、未接続時の案内とコンソールエラー0件を確認しています。
 
 Vercel Production：[SPOTJOBS報酬・在庫管理アプリ](https://spotjobs-reward-inventory-manager.vercel.app)。未ログインのブラウザからアクセスできることを確認しています。
 

@@ -24,7 +24,7 @@ const refill: SpotJobsSyncRecord = {
 };
 
 describe("SPOTJOBS snapshot import", () => {
-  it.each(["spotlog-edge/0.1.0", "spotlog-edge/0.2.0"] as const)("imports and preserves supported collector version %s", sourceVersion => {
+  it.each(["spotlog-edge/0.1.0", "spotlog-edge/0.2.0", "spotlog-edge/0.2.1"] as const)("imports and preserves supported collector version %s", sourceVersion => {
     const incoming = { ...snapshot([pickup, refill]), sourceVersion };
     expect(validateSpotJobsSnapshot(incoming).sourceVersion).toBe(sourceVersion);
     const result = mergeSpotJobsSnapshot(emptyData(), incoming, "2026-11-13T04:00:00.000Z");

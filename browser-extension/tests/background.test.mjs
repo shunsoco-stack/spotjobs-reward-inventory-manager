@@ -99,7 +99,7 @@ async function loadBackground({ configOverrides = {}, collector, onConfigRead, o
     const envelope = JSON.parse(options.body);
     const snapshot = await decryptSnapshot(envelope, secrets);
     assert.equal(snapshot.records.length, 1);
-    assert.equal(snapshot.sourceVersion, "spotlog-edge/0.2.0");
+    assert.equal(snapshot.sourceVersion, "spotlog-edge/0.2.1");
     uploads += 1;
     events.push(`upload-${uploads}`);
     return json({ ok: true });

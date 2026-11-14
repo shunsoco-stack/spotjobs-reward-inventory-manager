@@ -140,3 +140,68 @@ test("ignores lookalike history requests outside the official API host", async (
   assert.equal(result.records, null);
   assert.equal(page.fetch, originalFetch);
 });
+
+test("re-queries the completed tab after switching replaces the official button nodes", async () => {
+  let activeButtons;
+  let detachedClicks = 0;
+  let currentClicks = 0;
+  const originalFetch = async () => jsonResponse([{ rounderWorkId: "fresh-node" }]);
+  const currentFinished = {
+    textContent: "完了",
+    click() {
+      currentClicks += 1;
+      void globalThis.window.fetch(
+        "https://prod.spotapi.jp/api/v1/rounder/work?taskStatus=FINISHED&pageNum=1&pageSize=10",
+        { headers: { Authorization: "Bearer test-only-token" } }
+      );
+    }
+  };
+  const unfinished = {
+    textContent: "未完了",
+    click() {
+      // Simulate the official React update replacing the DOM during its render.
+      queueMicrotask(() => { activeButtons = [unfinished, currentFinished]; });
+    }
+  };
+  activeButtons = [unfinished, {
+    textContent: "完了",
+    click() { detachedClicks += 1; }
+  }];
+  const page = {
+    fetch: originalFetch,
+    setTimeout,
+    clearTimeout,
+    document: { querySelectorAll: () => activeButtons }
+  };
+  globalThis.window = page;
+
+  const result = await collectSpotJobsFromPage({ pageSize: 10, maxRecords: 50, captureTimeoutMs: 500 });
+
+  assert.equal(result.error, undefined);
+  assert.equal(detachedClicks, 0);
+  assert.equal(currentClicks, 1);
+  assert.deepEqual(result.records.map((record) => record.rounderWorkId), ["fresh-node"]);
+  assert.equal(page.fetch, originalFetch);
+});
+
+test("reports a changed layout if the completed tab disappears during the transition", async () => {
+  let activeButtons;
+  const originalFetch = async () => jsonResponse([]);
+  activeButtons = [
+    { textContent: "未完了", click() { activeButtons = []; } },
+    { textContent: "完了", click() { assert.fail("Detached completed button must not be clicked"); } }
+  ];
+  const page = {
+    fetch: originalFetch,
+    setTimeout,
+    clearTimeout,
+    document: { querySelectorAll: () => activeButtons }
+  };
+  globalThis.window = page;
+
+  const result = await collectSpotJobsFromPage({ captureTimeoutMs: 500 });
+
+  assert.equal(result.error, "SPOTLOG_API_FORMAT_CHANGED");
+  assert.equal(result.records, null);
+  assert.equal(page.fetch, originalFetch);
+});

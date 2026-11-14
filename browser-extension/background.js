@@ -15,7 +15,7 @@ const REFRESH_ALARM_NAME = "spotlog-remote-refresh";
 const DEFAULT_BRIDGE_URL = "https://spotjobs-reward-inventory-sync.vercel.app";
 const DEFAULT_INTERVAL = 30;
 const SPOTJOBS_URL = "https://app.spot.jobs/user-job-list*";
-const SOURCE_VERSION = "spotlog-edge/0.2.0";
+const SOURCE_VERSION = "spotlog-edge/0.2.1";
 let runningSync = null;
 
 async function getState() {

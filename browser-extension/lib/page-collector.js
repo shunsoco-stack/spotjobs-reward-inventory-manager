@@ -126,18 +126,31 @@ export async function collectSpotJobsFromPage(options) {
 
   page.fetch = wrappedFetch;
   try {
-    const buttons = [...page.document.querySelectorAll("button")];
-    const buttonNamed = (label) => buttons.find(
+    const buttonNamed = (label) => [...page.document.querySelectorAll("button")].find(
       (button) => String(button.textContent || "").replace(/\s+/gu, "") === label
     );
     const unfinishedButton = buttonNamed("未完了");
-    const finishedButton = buttonNamed("完了");
-    if (!finishedButton) throw new Error("SPOTLOG_API_FORMAT_CHANGED");
+    if (!buttonNamed("完了")) throw new Error("SPOTLOG_API_FORMAT_CHANGED");
 
     // Switching away first guarantees a new official request even when the
     // completed tab was already active during a scheduled sync.
     unfinishedButton?.click();
-    await new Promise((resolve) => page.setTimeout(resolve, 50));
+    // React can replace the tab buttons when 未完了 is selected. Yield a task
+    // for that render, then query again: clicking a detached cached button does
+    // not reach the official app. MessageChannel avoids the prolonged timer
+    // throttling of a hidden/background history tab.
+    await new Promise((resolve) => {
+      const Channel = page.MessageChannel || globalThis.MessageChannel;
+      const channel = new Channel();
+      channel.port1.onmessage = () => {
+        channel.port1.close();
+        channel.port2.close();
+        resolve();
+      };
+      channel.port2.postMessage(null);
+    });
+    const finishedButton = buttonNamed("完了");
+    if (!finishedButton) throw new Error("SPOTLOG_API_FORMAT_CHANGED");
     finishedButton.click();
 
     let captureTimer;

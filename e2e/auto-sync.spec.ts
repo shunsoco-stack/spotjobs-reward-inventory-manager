@@ -5,7 +5,18 @@ import { test, expect, boot, closeNotice, jstDate, navigate, noHorizontalOverflo
 // Offline behavior has dedicated coverage; this spec isolates the bridge flow.
 test.use({ serviceWorkers: 'block' });
 
-test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tombstones', async ({ page }) => {
+// The mocked bridge must allow whichever origin serves the app under test
+// (localhost:3059 by default, 127.0.0.1:<random port> in the release preflight).
+function bridgeCorsHeaders(baseURL: string | undefined) {
+  if (!baseURL) throw new Error('Playwright baseURL is required for the mocked sync bridge');
+  return {
+    'Access-Control-Allow-Origin': new URL(baseURL).origin,
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Vary': 'Origin',
+  };
+}
+
+test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tombstones', async ({ page, baseURL }) => {
   const syncCode = generateSyncCode();
   const credentials = await deriveSyncCredentials(syncCode);
   const date = jstDate();
@@ -46,11 +57,7 @@ test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tom
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      headers: {
-        'Access-Control-Allow-Origin': 'http://localhost:3059',
-        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-        'Vary': 'Origin',
-      },
+      headers: bridgeCorsHeaders(baseURL),
       body: JSON.stringify({
         envelope,
         storedAt: new Date().toISOString(),
@@ -105,7 +112,7 @@ test('encrypted SPOTJOBS sync imports once, clears review, and honors delete tom
   expect(pulls).toBeGreaterThanOrEqual(2);
 });
 
-test('mobile pairing strips the secret fragment, requires an import range, and can backfill older history', async ({ page }) => {
+test('mobile pairing strips the secret fragment, requires an import range, and can backfill older history', async ({ page, baseURL }) => {
   const syncCode = generateSyncCode();
   const credentials = await deriveSyncCredentials(syncCode);
   const collectedAt = new Date().toISOString();
@@ -128,11 +135,7 @@ test('mobile pairing strips the secret fragment, requires an import range, and c
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      headers: {
-        'Access-Control-Allow-Origin': 'http://localhost:3059',
-        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-        'Vary': 'Origin',
-      },
+      headers: bridgeCorsHeaders(baseURL),
       body: JSON.stringify({
         envelope,
         storedAt: new Date().toISOString(),

@@ -1,4 +1,23 @@
 import { boot, closeNotice, expect, jstDate, navigate, noHorizontalOverflow, seedReferenceThroughUI, test } from './helpers';
+import type { Locator } from '@playwright/test';
+
+// Entrance/update motion scales the button's ancestors (view, card, metric),
+// so measure the touch target only after every finite animation on the
+// element and its ancestors has finished. Re-checks until none are running,
+// which also covers animations restarted by a late re-render.
+async function waitForFiniteAnimations(locator: Locator) {
+  await expect.poll(() => locator.evaluate(async element => {
+    const running: Animation[] = [];
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      for (const animation of node.getAnimations()) {
+        const endTime = Number(animation.effect?.getComputedTiming().endTime ?? Number.POSITIVE_INFINITY);
+        if (animation.playState === 'running' && Number.isFinite(endTime)) running.push(animation);
+      }
+    }
+    await Promise.all(running.map(animation => animation.finished.catch(() => undefined)));
+    return running.length;
+  }), { message: 'touch-target animations should settle before measuring' }).toBe(0);
+}
 
 test('top dashboard shows weekly, monthly and yearly earnings together', async ({ page }) => {
   await boot(page);
@@ -72,6 +91,7 @@ test('past monthly earnings can be browsed without changing the weekly dashboard
   await expect(overview.getByRole('button', { name: /^次の月、/ })).toBeDisabled();
 
   const previousButton = overview.getByRole('button', { name: `前の月、${previousCaption}を表示`, exact: true });
+  await waitForFiniteAnimations(previousButton);
   const touchTarget = await previousButton.boundingBox();
   expect(touchTarget).not.toBeNull();
   expect(touchTarget!.width).toBeGreaterThanOrEqual(44);

@@ -65,7 +65,7 @@ function blobPath(channelId: string): string {
   return `snapshots/${channelId}.json`;
 }
 
-function isStoredSnapshot(value: unknown): value is StoredSnapshot {
+export function isStoredSnapshot(value: unknown): value is StoredSnapshot {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const candidate = value as Partial<StoredSnapshot>;
   return (

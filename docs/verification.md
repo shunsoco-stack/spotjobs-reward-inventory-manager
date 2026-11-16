@@ -1,11 +1,29 @@
 # 公開・品質確認レポート
 
-最終追記日：2026年11月15日（日本時間）。以下の過去の確認記録は、それぞれ記載日の実装・検証範囲です。
+最終追記日：2026年11月17日（日本時間）。以下の過去の確認記録は、それぞれ記載日の実装・検証範囲です。
 
 - アプリ名：**SPOTJOBS報酬・在庫管理アプリ**
 - Vercel Production：https://spotjobs-reward-inventory-manager.vercel.app
 - GitHub Public：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - 個人制作の非公式管理ツール。公式サービスとの関係はありません。
+
+## 無料枠向け同期ストレージの変更（2026年11月17日・本番移行準備中）
+
+Blobの読み取り上限に達したため、同期ブリッジの保存先を専用Upstash Redisへ切り替える実装を準備しました。暗号化・認証・同期コード・Endpointは維持し、最新依頼の参照は180秒で失効します。依頼状態は1日、暗号化履歴は最終保存から90日でRedisから自動失効します。競合更新はLuaの原子的な条件付き書き込みで保護します。複数の保存操作を含むHTTP要求にも8秒の共通締切を設け、保存先の障害時も許可OriginへのCORS応答を維持します。
+
+| 確認 | 結果 |
+| --- | --- |
+| Web lint / typecheck / build | PASS |
+| Web単体テスト | 243件PASS |
+| Edge拡張 | 既存v0.2.1の29件PASS。通信Protocolの変更なし |
+| Bridge typecheck / build | PASS |
+| Bridge単体テスト | 95件PASS。Redis通信、原子的更新、期限、同時依頼、異常応答、CORS、実接続Health、共通締切を含む |
+| ローカル同期E2E | Desktop Chromium / Pixel 7相当 / iPhone 13 WebKit相当で9件PASS、Console / Page Error 0件。外部応答は合成データ |
+| 公開差分Secret Scan | Gitleaks 8.30.0で変更・新規18ファイルを検査、検出0件。個人履歴・認証値は検査用入力へ含めない |
+| Redis実接続テスト | 無料DBのアカウント接続待ち。明示指定で実行するテスト1件を準備済み、通常実行時はスキップ |
+| 本番公開 / 実PC同期 | 未実施。無料DB接続後に公開し、「今すぐ同期」から実PC取得・端末反映まで確認する必要あり |
+
+Vercel Marketplaceで無料プランを選べなかったため、Upstash側の無料プランを使用する手順です。有料プランへの変更・カード登録は行っていません。旧Blobの暗号文は移行時に取得・削除せず、新サーバーの履歴はPCから再取得します。各端末のIndexedDB内の既存記録は保持します。月あたりの読み取り見積もりと旧保存先の扱いは同期ブリッジREADMEを参照してください。
 
 ## ホームからPCへ最新取得を依頼（2026年11月15日）
 

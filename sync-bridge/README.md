@@ -6,11 +6,11 @@ SPOTJOBSのログイン情報をクラウドへ渡さず、Edge拡張で取得�
 
 - SPOTJOBSのパスワード、Cookie、認証Tokenは受け取りません。
 - 作業履歴はPC上でAES-256-GCM暗号化してから送信します。
-- 作業履歴は`iv`と`ciphertext`を含む暗号化EnvelopeとしてPrivate Blobへ保存します。遠隔更新の依頼には、Opaque ID・時刻・処理状態・限定したエラーCodeだけを保存します。
+- 作業履歴は`iv`と`ciphertext`を含む暗号化Envelopeとして専用のUpstash Redisへ保存します。遠隔更新の依頼には、Opaque ID・時刻・処理状態・限定したエラーCodeだけを保存します。
 - 復号Keyは同期Codeから端末内で導出し、Serverへ送りません。
 - Server側Allowlistに登録した個人Channelだけが利用できます。
-- 保存期間はDefault 90日です。期限切れデータは読取時に削除されます。
-- Vercel FunctionsからBlobへの認証は、短時間で自動更新されるOIDCを使い、長期の読書きTokenを本番環境へ置きません。
+- 保存期間はDefault 90日です。Redis TTLで期限切れにし、読取時にも期限を確認します。
+- Redisの接続TokenはVercelのServer環境変数に限定し、WebアプリやEdge拡張へ配布しません。同期処理はPrivate Blobへ接続しません。
 
 暗号化はServer侵害時の内容秘匿を目的とします。同期Codeを知る人は履歴を復号できるため、Passwordと同様に扱ってください。
 
@@ -71,7 +71,7 @@ Success:
 
 Snapshotがまだない場合は404です。
 
-読取はBlobのCDN Cacheを使わず、保存直後の最新Snapshotを返します。
+読取はRedisから行い、HTTP Responseは`private, no-store`にして保存直後の最新Snapshotを返します。
 
 ### 遠隔取得 `/api/v1/refresh/{channelId}`
 
@@ -96,15 +96,15 @@ Snapshotがまだない場合は404です。
 }
 ```
 
-依頼は2分で失効し、期限切れのPUTは410です。完了した依頼の状態は変更できません。依頼ごとに保存し、Blob ETagによる条件付き書込で同時更新と古い完了通知の上書きを防ぎます。状態読取もCDN Cacheを迂回します。遠隔取得MetadataはBlob TTLにより1日で自動削除されます。PCがSleep中、Edgeが終了中、拡張が停止中の場合は取得できません。
+依頼は2分で失効し、期限切れのPUTは410です。完了した依頼の状態は変更できません。依頼ごとに保存し、Redis LuaのAtomicなRevision比較・書込で同時更新と古い完了通知の上書きを防ぎます。最新依頼の参照Keyは180秒、依頼本体は1日のTTLで自動失効します。参照Keyがない待受け時は、RedisのGET 1回で依頼なしを判定します。PCがSleep中、Edgeが終了中、拡張が停止中の場合は取得できません。
 
 ### DELETE `/api/v1/snapshot/{channelId}`
 
-同じChannel認証でPrivate Blobを削除し、204を返します。アプリ側では実行直前にUser確認を必須にします。
+同じChannel認証で現在のRedis上の暗号化Snapshotを削除し、204を返します。アプリ側では実行直前にUser確認を必須にします。
 
 ### GET `/api/v1/health`
 
-Blobと個人Channelの設定が揃っている場合だけ200 / `ok: true`を返します。秘密値は返しません。
+Redisと個人Channelの設定を確認し、3秒以内にRedisの`PING`が成功した場合だけ200 / `ok: true`を返します。秘密値や作業履歴は返しません。接続確認に加え、本番確認では実際の「スマホの依頼→PC取得→暗号化保存→端末への反映」も検証します。
 
 ## Limits and controls
 
@@ -119,6 +119,16 @@ Blobと個人Channelの設定が揃っている場合だけ200 / `ok: true`を�
 
 大規模公開時はVercel FirewallのRate Limitも併用してください。現在は1User向けのBridgeです。
 
+## 無料運用と保存先の移行
+
+[Upstash RedisのFreeプラン](https://upstash.com/pricing/redis)は、2026年11月確認時点で月500,000コマンド・256 MBまでです。Freeを明示的に選び、有料プランへの自動変更を無効にします。Vercel MarketplaceでFreeが選べない場合は、Upstash側で無料Databaseを用意してServer環境変数を設定します。72時間で失効する未ClaimのDatabaseを継続運用には使いません。
+
+PC 1台を24時間起動し、30秒ごとに待受ける場合、31日で89,280回です。最新依頼の参照Keyを180秒で失効させるため、依頼のない時間帯は1回のGETだけで確認できます。手動同期中の状態確認、定期取得・暗号化保存のコマンドは別に加算されます。複数PC、利用者の増加、過度の手動実行で使用量は増えるため、無料枠は無制限・恒久保証ではありません。Vercel Functionsにも別の利用上限があります。
+
+Endpoint、同期Code、暗号化Protocolは維持するため、Edge拡張v0.2.1は同じ接続設定を使います。移行時は停止中の旧Blobを読まず、次回のPC取得から公式の最新500件を新しいInboxへ再保存します。各端末のIndexedDBにある過去履歴・設定・棚卸を消去したり、初期化したりしません。新規端末で復元できる公式履歴はInbox内の範囲に限られるため、長期保存はJSON Backupを併用してください。
+
+旧Blob上の暗号文は、この移行やRedis側のDELETEでは削除されません。旧保存先への接続を復旧できた時点で、管理者が削除状況を確認する必要があります。
+
 ## Local verification
 
 ```bash
@@ -127,18 +137,18 @@ npm run typecheck
 npm test
 ```
 
-`.env.example`を参考にPrivate Vercel Blobと許可Channelを設定します。実値を`.env`やGitへCommitしないでください。
+`.env.example`を参考に専用Upstash Redisと許可Channelを設定します。実値をGitへCommitしないでください。ローカル検証用の`.env.local`もGit管理対象外です。
 
 ## Vercel deployment
 
 1. このDirectoryをRoot Directoryにした別Vercel Projectを作成します。
-2. Private Vercel Blob Storeを接続します。
+2. 専用のUpstash Redis Free Databaseを用意し、`UPSTASH_REDIS_REST_URL`と`UPSTASH_REDIS_REST_TOKEN`を本番環境変数へ設定します。`NEXT_PUBLIC_`は付けません。
 3. 同期Codeから算出したChannel IDだけを`SYNC_ALLOWED_CHANNEL_IDS`に設定します。
 4. ProductionへDeployします。
-5. HealthとStable Routeを確認します。
+5. HealthとStable Routeに加え、スマホからの依頼 → PC取得 → 暗号化保存 → アプリ反映を確認します。
 
 ```bash
 npm run verify:deployment -- https://your-sync-bridge.vercel.app
 ```
 
-同期Code、派生Key、ローカル検証で使用する場合の`BLOB_READ_WRITE_TOKEN`を画面・Log・Commitへ出さないでください。本番はVercelの`BLOB_STORE_ID`とOIDCを利用します。
+同期Code、派生Key、`UPSTASH_REDIS_REST_TOKEN`を画面・Log・Commitへ出さないでください。既存Marketplace接続の`KV_REST_API_URL`と`KV_REST_API_TOKEN`も代替変数名として使用できますが、異なるDatabaseのURLとTokenを混在させないでください。

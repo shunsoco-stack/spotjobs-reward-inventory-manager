@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { extname, join, relative } from 'node:path';
+import { basename, extname, join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -181,7 +181,7 @@ check('Committable-file secret and Xcode-state scan', () => {
   assert(git.status === 0, git.stderr.trim() || 'git ls-files failed');
   const committable = git.stdout.split('\0').filter(Boolean);
   const prohibitedNames = [/(^|\/)\.env(?:\.|$)/, /\.p8$/i, /\.p12$/i, /\.mobileprovision$/i, /(^|\/)xcuserdata\//i, /(^|\/)DerivedData\//i, /\.xcuserstate$/i];
-  const unsafeName = committable.find(name => name !== '.env.example' && prohibitedNames.some(pattern => pattern.test(name)));
+  const unsafeName = committable.find(name => basename(name) !== '.env.example' && prohibitedNames.some(pattern => pattern.test(name)));
   assert(!unsafeName, `prohibited credential or local Xcode file is tracked: ${unsafeName}`);
   const patterns = [
     ['private key', new RegExp(['-----BEGIN ', '(?:RSA |EC |OPENSSH )?', 'PRIVATE KEY-----'].join(''))],

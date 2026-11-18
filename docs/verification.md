@@ -7,9 +7,9 @@
 - GitHub Public：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - 個人制作の非公式管理ツール。公式サービスとの関係はありません。
 
-## Cloudflare D1無料構成への変更（2026年11月19日・Vercel本番移行待ち）
+## Cloudflare D1無料構成への変更（2026年11月19日・本番移行とスマホ確認完了）
 
-同期保存先をこのアプリ専用のCloudflare D1へ切り替える作業中です。Vercel同期ブリッジの公開URLと同期Protocolを維持し、Server間認証付きのWorker GatewayからD1へ保存します。既存のUpstash Databaseはこのアプリへ接続せず、設定・データを変更しません。
+同期保存先をこのアプリ専用のCloudflare D1へ切り替えました。Vercel同期ブリッジの公開URLと同期Protocolを維持し、Server間認証付きのWorker GatewayからD1へ保存します。既存のUpstash Databaseはこのアプリへ接続せず、設定・データを変更していません。
 
 Cloudflare管理画面の読取確認で、対象AccountがWorkers / D1の無料構成であり、作成前のWorker数・D1 Database数がともに0であることを確認しました。その後、専用D1 Database `spotjobs-worker-sync`を作成し、Schemaを適用しました。専用Workerを[公開済み](https://spotjobs-worker-sync-storage.shun-soco.workers.dev)ですが、GatewayはServer間認証を必要とし、一般公開の作業履歴閲覧画面ではありません。既存Upstashへのアクセス・接続・変更は行っていません。
 
@@ -25,10 +25,16 @@ Cloudflare管理画面の読取確認で、対象AccountがWorkers / D1の無料
 | Web単体テスト | 243件PASS |
 | Bridge標準テスト | 137件PASS、任意の実接続テスト2件SKIP。上記D1実接続テストは別途実行してPASS |
 | Workerテスト / typecheck / build / dry-run | 実SQLiteを使う16件PASS、typecheck・build・公開dry-runもPASS |
-| ローカル同期E2E | Desktop Chromium 3件、Pixel 6相当3件、iPhone WebKit相当3件の全9シナリオを確認。外部応答は合成データで、実PC同期の確認ではない |
-| 公開差分Secret Scan | Gitleaks 8.30.0でSource 31ファイルを検査、検出0件 |
-| Vercel本番のBackend / Web更新・保存先切替 | 未完了。公開・確認後に追記 |
-| スマホの「今すぐ同期」→実PC取得→端末反映 | 未確認。実際のPCとの連携確認後に追記 |
+| ローカル同期E2E | Desktop Chromium 3件、Pixel 7相当3件、iPhone WebKit相当3件の全9シナリオを確認。外部応答は合成データで、実PC同期の確認ではない |
+| 公開差分Secret Scan | Gitleaks 8.30.0でSource 31ファイルと、公開対象33ファイルの最終Staged差分を検査、検出0件 |
+| Vercel本番のBackend / Web更新・保存先切替 | 本番設定でStageし検証後にPromote。Bridge `dpl_HZyGyGeKvChkKL516yGJdkzYQQt9`、Web `dpl_A6uxJMXkmRjEmQtGoLBpV3udSNhg`。既存Production URLを維持 |
+| 本番API / Console | D1実接続Health、Snapshot / Refreshの認証拒否、許可OriginのPOST Preflight、未許可Origin拒否、no-storeを確認。本番アプリのConsole Error 0件 |
+| 本番「今すぐ同期」→実PC取得→端末反映 | 11件の新規履歴取り込みを確認。公式ページが「未完了」の状態から再取得してPC取得日時が更新され、追加0件で重複しないことも確認 |
+| スマホ実機 | 利用者がホームの「今すぐ同期」を実行し、「今日の時刻に更新された」と回答。PCの起動・Edge・公式履歴へのログインは引き続き必要 |
+
+Edge拡張はv0.2.1のままで、URLや同期Codeの変更・拡張の再読み込みは不要でした。切替直後の最初の実PC依頼は失敗しましたが、公式履歴の表示確認後に成功し、その後は「未完了」表示からの再取得も成功しています。初回失敗の原因は断定していません。実履歴・認証情報を公開リポジトリへ保存していません。
+
+保護されたStageの検証でVercel CLIが自動作成した一時的なAutomation Bypassは、検証後にその1件だけを失効し、他の保護設定が変わっていないことを確認しました。Cloudflare CLI認証は利用者の明示承認を得た権限範囲で行い、資格情報はWindowsの資格情報保管庫に保存しています。
 
 ローカルE2Eの初回は7件PASS、2件がWebKitプロセスの起動段階で失敗しました。WindowsのCodeIntegrityログ（イベント3077 / 3033）で、Playwright付属DLLの署名要件による読み込みブロックを確認しています。iPhone用の3件だけを1回再実行して全件PASSし、セキュリティ設定・保護機能は変更していません。実機iPhoneでの確認や、実PCからのSPOTJOBS取得成功を示す結果ではありません。
 

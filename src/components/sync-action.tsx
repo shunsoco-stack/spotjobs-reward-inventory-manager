@@ -2,6 +2,7 @@
 
 import { Check, CloudDownload, Monitor, RefreshCw, Smartphone } from 'lucide-react';
 import type { SyncLocalPreferences } from '@/lib/sync/preferences';
+import { isSyncEnabled } from '@/lib/sync/feature';
 
 export type SyncPhase = 'requesting' | 'waiting' | 'fetching' | 'importing' | 'pulling';
 const phases: Record<SyncPhase, string> = {
@@ -33,7 +34,15 @@ function lastCollected(value?: string) {
   return value ? new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' }).format(new Date(value)) : 'まだ取得していません';
 }
 
-export default function HomeSyncAction({ preferences, online, demo, syncing, saving, phase, onSync, onSetup }: {
+export default function HomeSyncAction(props: {
+  preferences: SyncLocalPreferences; online: boolean; demo: boolean; syncing: boolean; saving: boolean;
+  phase: SyncPhase; onSync: () => void; onSetup: () => void;
+}) {
+  if (!isSyncEnabled()) return null;
+  return <HomeSyncActionInner {...props} />;
+}
+
+function HomeSyncActionInner({ preferences, online, demo, syncing, saving, phase, onSync, onSetup }: {
   preferences: SyncLocalPreferences; online: boolean; demo: boolean; syncing: boolean; saving: boolean;
   phase: SyncPhase; onSync: () => void; onSetup: () => void;
 }) {

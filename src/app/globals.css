@@ -850,8 +850,8 @@ html[data-theme="dark"] .x-share-button { background: #f5f5f5; color: #0f1419; }
   .sync-steps span { min-height: 44px; }
 }
 @media (min-width: 600px) {
-  .app-header { padding-left: 1.75rem; padding-right: 1.75rem; }
-  main { padding-left: 1.75rem; padding-right: 1.75rem; }
+  .app-header { padding-left: calc(1.75rem + env(safe-area-inset-left)); padding-right: calc(1.75rem + env(safe-area-inset-right)); }
+  main { padding-left: calc(1.75rem + env(safe-area-inset-left)); padding-right: calc(1.75rem + env(safe-area-inset-right)); }
   .home-grid { gap: 1.25rem; }
   .panel { padding: 1.5rem; }
   .reward-hero { padding: 1.75rem; }
@@ -1007,7 +1007,7 @@ html[data-theme="dark"] .x-share-button { background: #f5f5f5; color: #0f1419; }
   .entry-layout .area-options { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 @media (max-width: 999px) {
-  .app-header { min-height: 68px; padding-top: .625rem; padding-bottom: .625rem; }
+  .app-header { min-height: calc(68px + env(safe-area-inset-top)); padding-top: calc(.625rem + env(safe-area-inset-top)); padding-bottom: .625rem; }
   main { padding-top: 1rem; }
   .page-heading { margin-bottom: 1rem; }
   .demo-banner { min-height: 48px; padding: .125rem .75rem; margin-bottom: .75rem; }

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { LegalPage, legalPageStyles as styles } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "サポート | SPOTJOBS報酬・在庫管理アプリ",
-  description: "SPOTJOBS報酬・在庫管理アプリのデータ保存、バックアップ、オフライン利用、スクリーンショット読取に関するサポート情報です。",
+  title: "サポート | ワークストック",
+  description: "ワークストックのデータ保存、バックアップ、オフライン利用、スクリーンショット読取に関するサポート情報です。",
   alternates: { canonical: "https://spotjobs-reward-inventory-manager.vercel.app/support" },
   robots: { index: true, follow: true },
 };
@@ -46,7 +46,7 @@ export default function SupportContent() {
       <p>Web版とPWAでは、文字認識用データの初回準備に通信が必要です。接続した状態でもう一度開き、文字が読める解像度のジョブ履歴画像を選んでください。App Store版には文字認識用データを同梱するため、端末内でオフライン処理できます。自動認識の結果は確定情報ではないため、日付、補充・取出、本数、店舗名を必ず確認・修正してから登録してください。</p>
 
       <h3>報酬が公式表示と合わない</h3>
-      <p>本アプリの報酬は、登録内容と設定に基づく見込みです。設定画面で地域単価、早期補充条件、本数ボーナス、週の開始曜日を確認してください。確定額と最新条件はSPOTJOBS公式サービスで確認してください。</p>
+      <p>本アプリの報酬は、登録内容と設定に基づく見込みです。設定画面で地域単価、早期補充条件、本数ボーナス、週の開始曜日を確認してください。確定額と最新条件は、利用している作業アプリの公式サービスで確認してください。</p>
 
       <h3>在庫が実数と合わない</h3>
       <p>履歴で補充・取出の入力漏れや重複を確認してください。実際の本数を確認できた場合は「在庫・棚卸」から棚卸数を登録し、差異を確認してから在庫へ反映できます。</p>
@@ -81,7 +81,7 @@ export default function SupportContent() {
 
     <section className={styles.section} aria-labelledby="support-scope">
       <h2 id="support-scope">サポート範囲</h2>
-      <p>本アプリは個人制作の非公式ツールです。SPOTJOBSのアカウント、案件、報酬確定、モバイルバッテリーや公式アプリに関する問い合わせには対応できません。これらはSPOTJOBS公式サービスの案内を確認してください。</p>
+      <p>本アプリは個人制作の管理ツールです。作業用公式サービスのアカウント、案件、報酬確定、モバイルバッテリーや公式アプリに関する問い合わせには対応できません。これらは、利用している作業アプリの公式案内を確認してください。</p>
     </section>
   </LegalPage>;
 }

@@ -99,6 +99,9 @@ check('Pinned Capacitor packages and npm commands', () => {
   return `Capacitor ${declared['@capacitor/core']}`;
 });
 
+const DISPLAY_NAME = 'ワークストック';
+const STORE_NAME = 'ワークストック｜報酬と在庫';
+
 const capacitorPath = join(root, 'capacitor.config.ts');
 const capacitorSource = readText(capacitorPath);
 const appId = literalProperty(capacitorSource, 'appId');
@@ -128,14 +131,15 @@ check('Static export and legal routes', () => {
   assert(readText(join(out, 'support.html')).includes('サポート'), 'support.html has no support heading');
   const indexHtml = readText(join(out, 'index.html'));
   const documentTitle = indexHtml.match(/<title>(.*?)<\/title>/)?.[1];
-  assert(documentTitle === appName, `HTML title ${String(documentTitle)} differs from Capacitor appName ${String(appName)}`);
+  assert(documentTitle === STORE_NAME, `HTML title ${String(documentTitle)} differs from store name ${STORE_NAME}`);
   assert(!/<script\b[^>]*\bsrc\s*=\s*['\"]https?:\/\//i.test(indexHtml), 'index.html loads a remote script and cannot guarantee offline native startup');
   return required.join(', ');
 });
 
 check('PWA manifest and icon files', () => {
   const manifest = readJson(join(out, 'manifest.webmanifest'));
-  assert(manifest.name === appName, `manifest app name ${String(manifest.name)} differs from Capacitor appName ${String(appName)}`);
+  assert(manifest.name === STORE_NAME, `manifest app name ${String(manifest.name)} differs from store name ${STORE_NAME}`);
+  assert(manifest.short_name === DISPLAY_NAME, `manifest short_name ${String(manifest.short_name)} differs from display name ${DISPLAY_NAME}`);
   assert(manifest.display === 'standalone', 'manifest display must be standalone');
   assert(Array.isArray(manifest.icons) && manifest.icons.length >= 2, 'manifest needs installable icons');
   for (const icon of manifest.icons) {
@@ -227,7 +231,8 @@ if (!existsSync(ios)) {
     assert(nonEmpty(nativeInfoPath), `${display(nativeInfoPath)} is missing`);
     const info = readText(nativeInfoPath);
     const displayName = info.match(/<key>CFBundleDisplayName<\/key>\s*<string>([^<]*)<\/string>/)?.[1]?.trim();
-    assert(displayName === xmlText(appName), `Info.plist display name ${String(displayName)} differs from Capacitor appName ${String(appName)}; cap sync does not update native identity, so update it in Xcode or regenerate the project`);
+    assert(displayName === xmlText(DISPLAY_NAME), `Info.plist display name ${String(displayName)} differs from display name ${DISPLAY_NAME}; cap sync does not update native identity, so update Info.plist when renaming`);
+    assert(xmlText(appName) === xmlText(DISPLAY_NAME), `Capacitor appName ${String(appName)} must stay ${DISPLAY_NAME} so cap sync cannot revert the home screen name`);
     return appName;
   });
   check('Generated native configuration', () => {

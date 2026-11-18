@@ -8,7 +8,7 @@
 
 - [x] App Store名候補は18文字、Subtitleは18文字で、各30文字以内。
 - [x] Promotional Textは71文字で、170文字以内。
-- [x] KeywordsはUTF-8で99byteで、100byte以内。各語は3文字以上で、App Store名・会社名・第三者名称を重複させていない。
+- [x] Keywordsは81文字（UTF-8で215byte）で、100文字以内。各語は2文字以上で、App Store名・会社名・第三者名称を重複させていない。
 - [x] Description、TestFlight説明、What to Test、App Review Notesの日本語草案がある。
 - [x] Privacy Policy URLとSupport URLの公開ページが実装されている。
 - [x] Version 1.0は広告SDK、analytics SDK、Cloud Sync、クラッシュ収集を含めない方針が、実装・README・申請草案で一致している。

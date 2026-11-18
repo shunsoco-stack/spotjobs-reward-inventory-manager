@@ -1,16 +1,27 @@
 # SPOTJOBS報酬・在庫管理アプリ encrypted sync bridge
 
-SPOTJOBSのログイン情報をクラウドへ渡さず、Edge拡張で取得した作業履歴をWeb／iOS／Android版「SPOTJOBS報酬・在庫管理アプリ」へ届けるための、個人用の暗号化同期Inboxです。本体PWAとは別のVercelプロジェクトとして公開します。
+SPOTJOBSのログイン情報をクラウドへ渡さず、Edge拡張で取得した作業履歴をWeb／iOS／Android版「SPOTJOBS報酬・在庫管理アプリ」へ届けるための、個人用の暗号化同期Inboxです。本体PWAとは別のVercelプロジェクトとして公開し、専用Cloudflare Workerを経由して専用D1 Databaseへ保存する構成です。
+
+## 構成
+
+```text
+Edge拡張 / スマホアプリ
+  → 既存URLのVercel同期ブリッジ（同期コード由来の認証・個人Channel制限）
+  → 認証必須のCloudflare Worker（保存操作だけを受け付けるGateway）
+  → このアプリ専用Cloudflare D1
+```
+
+WorkerのGateway TokenはVercelのServer環境変数とWorker Secretだけで共有します。CloudflareのアカウントAPI Tokenをクライアントや同期処理へ配布しません。既存のUpstash Databaseはこの構成へ接続せず、設定・データを変更しません。
 
 ## Privacy model
 
 - SPOTJOBSのパスワード、Cookie、認証Tokenは受け取りません。
 - 作業履歴はPC上でAES-256-GCM暗号化してから送信します。
-- 作業履歴は`iv`と`ciphertext`を含む暗号化Envelopeとして専用のUpstash Redisへ保存します。遠隔更新の依頼には、Opaque ID・時刻・処理状態・限定したエラーCodeだけを保存します。
+- 作業履歴は`iv`と`ciphertext`を含む暗号化Envelopeとして専用Cloudflare D1へ保存します。遠隔更新の依頼には、Opaque ID・時刻・処理状態・限定したエラーCodeだけを保存します。
 - 復号Keyは同期Codeから端末内で導出し、Serverへ送りません。
 - Server側Allowlistに登録した個人Channelだけが利用できます。
-- 保存期間はDefault 90日です。Redis TTLで期限切れにし、読取時にも期限を確認します。
-- Redisの接続TokenはVercelのServer環境変数に限定し、WebアプリやEdge拡張へ配布しません。同期処理はPrivate Blobへ接続しません。
+- 保存期間はDefault 90日です。読取時に有効期限を確認して期限切れデータを返さず、毎時のCleanupで期限切れ行を削除します。Cleanup停止時は削除が遅れる場合があります。
+- Gatewayの接続TokenはServer側に限定し、WebアプリやEdge拡張へ配布しません。同期処理は旧Private Blobや既存Upstashへ接続しません。
 
 暗号化はServer侵害時の内容秘匿を目的とします。同期Codeを知る人は履歴を復号できるため、Passwordと同様に扱ってください。
 
@@ -71,7 +82,7 @@ Success:
 
 Snapshotがまだない場合は404です。
 
-読取はRedisから行い、HTTP Responseは`private, no-store`にして保存直後の最新Snapshotを返します。
+読取はWorker経由でD1から行い、HTTP Responseは`private, no-store`にして保存直後の最新Snapshotを返します。
 
 ### 遠隔取得 `/api/v1/refresh/{channelId}`
 
@@ -96,15 +107,15 @@ Snapshotがまだない場合は404です。
 }
 ```
 
-依頼は2分で失効し、期限切れのPUTは410です。完了した依頼の状態は変更できません。依頼ごとに保存し、Redis LuaのAtomicなRevision比較・書込で同時更新と古い完了通知の上書きを防ぎます。最新依頼の参照Keyは180秒、依頼本体は1日のTTLで自動失効します。参照Keyがない待受け時は、RedisのGET 1回で依頼なしを判定します。PCがSleep中、Edgeが終了中、拡張が停止中の場合は取得できません。
+依頼は2分で失効し、期限切れのPUTは410です。完了した依頼の状態は変更できません。依頼ごとに保存し、D1の原子的な条件付きSQL更新でRevisionを比較して同時更新と古い完了通知の上書きを防ぎます。最新依頼の参照は180秒、依頼本体は1日で論理的に失効し、期限切れ行は毎時のCleanupで削除します。参照がない、または期限切れの待受け時は、主キーによる1回の検索で依頼なしを判定します。PCがSleep中、Edgeが終了中、拡張が停止中の場合は取得できません。
 
 ### DELETE `/api/v1/snapshot/{channelId}`
 
-同じChannel認証で現在のRedis上の暗号化Snapshotを削除し、204を返します。アプリ側では実行直前にUser確認を必須にします。
+同じChannel認証で現在のD1上の暗号化Snapshotを削除し、204を返します。アプリ側では実行直前にUser確認を必須にします。
 
 ### GET `/api/v1/health`
 
-Redisと個人Channelの設定を確認し、3秒以内にRedisの`PING`が成功した場合だけ200 / `ok: true`を返します。秘密値や作業履歴は返しません。接続確認に加え、本番確認では実際の「スマホの依頼→PC取得→暗号化保存→端末への反映」も検証します。
+D1 Gatewayと個人Channelの設定、保存先への接続を確認します。秘密値や作業履歴は返しません。Healthだけを同期成功の証拠とせず、本番確認では実際の「スマホの依頼→PC取得→暗号化保存→端末への反映」も検証します。
 
 ## Limits and controls
 
@@ -121,13 +132,15 @@ Redisと個人Channelの設定を確認し、3秒以内にRedisの`PING`が成�
 
 ## 無料運用と保存先の移行
 
-[Upstash RedisのFreeプラン](https://upstash.com/pricing/redis)は、2026年11月確認時点で月500,000コマンド・256 MBまでです。Freeを明示的に選び、有料プランへの自動変更を無効にします。Vercel MarketplaceでFreeが選べない場合は、Upstash側で無料Databaseを用意してServer環境変数を設定します。72時間で失効する未ClaimのDatabaseを継続運用には使いません。
+[Cloudflare D1 Free](https://developers.cloudflare.com/d1/platform/pricing/)は2026年11月確認時点で1日5,000,000行の読み取り、100,000行の書き込み、Account全体で5 GBです。[Workers Free](https://developers.cloudflare.com/workers/platform/limits/)は1日100,000 Request、HTTP Requestあたり10 msのCPU時間が上限です。D1はコマンド回数ではなく処理した行数で計測されるため、待受けの検索には主キーを使います。
 
-PC 1台を24時間起動し、30秒ごとに待受ける場合、31日で89,280回です。最新依頼の参照Keyを180秒で失効させるため、依頼のない時間帯は1回のGETだけで確認できます。手動同期中の状態確認、定期取得・暗号化保存のコマンドは別に加算されます。複数PC、利用者の増加、過度の手動実行で使用量は増えるため、無料枠は無制限・恒久保証ではありません。Vercel Functionsにも別の利用上限があります。
+PC 1台を24時間起動し、30秒ごとに待受ける場合は1日2,880回、31日で89,280回です。最新依頼の参照を180秒で失効させるため、依頼のない時間帯はWorkerへの1 RequestとD1の主キー検索1回で確認できます。手動同期中の状態確認、定期取得・暗号化保存、期限切れ行の削除は別に加算されます。D1の書き込み件数には削除やIndex更新も含まれるため、実使用量はCloudflareのMetricsで確認してください。
+
+無料枠はCloudflare Account内の他のWorker・Databaseと共有され、Vercel Functionsにも別の上限があります。専用Databaseに分離してもAccountの無料枠が増えるわけではありません。Freeプランの範囲で運用し、有料化は自動で行いません。複数PC、利用者増加、事業者の条件変更まで含めた無制限・恒久的な無料利用を保証するものではありません。
 
 Endpoint、同期Code、暗号化Protocolは維持するため、Edge拡張v0.2.1は同じ接続設定を使います。移行時は停止中の旧Blobを読まず、次回のPC取得から公式の最新500件を新しいInboxへ再保存します。各端末のIndexedDBにある過去履歴・設定・棚卸を消去したり、初期化したりしません。新規端末で復元できる公式履歴はInbox内の範囲に限られるため、長期保存はJSON Backupを併用してください。
 
-旧Blob上の暗号文は、この移行やRedis側のDELETEでは削除されません。旧保存先への接続を復旧できた時点で、管理者が削除状況を確認する必要があります。
+旧Blob上の暗号文は、この移行やD1側のDELETEでは削除されません。旧保存先への接続を復旧できた時点で、管理者が削除状況を確認する必要があります。途中で検討したUpstash方式は本番へ接続せず、既存Upstashのデータ移行・変更も行いません。
 
 ## Local verification
 
@@ -137,18 +150,19 @@ npm run typecheck
 npm test
 ```
 
-`.env.example`を参考に専用Upstash Redisと許可Channelを設定します。実値をGitへCommitしないでください。ローカル検証用の`.env.local`もGit管理対象外です。
+`.env.example`を参考に専用D1 Gatewayと許可Channelを設定します。実値をGitへCommitしないでください。ローカル検証用の`.env.local`もGit管理対象外です。
 
 ## Vercel deployment
 
 1. このDirectoryをRoot Directoryにした別Vercel Projectを作成します。
-2. 専用のUpstash Redis Free Databaseを用意し、`UPSTASH_REDIS_REST_URL`と`UPSTASH_REDIS_REST_TOKEN`を本番環境変数へ設定します。`NEXT_PUBLIC_`は付けません。
-3. 同期Codeから算出したChannel IDだけを`SYNC_ALLOWED_CHANNEL_IDS`に設定します。
-4. ProductionへDeployします。
-5. HealthとStable Routeに加え、スマホからの依頼 → PC取得 → 暗号化保存 → アプリ反映を確認します。
+2. Workers Freeで、このアプリ専用のD1 Databaseと認証必須のWorker Gatewayを用意します。Schemaと毎時のCleanupを設定します。
+3. `SPOTLOG_D1_GATEWAY_URL`と`SPOTLOG_D1_GATEWAY_TOKEN`をVercel本番環境変数へ設定します。TokenはWorker側のSecretと一致させ、`NEXT_PUBLIC_`は付けません。
+4. 同期Codeから算出したChannel IDだけを`SYNC_ALLOWED_CHANNEL_IDS`に設定します。
+5. ProductionへDeployします。
+6. HealthとStable Routeに加え、スマホからの依頼 → PC取得 → 暗号化保存 → アプリ反映を確認します。
 
 ```bash
 npm run verify:deployment -- https://your-sync-bridge.vercel.app
 ```
 
-同期Code、派生Key、`UPSTASH_REDIS_REST_TOKEN`を画面・Log・Commitへ出さないでください。既存Marketplace接続の`KV_REST_API_URL`と`KV_REST_API_TOKEN`も代替変数名として使用できますが、異なるDatabaseのURLとTokenを混在させないでください。
+同期Code、派生Key、`SPOTLOG_D1_GATEWAY_TOKEN`、Cloudflareアカウントの認証情報を画面・Log・Commitへ出さないでください。Clientの接続URLは従来のVercel同期ブリッジのままです。公開前・公開後の確認状況は[検証記録](../docs/verification.md)を参照してください。

@@ -1,6 +1,6 @@
 import { evaluateCors, parseAdditionalOrigins } from "../src/cors.js";
 import { respondToBridgeFailure } from "../src/api-failure.js";
-import { RedisStorageError, UpstashRestClient } from "../src/redis-client.js";
+import { D1GatewayClient } from "../src/d1-client.js";
 import { parseAllowedChannelIds } from "../src/security.js";
 import type { VercelRequest, VercelResponse } from "../src/vercel-types.js";
 
@@ -29,15 +29,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
       throw new Error("The personal sync bridge is not configured.");
     }
     // A configured environment is not proof that its storage is reachable.
-    // PING does not read user data and is bounded below the function timeout.
-    const pong = await new UpstashRestClient({ timeoutMs: 3_000 }).command(["PING"]);
-    if (pong !== "PONG") throw new RedisStorageError("redis_invalid_response");
+    // Ping verifies the dedicated D1 gateway without reading a user's records.
+    await new D1GatewayClient({ timeoutMs: 3_000 }).request({ op: "ping" });
 
     return response.status(200).json({
       ok: true,
       service: "spotjobs-encrypted-sync-bridge",
       protocolVersion: 1,
-      storage: "redis",
+      storage: "d1",
     });
   } catch (error) {
     return respondToBridgeFailure(response, origin, additionalOrigins, "health", error);

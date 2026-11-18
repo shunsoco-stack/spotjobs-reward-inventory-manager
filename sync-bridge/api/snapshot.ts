@@ -2,7 +2,7 @@ import { parseAdditionalOrigins } from "../src/cors.js";
 import { respondToBridgeFailure } from "../src/api-failure.js";
 import { parseAllowedChannelIds } from "../src/security.js";
 import { handleSnapshotRequest } from "../src/service.js";
-import { createRedisSnapshotStore } from "../src/redis-storage.js";
+import { createD1SnapshotStore } from "../src/d1-storage.js";
 import {
   getSnapshotTtlSeconds,
   MemoryRateLimiter,
@@ -28,7 +28,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     additionalOrigins = parseAdditionalOrigins(process.env.SYNC_ALLOWED_ORIGINS);
     // Credentials are checked lazily on the first storage command. Preflight and
     // authorization failures must not depend on a database being available.
-    const store = createRedisSnapshotStore();
+    const store = createD1SnapshotStore();
     const result = await handleSnapshotRequest(
       {
         method: request.method ?? "GET",

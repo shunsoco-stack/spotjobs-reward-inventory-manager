@@ -2,7 +2,7 @@ import { parseAdditionalOrigins } from "../src/cors.js";
 import { respondToBridgeFailure } from "../src/api-failure.js";
 import { parseAllowedChannelIds } from "../src/security.js";
 import { handleRefreshRequest } from "../src/refresh-service.js";
-import { createRedisRefreshStore } from "../src/redis-storage.js";
+import { createD1RefreshStore } from "../src/d1-storage.js";
 import { MemoryRateLimiter } from "../src/storage.js";
 import type { VercelRequest, VercelResponse } from "../src/vercel-types.js";
 
@@ -23,7 +23,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       contentLength: Number(first(request.headers["content-length"])) || undefined,
       body: request.body,
     }, {
-      store: createRedisRefreshStore(),
+      store: createD1RefreshStore(),
       rateLimiter,
       allowedChannelIds: parseAllowedChannelIds(process.env.SYNC_ALLOWED_CHANNEL_IDS),
       additionalOrigins,

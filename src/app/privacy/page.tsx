@@ -14,7 +14,7 @@ export default function PrivacyPage() {
     eyebrow="PRIVACY"
     title="プライバシーポリシー"
     description="SPOTJOBS報酬・在庫管理アプリで扱う情報と、その保存場所・削除方法を説明します。"
-    updated="2026年11月17日"
+    updated="2026年11月19日"
   >
     <section className={styles.section} aria-labelledby="privacy-scope">
       <h2 id="privacy-scope">1. 適用範囲</h2>
@@ -52,13 +52,13 @@ export default function PrivacyPage() {
       </div>
       <h3>SPOTJOBS完了履歴の自動取り込み（任意）</h3>
       <p>個人向けベータのEdge拡張は、利用者がSPOTJOBSへログイン済みのジョブ履歴タブを開いているとき、そのページ内から完了履歴を定期確認します。SPOTJOBSのパスワード、Cookie、Local Storage、Session Storage、Authorization Headerを読み取ったり、同期ブリッジへ送ったりしません。履歴の確認にはログイン済みページ自身のセッションを利用します。</p>
-      <p>完了履歴はPC上でAES-256-GCM暗号化してから送信します。認証用Tokenと復号鍵は同期コードから用途別に導出し、復号鍵と同期コードはサーバーへ送りません。同期ブリッジは、最新500件までの暗号文、IV、記録件数、取得日時、送信元識別などの暗号化Envelopeを専用のUpstash Redisへ保存します。UpstashへSPOTJOBSのログイン情報や復号鍵を送りません。同期コードを知る人は暗号文を復号できるため、パスワードと同様に管理してください。</p>
+      <p>完了履歴はPC上でAES-256-GCM暗号化してから送信します。認証用Tokenと復号鍵は同期コードから用途別に導出し、復号鍵と同期コードはサーバーへ送りません。Vercel上の同期ブリッジは、認証必須のCloudflare Workerを経由して、最新500件までの暗号文、IV、記録件数、取得日時、送信元識別などの暗号化Envelopeを本アプリ専用のCloudflare D1へ保存します。CloudflareへSPOTJOBSのログイン情報や復号鍵を送りません。同期コードを知る人は暗号文を復号できるため、パスワードと同様に管理してください。</p>
       <p>同期コードはJSONバックアップへ含めません。Web／PWAでは利用中ブラウザのlocalStorage、Edge拡張では拡張機能のローカル保存領域に保持します。準備中のiOS／Android版では現在WebView内のローカル保存を利用する設計で、正式公開に向けてKeychain／Keystoreへ移すことを追加の堅牢化項目としています。</p>
-      <p>「今すぐ同期」では、PCへ取得依頼を伝えるため、ランダムな依頼ID、依頼・完了日時、進行状態、定型のエラー分類を同期ブリッジへ保存します。店舗名や作業履歴の本文は含めません。依頼は2分で失効し、最新依頼を示す参照は180秒、依頼本体は1日の有効期限で自動削除対象になります。</p>
+      <p>「今すぐ同期」では、PCへ取得依頼を伝えるため、ランダムな依頼ID、依頼・完了日時、進行状態、定型のエラー分類を同期ブリッジへ保存します。店舗名や作業履歴の本文は含めません。依頼は2分で失効し、最新依頼を示す参照は180秒、依頼本体は1日の有効期限で参照対象外になります。期限切れの保存行は毎時の処理で削除します。</p>
       <p>別端末接続用のQRと接続リンクには同期コードそのものが含まれます。Webサーバーへ送られないURLフラグメント（<code>#</code>以降）を使用し、受信後はURLから直ちに削除しますが、QRスキャナやブラウザ・クリップボードの履歴に残る場合があります。QRと接続リンクは自分の端末だけで利用し、第三者へ共有しないでください。Safari／Chrome版とホーム画面版は保存領域が分かれる場合があり、利用する画面ごとに接続設定が必要になることがあります。</p>
       <p>自動取り込みはSPOTJOBS側の完了履歴を各端末へ追加する機能です。地域・早期対象の編集、棚卸、設定、手入力記録を別端末へ送る完全な同期やバックアップではありません。現在の同期ブリッジは、サーバー側へ事前登録した個人チャネルだけが利用できる許可制ベータです。</p>
       <h3>Web版の配信</h3>
-      <p>Web版はVercelを通じて静的ファイルと文字認識用データを配信し、任意の同期ブリッジはVercel FunctionsとUpstash Redisを利用します。Upstashへの接続は同期ブリッジのサーバーから行い、保存先の接続TokenをWebアプリやEdge拡張へ配布しません。接続時には、配信、安全確保、不正利用防止に必要な一般的な接続情報が各事業者によって処理される場合があります。App Store版では、アプリ本体と文字認識用データを端末へ同梱します。開発者は、どちらの版にも独自の行動分析機能を組み込んでいません。</p>
+      <p>Web版はVercelを通じて静的ファイルと文字認識用データを配信し、任意の同期ブリッジはVercel Functions、Cloudflare Workers、Cloudflare D1を利用します。保存先への接続はサーバー間で行い、Gatewayの接続TokenやCloudflareアカウントのAPI TokenをWebアプリやEdge拡張へ配布しません。接続時には、配信、安全確保、不正利用防止に必要な一般的な接続情報が各事業者によって処理される場合があります。検討段階のUpstash方式は本番へ接続しておらず、既存のUpstash Databaseへ本アプリの同期データを送りません。App Store版では、アプリ本体と文字認識用データを端末へ同梱します。開発者は、どちらの版にも独自の行動分析機能を組み込んでいません。</p>
       <h3>利用者が開く外部リンク</h3>
       <p>SPOTJOBS公式サイト、Xの共有画面、GitHubのサポート画面などは、利用者がリンクを押したときだけ外部ブラウザで開きます。移動後は各サービスの規約とプライバシーポリシーが適用され、接続情報や利用者が入力・投稿した内容を各サービスが取り扱う場合があります。</p>
       <p>Xへの共有では、共有前に本アプリが作成した投稿文と公開Web版URLをXの投稿画面へ渡します。投稿は利用者が内容を確認し、X上で操作した場合にだけ行われます。</p>
@@ -69,8 +69,8 @@ export default function PrivacyPage() {
       <ul>
         <li>作業記録と設定は、利用者が削除するか、ブラウザのサイトデータを消去するまで利用端末に残ります。</li>
         <li>個別の作業記録は、本アプリの「履歴」から開いて削除できます。</li>
-        <li>同期ブリッジ上の暗号化Envelopeは、最終保存から最大90日で期限切れになります。設定画面で同期を解除するときに「暗号化データも削除」を選ぶと、その時点で削除を要求できます。Edge拡張側の同期を止めない場合は、次回実行時に暗号化Envelopeが再作成されます。</li>
-        <li>保存先変更前のVercel Private Blob上の暗号文は、旧保存先が利用制限で停止しているため、移行時には読み取り・削除を行いません。新しい同期には使用しませんが、利用可能な状態へ戻り管理者が削除を確認するまで物理データが残る場合があります。現在の「暗号化データも削除」はUpstash Redis側が対象です。旧保存先の90日は同期に利用できる期限であり、停止中の物理削除完了を意味しません。</li>
+        <li>同期ブリッジ上の暗号化Envelopeは、最終保存から90日で同期対象外になります。D1上の期限切れ行は毎時の処理で削除します。障害や処理停止時は削除が遅れる場合がありますが、期限切れデータを同期には利用しません。設定画面で同期を解除するときに「暗号化データも削除」を選ぶと、その時点で削除を要求できます。Edge拡張側の同期を止めない場合は、次回実行時に暗号化Envelopeが再作成されます。</li>
+        <li>保存先変更前のVercel Private Blob上の暗号文は、旧保存先が利用制限で停止しているため、移行時には読み取り・削除を行いません。新しい同期には使用しませんが、利用可能な状態へ戻り管理者が削除を確認するまで物理データが残る場合があります。現在の「暗号化データも削除」はD1側が対象です。旧保存先の90日は同期に利用できる期限であり、停止中の物理削除完了を意味しません。</li>
         <li>端末内の全データを消す場合、Web版とホーム画面へ追加したPWAでは、ブラウザ設定から本アプリのサイトデータを削除してください。ホーム画面のアイコンを消すだけでは、サイトデータが残る場合があります。App Store版では、アプリをアンインストールするとアプリ内の保存領域も削除されます。</li>
         <li>書き出したJSONやCSVは本アプリの保存領域外にあります。不要になったファイルは、保存先の「ファイル」アプリやクラウドストレージなどから利用者自身で削除してください。</li>
       </ul>
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
       <div className={styles.actions}>
         <a className={styles.primaryAction} href="https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/issues/new" target="_blank" rel="noopener noreferrer external">GitHubで問い合わせる</a>
         <a className={styles.secondaryAction} href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer external">Vercelのプライバシーポリシー</a>
-        <a className={styles.secondaryAction} href="https://upstash.com/trust/privacy.pdf" target="_blank" rel="noopener noreferrer external">Upstashのプライバシーポリシー</a>
+        <a className={styles.secondaryAction} href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer external">Cloudflareのプライバシーポリシー</a>
       </div>
     </section>
   </LegalPage>;

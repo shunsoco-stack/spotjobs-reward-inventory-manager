@@ -22,8 +22,8 @@ describe("storage-aware health endpoint", () => {
   beforeEach(() => {
     vi.stubEnv("SYNC_ALLOWED_CHANNEL_IDS", Buffer.alloc(32, 43).toString("base64url"));
     vi.stubEnv("SYNC_ALLOWED_ORIGINS", "");
-    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://sync-test.upstash.io");
-    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "synthetic-storage-secret");
+    vi.stubEnv("SPOTLOG_D1_GATEWAY_URL", "https://sync-test.account.workers.dev");
+    vi.stubEnv("SPOTLOG_D1_GATEWAY_TOKEN", Buffer.alloc(32, 75).toString("base64url"));
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -36,19 +36,21 @@ describe("storage-aware health endpoint", () => {
     vi.useRealTimers();
   });
 
-  it("only reports healthy after a live Redis PING succeeds", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ result: "PONG" })));
+  it("only reports healthy after a live D1 gateway ping succeeds", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const { response, result } = responseRecorder();
     await handler(request(), response);
     expect(result.status).toBe(200);
-    expect(result.body).toEqual({ ok: true, service: "spotjobs-encrypted-sync-bridge", protocolVersion: 1, storage: "redis" });
+    expect(result.body).toEqual({ ok: true, service: "spotjobs-encrypted-sync-bridge", protocolVersion: 1, storage: "d1" });
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual(["PING"]);
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual({ op: "ping" });
   });
 
-  it("does not declare an old Blob-only configuration healthy", async () => {
-    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
-    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+  it("does not declare old Blob or Redis configurations healthy", async () => {
+    vi.stubEnv("SPOTLOG_D1_GATEWAY_URL", "");
+    vi.stubEnv("SPOTLOG_D1_GATEWAY_TOKEN", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://existing-other-app.upstash.io");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "do-not-use-existing-token");
     vi.stubEnv("BLOB_STORE_ID", "old-suspended-store");
     const { response, result } = responseRecorder();
     await handler(request(), response);
@@ -85,12 +87,12 @@ describe("storage-aware health endpoint", () => {
     const { response, result } = responseRecorder();
     await handler(request(), response);
     expect(result.status).toBe(503);
-    expect(JSON.stringify({ result, logs: vi.mocked(console.error).mock.calls })).not.toMatch(/secret|upstash\.io/);
-    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation: "health", code: "redis_unavailable" });
+    expect(JSON.stringify({ result, logs: vi.mocked(console.error).mock.calls })).not.toMatch(/secret|workers\.dev/);
+    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation: "health", code: "d1_unavailable" });
   });
 
-  it("rejects a response other than PONG", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ result: "OK" })));
+  it("rejects a gateway response without ok true", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: false })));
     const { response, result } = responseRecorder();
     await handler(request(), response);
     expect(result.status).toBe(503);
@@ -104,6 +106,6 @@ describe("storage-aware health endpoint", () => {
     await vi.advanceTimersByTimeAsync(3_000);
     await pending;
     expect(result.status).toBe(503);
-    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation: "health", code: "redis_timeout" });
+    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation: "health", code: "d1_timeout" });
   });
 });

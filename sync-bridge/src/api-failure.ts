@@ -1,13 +1,13 @@
 import { evaluateCors } from "./cors.js";
-import { RedisStorageError } from "./redis-client.js";
+import { D1StorageError } from "./d1-client.js";
 import type { VercelResponse } from "./vercel-types.js";
 
 const SAFE_STORAGE_CODES = new Set([
-  "redis_not_configured",
-  "redis_unavailable",
-  "redis_timeout",
-  "redis_invalid_response",
-  "redis_invalid_data",
+  "d1_not_configured",
+  "d1_unavailable",
+  "d1_timeout",
+  "d1_invalid_response",
+  "d1_invalid_data",
 ]);
 
 /** Keep failures readable by trusted clients without disclosing provider details. */
@@ -31,7 +31,7 @@ export function respondToBridgeFailure(
   }
 
   // Never log the original error, stack, URL, credentials, channel or request body.
-  const code = error instanceof RedisStorageError && SAFE_STORAGE_CODES.has(error.code)
+  const code = error instanceof D1StorageError && SAFE_STORAGE_CODES.has(error.code)
     ? error.code
     : "bridge_unavailable";
   console.error("sync_bridge_unavailable", { operation, code });

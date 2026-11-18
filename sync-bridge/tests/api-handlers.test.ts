@@ -34,7 +34,7 @@ describe.each([
     vi.stubEnv("SYNC_ALLOWED_CHANNEL_IDS", channelId);
     vi.stubEnv("SYNC_ALLOWED_ORIGINS", "");
     vi.stubEnv("SYNC_SNAPSHOT_TTL_SECONDS", "7776000");
-    for (const key of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN", "BLOB_STORE_ID", "BLOB_READ_WRITE_TOKEN"]) {
+    for (const key of ["SPOTLOG_D1_GATEWAY_URL", "SPOTLOG_D1_GATEWAY_TOKEN", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN", "BLOB_STORE_ID", "BLOB_READ_WRITE_TOKEN"]) {
       vi.stubEnv(key, "");
     }
     fetchMock.mockReset();
@@ -48,7 +48,7 @@ describe.each([
     vi.restoreAllMocks();
   });
 
-  it("answers trusted preflight without Redis configuration or storage access", async () => {
+  it("answers trusted preflight without D1 configuration or storage access", async () => {
     const { response, result } = responseRecorder();
     await handler(request({ method: "OPTIONS", query: {}, headers: { origin } }), response);
     expect(result.status).toBe(204);
@@ -64,7 +64,7 @@ describe.each([
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns a readable CORS failure if Redis is not configured", async () => {
+  it("returns a readable CORS failure if D1 is not configured", async () => {
     const { response, result } = responseRecorder();
     await handler(request(), response);
     expect(result.status).toBe(503);
@@ -73,22 +73,33 @@ describe.each([
     expect(result.headers["Retry-After"]).toBe("30");
     expect(result.body).toMatchObject({ error: { code: "bridge_unavailable" } });
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation, code: "redis_not_configured" });
+    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation, code: "d1_not_configured" });
   });
 
   it("keeps provider failures, credentials, and channel identifiers out of responses and logs", async () => {
-    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://sync-test.upstash.io");
-    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "synthetic-storage-secret");
-    fetchMock.mockRejectedValue(new Error(`https://sync-test.upstash.io synthetic-storage-secret ${authorization} ${channelId}`));
+    const storageToken = Buffer.alloc(32, 75).toString("base64url");
+    vi.stubEnv("SPOTLOG_D1_GATEWAY_URL", "https://sync-test.account.workers.dev");
+    vi.stubEnv("SPOTLOG_D1_GATEWAY_TOKEN", storageToken);
+    fetchMock.mockRejectedValue(new Error(`https://sync-test.account.workers.dev ${storageToken} ${authorization} ${channelId}`));
     const { response, result } = responseRecorder();
     await handler(request(), response);
     expect(result.status).toBe(503);
     expect(result.headers["Access-Control-Allow-Origin"]).toBe(origin);
     const emitted = JSON.stringify({ result, logs: vi.mocked(console.error).mock.calls });
-    for (const privateValue of ["synthetic-storage-secret", "sync-test.upstash.io", authorization, channelId]) {
+    for (const privateValue of [storageToken, "sync-test.account.workers.dev", authorization, channelId]) {
       expect(emitted).not.toContain(privateValue);
     }
-    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation, code: "redis_unavailable" });
+    expect(console.error).toHaveBeenCalledWith("sync_bridge_unavailable", { operation, code: "d1_unavailable" });
+  });
+
+  it("never falls back to configured Redis or Blob when D1 is unavailable", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://existing-other-app.upstash.io");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "do-not-use-existing-token");
+    vi.stubEnv("BLOB_STORE_ID", "do-not-use-existing-store");
+    const { response, result } = responseRecorder();
+    await handler(request(), response);
+    expect(result.status).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("does not reflect a disallowed origin or touch storage", async () => {

@@ -1,15 +1,40 @@
 # 公開・品質確認レポート
 
-最終追記日：2026年11月17日（日本時間）。以下の過去の確認記録は、それぞれ記載日の実装・検証範囲です。
+最終追記日：2026年11月19日（日本時間）。以下の過去の確認記録は、それぞれ記載日の実装・検証範囲です。
 
 - アプリ名：**SPOTJOBS報酬・在庫管理アプリ**
 - Vercel Production：https://spotjobs-reward-inventory-manager.vercel.app
 - GitHub Public：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - 個人制作の非公式管理ツール。公式サービスとの関係はありません。
 
-## 無料枠向け同期ストレージの変更（2026年11月17日・本番移行準備中）
+## Cloudflare D1無料構成への変更（2026年11月19日・Vercel本番移行待ち）
 
-Blobの読み取り上限に達したため、同期ブリッジの保存先を専用Upstash Redisへ切り替える実装を準備しました。暗号化・認証・同期コード・Endpointは維持し、最新依頼の参照は180秒で失効します。依頼状態は1日、暗号化履歴は最終保存から90日でRedisから自動失効します。競合更新はLuaの原子的な条件付き書き込みで保護します。複数の保存操作を含むHTTP要求にも8秒の共通締切を設け、保存先の障害時も許可OriginへのCORS応答を維持します。
+同期保存先をこのアプリ専用のCloudflare D1へ切り替える作業中です。Vercel同期ブリッジの公開URLと同期Protocolを維持し、Server間認証付きのWorker GatewayからD1へ保存します。既存のUpstash Databaseはこのアプリへ接続せず、設定・データを変更しません。
+
+Cloudflare管理画面の読取確認で、対象AccountがWorkers / D1の無料構成であり、作成前のWorker数・D1 Database数がともに0であることを確認しました。その後、専用D1 Database `spotjobs-worker-sync`を作成し、Schemaを適用しました。専用Workerを[公開済み](https://spotjobs-worker-sync-storage.shun-soco.workers.dev)ですが、GatewayはServer間認証を必要とし、一般公開の作業履歴閲覧画面ではありません。既存Upstashへのアクセス・接続・変更は行っていません。
+
+暗号化履歴の有効期限は最終保存から90日、最新取得依頼の参照は180秒、依頼本体は1日です。読取時に期限を確認し、期限切れ行を毎時のCleanupで削除する構成です。旧Blobは読み取り・削除せず、PCから取得した最新500件で新Inboxを作り、端末内の既存履歴は保持します。
+
+2026年11月19日確認時点の公式無料枠は、[D1](https://developers.cloudflare.com/d1/platform/pricing/)が1日500万行読取・10万行書込、[Workers](https://developers.cloudflare.com/workers/platform/limits/)が1日10万Request・HTTP RequestあたりCPU 10 msです。PC 1台の30秒ごとの待受けは1日2,880回（31日で89,280回）です。各枠は同一Account内の他の利用と共有され、同期・定期取得・Cleanupなども別に加算されます。無料利用が無制限・恒久的であるという意味ではありません。
+
+| 確認 | 現時点の状態 |
+| --- | --- |
+| D1 / Worker公開 | 専用D1の作成・Schema適用、専用Workerの公開を確認 |
+| D1実接続テスト | 明示実行の1件PASS。実D1で約700 KiBの最大規模の暗号化PayloadとService全体のCAS更新フローを確認。合成データのみ使用し、テスト自身が作成したKeyを削除 |
+| Web lint / typecheck / build | PASS |
+| Web単体テスト | 243件PASS |
+| Bridge標準テスト | 137件PASS、任意の実接続テスト2件SKIP。上記D1実接続テストは別途実行してPASS |
+| Workerテスト / typecheck / build / dry-run | 実SQLiteを使う16件PASS、typecheck・build・公開dry-runもPASS |
+| ローカル同期E2E | Desktop Chromium 3件、Pixel 6相当3件、iPhone WebKit相当3件の全9シナリオを確認。外部応答は合成データで、実PC同期の確認ではない |
+| 公開差分Secret Scan | Gitleaks 8.30.0でSource 31ファイルを検査、検出0件 |
+| Vercel本番のBackend / Web更新・保存先切替 | 未完了。公開・確認後に追記 |
+| スマホの「今すぐ同期」→実PC取得→端末反映 | 未確認。実際のPCとの連携確認後に追記 |
+
+ローカルE2Eの初回は7件PASS、2件がWebKitプロセスの起動段階で失敗しました。WindowsのCodeIntegrityログ（イベント3077 / 3033）で、Playwright付属DLLの署名要件による読み込みブロックを確認しています。iPhone用の3件だけを1回再実行して全件PASSし、セキュリティ設定・保護機能は変更していません。実機iPhoneでの確認や、実PCからのSPOTJOBS取得成功を示す結果ではありません。
+
+## Redis案のローカル検証（2026年11月17日・本番未接続）
+
+Blobの読み取り上限に達したため、この時点ではUpstash Redisへ切り替える実装を準備・ローカル検証しました。本番へは接続せず、11月19日に専用Cloudflare D1構成へ変更しています。以下は当時のRedis案についての記録です。暗号化・認証・同期コード・Endpointを維持し、最新依頼の参照180秒、依頼状態1日、暗号化履歴90日のTTLとLuaによる原子的更新を実装しました。複数の保存操作を含むHTTP要求に8秒の共通締切を設け、保存先の障害時にも許可OriginへのCORS応答を維持することを確認しました。
 
 | 確認 | 結果 |
 | --- | --- |
@@ -20,10 +45,10 @@ Blobの読み取り上限に達したため、同期ブリッジの保存先を�
 | Bridge単体テスト | 95件PASS。Redis通信、原子的更新、期限、同時依頼、異常応答、CORS、実接続Health、共通締切を含む |
 | ローカル同期E2E | Desktop Chromium / Pixel 7相当 / iPhone 13 WebKit相当で9件PASS、Console / Page Error 0件。外部応答は合成データ |
 | 公開差分Secret Scan | Gitleaks 8.30.0で変更・新規18ファイルを検査、検出0件。個人履歴・認証値は検査用入力へ含めない |
-| Redis実接続テスト | 無料DBのアカウント接続待ち。明示指定で実行するテスト1件を準備済み、通常実行時はスキップ |
-| 本番公開 / 実PC同期 | 未実施。無料DB接続後に公開し、「今すぐ同期」から実PC取得・端末反映まで確認する必要あり |
+| Redis実接続テスト | 未実施。明示指定のテスト1件を準備したが、既存のUpstash Databaseは接続せず通常実行時はスキップ |
+| 本番公開 / 実PC同期 | Redis案では未実施。以後の本番移行・実PC確認はD1版で実施予定 |
 
-Vercel Marketplaceで無料プランを選べなかったため、Upstash側の無料プランを使用する手順です。有料プランへの変更・カード登録は行っていません。旧Blobの暗号文は移行時に取得・削除せず、新サーバーの履歴はPCから再取得します。各端末のIndexedDB内の既存記録は保持します。月あたりの読み取り見積もりと旧保存先の扱いは同期ブリッジREADMEを参照してください。
+Vercel Marketplaceで無料プランを選べなかったため、Upstash側の無料プランを検討しましたが、本番接続は行いませんでした。有料プランへの変更・カード登録は行っていません。既存Upstash Databaseも変更していません。以後の保存方式と旧保存先の扱いは同期ブリッジREADMEを参照してください。
 
 ## ホームからPCへ最新取得を依頼（2026年11月15日）
 

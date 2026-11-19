@@ -1,0 +1,27 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "spotjobs-worker-sync-storage",
+	"account_id": "927e64aafa5942cbcf6d2eec8e9cd8e5",
+	"main": "src/worker.ts",
+	"compatibility_date": "2026-11-18",
+	"workers_dev": true,
+	"preview_urls": false,
+	// Never enable paid plans or bind this gateway to an existing app's database.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "spotjobs-worker-sync",
+			"database_id": "ea556064-947f-4dbb-b61a-824ef4f336db",
+			"migrations_dir": "migrations"
+		}
+	],
+	"triggers": {
+		"crons": [
+			"0 * * * *"
+		]
+	},
+	"observability": {
+		"enabled": false
+	}
+	// SPOTLOG_GATEWAY_SECRET is supplied using Wrangler secrets, never vars.
+}

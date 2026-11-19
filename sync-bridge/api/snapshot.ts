@@ -1,8 +1,9 @@
 import { parseAdditionalOrigins } from "../src/cors.js";
+import { respondToBridgeFailure } from "../src/api-failure.js";
 import { parseAllowedChannelIds } from "../src/security.js";
 import { handleSnapshotRequest } from "../src/service.js";
+import { createD1SnapshotStore } from "../src/d1-storage.js";
 import {
-  createVercelBlobStore,
   getSnapshotTtlSeconds,
   MemoryRateLimiter,
 } from "../src/storage.js";
@@ -21,14 +22,19 @@ function firstQuery(value: string | string[] | undefined): string {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
+  const origin = firstHeader(request.headers.origin);
+  let additionalOrigins: ReadonlySet<string> = new Set();
   try {
-    const store = createVercelBlobStore();
+    additionalOrigins = parseAdditionalOrigins(process.env.SYNC_ALLOWED_ORIGINS);
+    // Credentials are checked lazily on the first storage command. Preflight and
+    // authorization failures must not depend on a database being available.
+    const store = createD1SnapshotStore();
     const result = await handleSnapshotRequest(
       {
         method: request.method ?? "GET",
         channelId: firstQuery(request.query.channelId),
         authorization: firstHeader(request.headers.authorization),
-        origin: firstHeader(request.headers.origin),
+        origin,
         contentLength: Number(firstHeader(request.headers["content-length"])) || undefined,
         body: request.body,
       },
@@ -36,7 +42,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         store,
         rateLimiter,
         allowedChannelIds: parseAllowedChannelIds(process.env.SYNC_ALLOWED_CHANNEL_IDS),
-        additionalOrigins: parseAdditionalOrigins(process.env.SYNC_ALLOWED_ORIGINS),
+        additionalOrigins,
         snapshotTtlSeconds: getSnapshotTtlSeconds(),
       },
     );
@@ -46,15 +52,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
     if (result.body === undefined) return response.status(result.status).end();
     return response.status(result.status).json(result.body);
-  } catch {
-    // Configuration/storage failures are deliberately generic so credentials and
-    // provider details never leak through the public endpoint.
-    response.setHeader("Cache-Control", "private, no-store, max-age=0");
-    return response.status(503).json({
-      error: {
-        code: "bridge_unavailable",
-        message: "The encrypted sync bridge is temporarily unavailable.",
-      },
-    });
+  } catch (error) {
+    return respondToBridgeFailure(response, origin, additionalOrigins, "snapshot", error);
   }
 }

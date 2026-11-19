@@ -80,7 +80,7 @@ PC側のEdge拡張が、ログイン済みの`https://app.spot.jobs/user-job-lis
 
 同期コードは端末ごとに保存されるため、**同じWebアプリURLを開くだけではスマホへ接続設定が引き継がれません**。Safari／Chrome版とホーム画面版で保存領域が分かれる場合もあるため、普段使う方の画面で接続してください。QRは端末内で生成し、コードをURLのフラグメント（`#`以降）だけに入れます。フラグメントはサーバーへ送らず、受信画面で直ちにURLから削除します。
 
-Edge拡張はSPOTJOBSの**パスワード、Cookie、Local Storage、Session Storage、Authorization Headerを読み取りません**。履歴APIの呼び出しはログイン済みページ内で行い、そのページ自身のセッションだけを利用します。履歴はPC内でAES-256-GCM暗号化してから個人用の同期ブリッジへ送信し、Vercel Private Blobには最新500件までの暗号文と件数・取得日時など最小限のメタデータを、最終更新から最大90日保存します。復号鍵は同期コードから端末内で導出し、サーバーへ送りません。
+Edge拡張はSPOTJOBSの**パスワード、Cookie、Local Storage、Session Storage、Authorization Headerを読み取りません**。履歴APIの呼び出しはログイン済みページ内で行い、そのページ自身のセッションだけを利用します。履歴はPC内でAES-256-GCM暗号化してから個人用の同期ブリッジへ送信し、認証必須のWorkerを経由して専用Cloudflare D1へ保存します。対象は最新500件までの暗号文と件数・取得日時など最小限のメタデータです。最終更新から90日で同期対象外にし、期限切れ行は毎時の処理で削除します。復号鍵は同期コードから端末内で導出し、サーバーへ送りません。
 
 自動取り込みは**端末間の完全同期やバックアップではありません**。SPOTJOBS側の完了履歴だけを各端末へ追加し、アプリ内で編集した地域・早期対象、棚卸、設定、手入力記録は他端末へ送りません。補充の地域や早期対象を公式履歴から確定できない場合は「要確認」として取り込みます。公式の作業IDと完了日時・種類を使って重複を避け、取り込み後に削除した公式履歴は同じ端末へ再追加しません。
 
@@ -191,7 +191,11 @@ HTTPSまたはlocalhostで利用します。開発モードではService Worker�
 
 記録と設定は、利用中のブラウザの**IndexedDB**へ保存します。自動取り込みを使わない場合、作業記録を開発者の同期サーバーへ送りません。ブラウザ・端末・URLが異なれば保存領域も別です。
 
-自動取り込みを有効にした場合も、取り込んだ記録と設定の正本は各端末のIndexedDBです。Edge拡張は公式側の完了履歴を暗号化し、同期ブリッジは暗号化Envelope（暗号文、IV、件数、取得日時、送信元識別）だけをPrivate Blobへ保存します。同期コードと復号鍵、SPOTJOBSのパスワード・Cookie・認証Tokenはサーバーへ送りません。暗号化Envelopeは最終保存から最大90日で期限切れになり、設定画面から削除できます。
+自動取り込みを有効にした場合も、取り込んだ記録と設定の正本は各端末のIndexedDBです。Edge拡張は公式側の完了履歴を暗号化し、既存URLのVercel同期ブリッジ → 認証必須のCloudflare Worker → 専用D1という構成で暗号化Envelope（暗号文、IV、件数、取得日時、送信元識別）を保存します。同期コードと復号鍵、SPOTJOBSのパスワード・Cookie・認証Tokenはサーバーへ送りません。Gatewayの接続TokenもServer側だけに置きます。暗号化Envelopeは最終保存から90日で同期対象外になり、期限切れ行は毎時の処理で削除します。設定画面から現在の暗号化Snapshotを削除することもできます。
+
+スマホの「今すぐ同期」は同じ同期コードでPCへ最新取得を依頼します。PCの30秒ごとの待受けは、依頼のないときはD1の主キー検索1回で確認し、Blobへ接続しません。最新依頼の参照は180秒、依頼本体は1日で論理的に失効します。PC 1台の常時待受けは1日2,880回、31日で89,280回です。2026年11月確認時点の[Cloudflare D1 Free](https://developers.cloudflare.com/d1/platform/pricing/)は1日500万行の読み取り・10万行の書き込み、[Workers Free](https://developers.cloudflare.com/workers/platform/limits/)は1日10万Request・HTTP RequestあたりCPU 10 msが上限です。同期・定期取得・削除は別途加算され、無料枠は同一Account内の他の利用と共有されます。個人のPC 1台を想定し、有料化は自動で行いません。利用量や事業者の条件による制約があり、無制限・恒久的な無料利用は保証しません。
+
+旧Private Blobからの切替では、PCが公式の最新500件を新しい同期Inboxへ保存します。端末内の過去履歴は初期化しません。停止中の旧Blobは読み取らず、その暗号文の物理削除も移行処理では行いません。旧保存先の削除は、接続を復旧できた時点で別途確認が必要です。現在の「暗号化データも削除」はD1側のSnapshotが対象です。途中で検討したUpstash方式は本番へ接続せず、既存Upstash Databaseの設定やデータも変更しません。
 
 同期コードは作業データやJSONバックアップへ含めず、Web／PWAではそのブラウザのlocalStorage、Edge拡張では拡張機能のローカル保存領域へ保存します。現在準備中のnative版ではWebView内のローカル保存を使用するため、正式なiOS／Android公開に向けてKeychain／Keystoreへ移すことを追加の堅牢化項目としています。
 
@@ -242,7 +246,7 @@ HTTPSまたはlocalhostで利用します。開発モードではService Worker�
 | UI | Next.js 16、React 19、TypeScript、CSS、Lucide、端末内QR生成（qrcode） |
 | 保存 | IndexedDB、旧localStorageデータの移行、同期設定用localStorage |
 | 自動取り込み | Edge Manifest V3拡張、Web Crypto API（HKDF-SHA-256、AES-256-GCM） |
-| 暗号化同期ブリッジ | Vercel Functions、Private Vercel Blob、許可チャネル制御、90日保持 |
+| 暗号化同期ブリッジ | Vercel Functions、認証必須のCloudflare Worker、専用D1、許可チャネル制御、条件付き依頼更新、90日で同期対象外・毎時削除 |
 | スクリーンショット読取 | Tesseract.js 7、日本語・英語モデル、Web Worker / WebAssemblyによる端末内OCR |
 | ファイル | JSONバックアップ、CSV解析・出力 |
 | オフライン | Web App Manifest、Service Worker、静的エクスポート |
@@ -283,7 +287,7 @@ App Store提出と利用者サポートに使う公開ページ：
 - [プライバシーポリシー](https://spotjobs-reward-inventory-manager.vercel.app/privacy)
 - [サポート](https://spotjobs-reward-inventory-manager.vercel.app/support)
 
-現在のバージョンでは、作業記録と設定を端末内のIndexedDBに保存し、スクリーンショットのOCRも端末内で実行します。アプリ独自の利用者アカウント、アクセス解析SDK、広告SDKはありません。任意の自動取り込みでは、Edge拡張で暗号化した公式完了履歴だけを別Vercelプロジェクトの同期ブリッジへ送り、Private Blobへ最大90日保存します。ブリッジは`sync-bridge/`、拡張は`browser-extension/`として本体と分離しています。データの削除・保存期間、バックアップ、外部リンク利用時の扱いはプライバシーポリシーに明記しています。不具合・要望は公開GitHub Issuesで受け付けるため、実際の作業記録や個人情報を投稿しないようサポートページで案内しています。Web・iOS・Androidへの広告掲載は将来計画で、事業者、広告ID、同意設計が確定してから各版へ追加します。
+現在のバージョンでは、作業記録と設定を端末内のIndexedDBに保存し、スクリーンショットのOCRも端末内で実行します。アプリ独自の利用者アカウント、アクセス解析SDK、広告SDKはありません。任意の自動取り込みでは、Edge拡張で暗号化した公式完了履歴だけを別Vercelプロジェクトの同期ブリッジへ送り、認証必須のWorkerを経由して専用Cloudflare D1へ保存します。暗号化履歴は90日で同期対象外となり、期限切れ行は毎時の処理で削除します。ブリッジは`sync-bridge/`、拡張は`browser-extension/`として本体と分離しています。データの削除・保存期間、バックアップ、外部リンク利用時の扱いはプライバシーポリシーに明記しています。不具合・要望は公開GitHub Issuesで受け付けるため、実際の作業記録や個人情報を投稿しないようサポートページで案内しています。Web・iOS・Androidへの広告掲載は将来計画で、事業者、広告ID、同意設計が確定してから各版へ追加します。
 
 iOS共通層にはCapacitor 8を導入済みです。nativeではService Workerを使わず同梱資産で動作し、公式サイトとXを外部ブラウザで開き、JSON／CSVをiOS共有シートから保存します。Web版とiOS版の保存領域は別です。自動取り込みは公式完了履歴だけを各端末へ追加するため、設定・棚卸・手入力記録を含む完全な移行にはJSONバックアップを使います。
 

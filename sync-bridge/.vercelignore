@@ -1,0 +1,9 @@
+.env*
+.vercel/
+node_modules/
+cloudflare/
+tests/
+.artifacts/
+coverage/
+*.log
+*.tsbuildinfo

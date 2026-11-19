@@ -1,0 +1,21 @@
+{
+  "name": "spotjobs-private-d1-storage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dedicated private D1 storage gateway for the encrypted SPOTJOBS sync bridge",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "test": "node --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "db:migrate": "wrangler d1 migrations apply spotjobs-worker-sync --remote"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "wrangler": "4.165.0"
+  }
+}

@@ -18,9 +18,9 @@
 | Bundle ID | `com.shunsoco.spotjobsmanager`（登録済み。変更しない） |
 | SKU | `spotjobsmanager-ios`（Connect上の実績値） |
 | Version | 1.0 |
-| Copyright | `2026 [Apple Developerの正式な個人名または法人名]` |
+| Copyright | `2026 金城俊輔` |
 | Marketing URL | https://spotjobs-reward-inventory-manager.vercel.app/ |
-| Support URL | https://spotjobs-reward-inventory-manager.vercel.app/support/（実際の連絡先を掲載してから使用） |
+| Support URL | https://spotjobs-reward-inventory-manager.vercel.app/support/ |
 | Privacy Policy URL | https://spotjobs-reward-inventory-manager.vercel.app/privacy/ |
 
 ## Promotional Text
@@ -120,18 +120,18 @@ Version 1.0のbinaryと通信を最終監査し、広告・analytics・Cloud Syn
 - Advertising：Version 1.0は広告なし。広告SDKも同梱しない。
 - Encryption：OS標準のHTTPS等、免除対象の暗号だけかを全依存で確認し、App Store Connectの質問へ回答する。事実確認後に限り`ITSAppUsesNonExemptEncryption = NO`を設定する（ビルド2で設定済み）。
 - Age Rating：暴力、性的表現、ギャンブル、薬物、ユーザー生成コンテンツ、アプリ内Web閲覧は実装しない想定。最新質問票へ事実どおり回答し、App Store Connectが算出したratingを採用する。
-- DSA Trader Status：Apple Developer Account Holder本人が法的状態を回答する。住所・電話・メールの公開範囲を確認する。
+- DSA Trader Status：非事業者（non-trader）。
 
-## 審査前にユーザー本人が埋める項目
+## 審査前に確定した項目
 
-- Apple Developer ProgramのTeamと正式なseller名
-- Copyrightへ載せる正式名
-- App Review連絡先の氏名、電話番号、メールアドレス
-- Supportページへ公開する実際の連絡先（配信地域の法令に応じた住所、メールアドレス、電話番号）。現在のGitHub Issuesだけでは提出しない
-- 配信地域
-- DSA trader/non-trader回答
-- 同期なしのサポート／プライバシーページを公開する時期
-- Manual Releaseの公開日
+- Copyright：`2026 金城俊輔`
+- App Review連絡先：House Dartsの審査情報と同じ氏名・電話・メール（メールは shun.soco@gmail.com）
+- Supportページの連絡先：shun.soco@gmail.com（mailto）。GitHub Issuesも残す
+- 配信地域：日本のみ
+- DSA：非事業者（non-trader）
+- リリース：承認後に自動で公開
+
+Apple Developer ProgramのTeamと正式なseller名は、Connect上の既存登録を使う。
 
 Apple IDのパスワード、2要素認証code、証明書秘密鍵、`.p8`、`.p12`、provisioning profileは、この文書、Issue、Git、チャットへ記載しません。
 

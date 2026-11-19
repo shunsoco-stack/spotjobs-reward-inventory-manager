@@ -84,16 +84,17 @@ export default function SupportPage() {
 
     <section className={styles.section} aria-labelledby="support-contact">
       <h2 id="support-contact">不具合・要望を連絡する</h2>
-      <p>公開GitHubリポジトリのIssuesから受け付けます。GitHubアカウントが必要です。調査しやすいよう、次の情報を記載してください。</p>
+      <p>不具合や要望は、<a href="mailto:shun.soco@gmail.com">shun.soco@gmail.com</a> へメールでお送りください。調査しやすいよう、次の情報を記載してください。</p>
       <ul>
         <li>Web、iPhone、Androidなど利用している版</li>
         <li>OSとブラウザ、またはアプリのバージョン</li>
         <li>問題が起きるまでの操作と、画面に表示されたエラー文</li>
         <li>オンライン／オフライン、通常データ／デモデータのどちらか</li>
       </ul>
-      <p><strong>Issueは公開されます。</strong>実際の作業履歴、店舗名、スクリーンショット、JSON・CSV、氏名、連絡先、ログイン情報を添付しないでください。</p>
+      <p>公開GitHubリポジトリのIssuesからも受け付けます。GitHubアカウントが必要です。<strong>Issueは公開されます。</strong>実際の作業履歴、店舗名、スクリーンショット、JSON・CSV、氏名、連絡先、ログイン情報を添付しないでください。</p>
       <div className={styles.actions}>
-        <a className={styles.primaryAction} href="https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/issues/new" target="_blank" rel="noopener noreferrer external">GitHub Issueを作成</a>
+        <a className={styles.primaryAction} href="mailto:shun.soco@gmail.com">メールで連絡する</a>
+        <a className={styles.secondaryAction} href="https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/issues/new" target="_blank" rel="noopener noreferrer external">GitHub Issueを作成</a>
         <a className={styles.secondaryAction} href="https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager" target="_blank" rel="noopener noreferrer external">ソースコードを見る</a>
       </div>
     </section>

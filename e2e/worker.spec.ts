@@ -53,11 +53,11 @@ test('today and current-week results can be previewed and handed to X safely', a
   const preview = dialog.getByTestId('share-preview');
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('button', { name: '今日', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(preview).toContainText('今日のSPOTJOBS成績');
+  await expect(preview).toContainText('今日のワークストック成績');
   await expect(preview).toContainText('補充 54本・取出 60本');
   await expect(preview).toContainText('見込み報酬 4,050円');
   await expect(preview).not.toContainText('個人制作の非公式管理ツール');
-  await expect(preview).toContainText('#SPOTJOBS記録 #SPOTJOBS');
+  await expect(preview).toContainText('#ワークストック #報酬記録');
   await expect(preview).toContainText('https://spotjobs-reward-inventory-manager.vercel.app/');
 
   let shareLink = dialog.getByTestId('x-share-link');
@@ -65,25 +65,25 @@ test('today and current-week results can be previewed and handed to X safely', a
   await expect(shareLink).toHaveAttribute('rel', /noopener/);
   const todayIntent = new URL((await shareLink.getAttribute('href'))!);
   expect(`${todayIntent.origin}${todayIntent.pathname}`).toBe('https://x.com/intent/tweet');
-  expect(todayIntent.searchParams.get('text')).toContain('今日のSPOTJOBS成績');
-  expect(todayIntent.searchParams.get('text')).toContain('#SPOTJOBS記録 #SPOTJOBS');
+  expect(todayIntent.searchParams.get('text')).toContain('今日のワークストック成績');
+  expect(todayIntent.searchParams.get('text')).toContain('#ワークストック #報酬記録');
   expect(todayIntent.searchParams.get('text')).not.toContain('個人制作の非公式管理ツール');
   expect(todayIntent.searchParams.get('url')).toBe('https://spotjobs-reward-inventory-manager.vercel.app/');
 
   await dialog.getByRole('button', { name: '1週間', exact: true }).click();
   await expect(dialog.getByRole('button', { name: '1週間', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(preview).toContainText('1週間のSPOTJOBS成績');
+  await expect(preview).toContainText('1週間のワークストック成績');
   await expect(preview).toContainText('次の本数ボーナスまであと46本');
   shareLink = dialog.getByTestId('x-share-link');
   const weekIntent = new URL((await shareLink.getAttribute('href'))!);
-  expect(weekIntent.searchParams.get('text')).toContain('1週間のSPOTJOBS成績');
+  expect(weekIntent.searchParams.get('text')).toContain('1週間のワークストック成績');
   expect(weekIntent.searchParams.get('text')).toContain('次の本数ボーナスまであと46本');
   await noHorizontalOverflow(page);
 
   await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: '前の週', exact: true }).click();
   await shareTrigger.click();
-  await expect(preview).toContainText('今日のSPOTJOBS成績');
+  await expect(preview).toContainText('今日のワークストック成績');
   await expect(preview).toContainText('補充 54本・取出 60本');
   await dialog.getByRole('button', { name: '1週間', exact: true }).click();
   await expect(preview).toContainText('補充 0本・取出 0本');
@@ -91,7 +91,7 @@ test('today and current-week results can be previewed and handed to X safely', a
 
   await context.setOffline(true);
   await expect(dialog.getByRole('button', { name: 'Xへの共有には通信が必要です', exact: true })).toBeDisabled();
-  await expect(preview).toContainText('1週間のSPOTJOBS成績');
+  await expect(preview).toContainText('1週間のワークストック成績');
   await context.setOffline(false);
   await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
   await expect(dialog).not.toBeVisible();

@@ -8,7 +8,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
   appId: 'com.shunsoco.spotjobsmanager',
-  appName: 'SPOTJOBS報酬・在庫管理アプリ',
+  appName: 'ワークストック',
   webDir: 'out',
 };
 

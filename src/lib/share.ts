@@ -39,11 +39,11 @@ export function buildPerformanceShareText({ scope, summary, today, demo = false 
   if (scope === "today") {
     const day = summary.days.find((item) => item.date === today) ?? emptyDay(today);
     return [
-      `${demoPrefix}今日のSPOTJOBS成績（${displayDate(today)}）`,
+      `${demoPrefix}今日のワークストック成績（${displayDate(today)}）`,
       countLine(day.refillCount, day.pickupCount),
       `早期補充 ${day.earlyCount}本`,
       `見込み報酬 ${day.total.toLocaleString("ja-JP")}円`,
-      "#SPOTJOBS記録 #SPOTJOBS",
+      "#ワークストック #報酬記録",
     ].join("\n");
   }
 
@@ -52,12 +52,12 @@ export function buildPerformanceShareText({ scope, summary, today, demo = false 
     ? `次の本数ボーナスまであと${summary.nextTier.remaining}本（+${summary.nextTier.rate}円/本）`
     : `週間ボーナス +${summary.countRate}円/本`;
   return [
-    `${demoPrefix}1週間のSPOTJOBS成績（${displayDate(summary.weekStart)}〜${displayDate(weekEnd, false)}）`,
+    `${demoPrefix}1週間のワークストック成績（${displayDate(summary.weekStart)}〜${displayDate(weekEnd, false)}）`,
     countLine(summary.refillCount, summary.pickupCount),
     `早期補充 ${summary.earlyCount}本`,
     `見込み報酬 ${summary.total.toLocaleString("ja-JP")}円`,
     tierLine,
-    "#SPOTJOBS記録 #SPOTJOBS",
+    "#ワークストック #報酬記録",
   ].join("\n");
 }
 

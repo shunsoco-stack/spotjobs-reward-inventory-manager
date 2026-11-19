@@ -142,8 +142,7 @@ npm run ios:run
   app-container export use. Verify this still matches Apple's current approved
   reason and the generated archive privacy report rather than assuming the
   template remains sufficient.
-- Verify that the runtime adapter opens `https://app.spot.jobs/` and X share
-  links outside the app, and that JSON/CSV exports use the share sheet.
+- Verify that the runtime adapter opens X share links outside the app, and that JSON/CSV exports use the share sheet.
 - Test the bundled OCR assets and all core flows in airplane mode.
 - Verify IndexedDB persistence after force quit, device restart, and app
   update. Web and iOS storage are separate, so move existing data using JSON

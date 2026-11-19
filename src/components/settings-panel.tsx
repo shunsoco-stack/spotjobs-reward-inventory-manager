@@ -187,7 +187,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     <SettingsForm key={JSON.stringify(props.settings)} settings={props.settings} onSave={props.onSave} />
     <section className="panel settings-section" aria-labelledby="data-heading">
       <div className="section-heading"><div><h2 id="data-heading">記録を持ち運ぶ</h2><p className="muted">記録の正本は、このブラウザに保存します。</p></div></div>
-      <p className="muted">自動取り込みは公式完了履歴だけが対象です。設定・棚卸・手入力記録を含む完全な端末間同期ではないため、端末やブラウザを変える前にJSONバックアップを保存してください。ブラウザのデータを削除すると記録も消えます。</p>
+      <p className="muted">記録と設定はこの端末内に保存されます。端末やブラウザを変える前にJSONバックアップを保存してください。ブラウザのデータを削除すると記録も消えます。</p>
       <div className="field-grid">
         <button className="button button-secondary" type="button" onClick={props.onBackup}><Download size={18} aria-hidden="true" />バックアップを保存（JSON）</button>
         <button className="button button-secondary" type="button" onClick={props.onImport}><Upload size={18} aria-hidden="true" />バックアップを復元（JSON）</button>
@@ -198,9 +198,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
     </section>
     <section className="panel settings-section" aria-labelledby="calculation-heading">
       <div className="section-heading"><h2 id="calculation-heading">計算について</h2></div>
-      <p className="muted">表示する報酬は、記録と設定に基づく目安です。最終的な条件・金額はSPOTJOBS公式アプリで確認してください。初期値は参考用で、単価や条件は変更できます。</p>
+      <p className="muted">表示する報酬は、記録と設定に基づく目安です。最終的な条件・金額は、利用している作業アプリの公式サービスで確認してください。初期値は参考用で、単価や条件は変更できます。</p>
       <p className="muted">早期補充は、取出日を含む3日間を初期設定としています。取出日が不明な在庫は自動判定の対象に含めません。実際の対象本数に合わせて、補充記録で手入力できます。</p>
-      <p className="muted">本アプリは個人制作の非公式アプリです。SPOTJOBS、ChargeSPOT、株式会社INFORICHとの提携・関係はありません。</p>
+      <p className="muted">本アプリは個人制作の管理ツールです。特定の公式サービスとの提携・関係はありません。</p>
     </section>
     <section className="panel settings-section" aria-labelledby="install-heading">
       <div className="section-heading"><h2 id="install-heading">ホーム画面からすぐに</h2></div>

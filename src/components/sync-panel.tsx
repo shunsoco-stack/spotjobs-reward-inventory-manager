@@ -18,6 +18,7 @@ import {
 import { createSyncPairingUrl } from "@/lib/sync/pairing-link";
 import { parseSyncCode } from "@/lib/sync/protocol";
 import type { SyncLocalPreferences } from "@/lib/sync/preferences";
+import { isSyncEnabled } from "@/lib/sync/feature";
 import { SyncProgress, type SyncPhase } from './sync-action';
 
 export type SyncImportMode = "all" | "future";
@@ -105,7 +106,7 @@ function dateTime(value?: string): string {
   }).format(new Date(value));
 }
 
-export default function SyncPanel({
+function SyncPanelInner({
   preferences,
   online,
   demo,
@@ -381,4 +382,9 @@ export default function SyncPanel({
       )}
     </section>
   );
+}
+
+export default function SyncPanel(props: SyncPanelProps) {
+  if (!isSyncEnabled()) return null;
+  return <SyncPanelInner {...props} />;
 }

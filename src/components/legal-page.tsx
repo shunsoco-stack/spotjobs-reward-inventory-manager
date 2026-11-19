@@ -43,7 +43,7 @@ export function LegalPage({ current, eyebrow, title, description, updated, child
         <a href="/privacy.html">プライバシーポリシー</a>
         <a href="/support.html">サポート</a>
       </nav>
-      <p>個人制作の非公式管理ツールです。SPOTJOBS、ChargeSPOT、株式会社INFORICHとの提携・関係はありません。</p>
+      <p>個人制作の管理ツールです。特定の公式サービスとの提携・関係はありません。</p>
     </footer>
   </div>;
 }

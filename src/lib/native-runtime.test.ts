@@ -75,11 +75,11 @@ describe("external URLs", () => {
       loadInAppBrowser,
     }));
 
-    const pending = adapter.openExternalUrl("https://app.spot.jobs/");
-    expect(open).toHaveBeenCalledWith("https://app.spot.jobs/", "_blank", "noopener,noreferrer");
+    const pending = adapter.openExternalUrl("https://example.com/");
+    expect(open).toHaveBeenCalledWith("https://example.com/", "_blank", "noopener,noreferrer");
     await expect(pending).resolves.toEqual({
       method: "web-window",
-      url: "https://app.spot.jobs/",
+      url: "https://example.com/",
     });
     expect(loadInAppBrowser).not.toHaveBeenCalled();
   });
@@ -93,11 +93,11 @@ describe("external URLs", () => {
       loadInAppBrowser: async () => asInAppBrowserModule({ InAppBrowser: { openInExternalBrowser } }),
     }));
 
-    await expect(adapter.openExternalUrl("https://app.spot.jobs/")).resolves.toEqual({
+    await expect(adapter.openExternalUrl("https://example.com/")).resolves.toEqual({
       method: "native-external-browser",
-      url: "https://app.spot.jobs/",
+      url: "https://example.com/",
     });
-    expect(openInExternalBrowser).toHaveBeenCalledWith({ url: "https://app.spot.jobs/" });
+    expect(openInExternalBrowser).toHaveBeenCalledWith({ url: "https://example.com/" });
     expect(open).not.toHaveBeenCalled();
   });
 
@@ -213,7 +213,7 @@ describe("text file export", () => {
       content: "{\"records\":[]}",
       filename: "spotjobs-backup.json",
       mimeType: "application/json",
-      title: "SPOTJOBSバックアップ",
+      title: "ワークストックバックアップ",
     })).resolves.toEqual({
       method: "native-share",
       filename: "spotjobs-backup.json",
@@ -227,7 +227,7 @@ describe("text file export", () => {
       recursive: true,
     });
     expect(share).toHaveBeenCalledWith({
-      title: "SPOTJOBSバックアップ",
+      title: "ワークストックバックアップ",
       files: ["file:///cache/exports/spotjobs-backup.json"],
     });
     expect(deleteFile).toHaveBeenCalledWith({ path: "exports/spotjobs-backup.json", directory: "CACHE" });

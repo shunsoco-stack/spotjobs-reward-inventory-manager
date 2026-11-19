@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { LegalPage, legalPageStyles as styles } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "プライバシーポリシー | SPOTJOBS報酬・在庫管理アプリ",
-  description: "SPOTJOBS報酬・在庫管理アプリにおける端末内データ、暗号化された自動取り込み、画像認識、バックアップ、外部リンクの取り扱いについて説明します。",
+  title: "プライバシーポリシー | ワークストック",
+  description: "ワークストック｜報酬と在庫における端末内データ、暗号化された自動取り込み、画像認識、バックアップ、外部リンクの取り扱いについて説明します。",
   alternates: { canonical: "https://spotjobs-reward-inventory-manager.vercel.app/privacy" },
   robots: { index: true, follow: true },
 };
@@ -13,12 +13,12 @@ export default function PrivacyPage() {
     current="privacy"
     eyebrow="PRIVACY"
     title="プライバシーポリシー"
-    description="SPOTJOBS報酬・在庫管理アプリで扱う情報と、その保存場所・削除方法を説明します。"
+    description="ワークストック｜報酬と在庫で扱う情報と、その保存場所・削除方法を説明します。"
     updated="2026年11月19日"
   >
     <section className={styles.section} aria-labelledby="privacy-scope">
       <h2 id="privacy-scope">1. 適用範囲</h2>
-      <p>本ポリシーは、個人制作の「SPOTJOBS報酬・在庫管理アプリ」（以下「本アプリ」）に適用されます。本アプリは、SPOTJOBS、ChargeSPOT、株式会社INFORICHが提供する公式サービスではありません。</p>
+      <p>本ポリシーは、個人制作の「ワークストック｜報酬と在庫」（以下「本アプリ」）に適用されます。本アプリは、SPOTJOBS、ChargeSPOT、株式会社INFORICHが提供する公式サービスではありません。</p>
       <p>本ページでは、現在公開しているバージョンの動作を記載しています。機能や外部サービスの追加により取り扱いが変わる場合は、実装前または公開時に本ポリシーを更新します。</p>
     </section>
 

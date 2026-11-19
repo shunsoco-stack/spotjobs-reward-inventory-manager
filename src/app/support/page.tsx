@@ -3,8 +3,8 @@ import Link from "next/link";
 import { LegalPage, legalPageStyles as styles } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "サポート | SPOTJOBS報酬・在庫管理アプリ",
-  description: "SPOTJOBS報酬・在庫管理アプリのデータ保存、暗号化された自動取り込み、バックアップ、オフライン利用、スクリーンショット読取に関するサポート情報です。",
+  title: "サポート | ワークストック",
+  description: "ワークストック｜報酬と在庫のデータ保存、暗号化された自動取り込み、バックアップ、オフライン利用、スクリーンショット読取に関するサポート情報です。",
   alternates: { canonical: "https://spotjobs-reward-inventory-manager.vercel.app/support" },
   robots: { index: true, follow: true },
 };

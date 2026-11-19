@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "SPOTJOBS報酬・在庫管理アプリ",
-  "short_name": "SPOTJOBS管理",
+  "name": "ワークストック｜報酬と在庫",
+  "short_name": "ワークストック",
   "description": "補充と取出を記録し、週間報酬の目安と手元の在庫を確認する非公式アプリ。",
   "lang": "ja",
   "start_url": "/",

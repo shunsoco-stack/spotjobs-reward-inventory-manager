@@ -17,9 +17,9 @@ export function LegalPage({ current, eyebrow, title, description, updated, child
     <a className={styles.skipLink} href="#main-content">本文へ移動</a>
     <header className={styles.header}>
       <div className={styles.headerInner}>
-        <Link className={styles.brand} href="/" prefetch={false} aria-label="SPOTJOBS報酬・在庫管理アプリのホームへ">
+        <Link className={styles.brand} href="/" prefetch={false} aria-label="ワークストック｜報酬と在庫のホームへ">
           <Image src="/icon.svg" width={38} height={38} alt="" priority />
-          <span>SPOTJOBS報酬・在庫管理アプリ</span>
+          <span>ワークストック｜報酬と在庫</span>
         </Link>
         <nav className={styles.nav} aria-label="情報ページ">
           <a href="/privacy.html" aria-current={current === "privacy" ? "page" : undefined}>プライバシー</a>

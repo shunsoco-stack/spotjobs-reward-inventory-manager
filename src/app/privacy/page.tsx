@@ -90,9 +90,10 @@ export default function PrivacyPage() {
 
     <section className={styles.section} aria-labelledby="privacy-contact">
       <h2 id="privacy-contact">7. お問い合わせ</h2>
-      <p>本ポリシーや本アプリに関する問い合わせは、公開GitHubリポジトリのIssuesから受け付けます。Issueは公開されるため、実際の作業履歴、店舗名、スクリーンショット、バックアップファイル、その他の個人情報を投稿しないでください。</p>
+      <p>本ポリシーや本アプリに関する問い合わせは、<a href="mailto:shun.soco@gmail.com">shun.soco@gmail.com</a> へメールでお送りください。公開GitHubリポジトリのIssuesからも受け付けます。Issueは公開されるため、実際の作業履歴、店舗名、スクリーンショット、バックアップファイル、その他の個人情報を投稿しないでください。</p>
       <div className={styles.actions}>
-        <a className={styles.primaryAction} href="https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/issues/new" target="_blank" rel="noopener noreferrer external">GitHubで問い合わせる</a>
+        <a className={styles.primaryAction} href="mailto:shun.soco@gmail.com">メールで問い合わせる</a>
+        <a className={styles.secondaryAction} href="https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager/issues/new" target="_blank" rel="noopener noreferrer external">GitHubで問い合わせる</a>
         <a className={styles.secondaryAction} href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer external">Vercelのプライバシーポリシー</a>
         <a className={styles.secondaryAction} href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer external">Cloudflareのプライバシーポリシー</a>
       </div>

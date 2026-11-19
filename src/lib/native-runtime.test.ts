@@ -75,11 +75,11 @@ describe("external URLs", () => {
       loadInAppBrowser,
     }));
 
-    const pending = adapter.openExternalUrl("https://app.spot.jobs/");
-    expect(open).toHaveBeenCalledWith("https://app.spot.jobs/", "_blank", "noopener,noreferrer");
+    const pending = adapter.openExternalUrl("https://example.com/");
+    expect(open).toHaveBeenCalledWith("https://example.com/", "_blank", "noopener,noreferrer");
     await expect(pending).resolves.toEqual({
       method: "web-window",
-      url: "https://app.spot.jobs/",
+      url: "https://example.com/",
     });
     expect(loadInAppBrowser).not.toHaveBeenCalled();
   });
@@ -93,11 +93,11 @@ describe("external URLs", () => {
       loadInAppBrowser: async () => asInAppBrowserModule({ InAppBrowser: { openInExternalBrowser } }),
     }));
 
-    await expect(adapter.openExternalUrl("https://app.spot.jobs/")).resolves.toEqual({
+    await expect(adapter.openExternalUrl("https://example.com/")).resolves.toEqual({
       method: "native-external-browser",
-      url: "https://app.spot.jobs/",
+      url: "https://example.com/",
     });
-    expect(openInExternalBrowser).toHaveBeenCalledWith({ url: "https://app.spot.jobs/" });
+    expect(openInExternalBrowser).toHaveBeenCalledWith({ url: "https://example.com/" });
     expect(open).not.toHaveBeenCalled();
   });
 

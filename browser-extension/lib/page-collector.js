@@ -1,27 +1,41 @@
 /**
- * Runs in the SPOTJOBS page's MAIN world. The official page owns its signed-in
- * request, so this collector briefly observes the completed-history response
- * and reuses that in-memory Request as a pagination template. It never reads
- * cookies, Web Storage, password fields, or authorization header values.
+ * Runs in the MAIN world of the extension-owned app.spot.jobs sync tab.
+ *
+ * The official web client authenticates with `Authorization: Bearer <Firebase
+ * ID token>`. This collector reads the page's own, already-issued ID token from
+ * the page's Firebase persistence and sends exactly one read-only GET to the
+ * single allowlisted completed-history endpoint, using the page's fetch.
+ *
+ * - No URL, host, or query is accepted from the caller: everything is a constant.
+ * - The token (and the record key, which contains the Firebase API key) only
+ *   lives in local variables for that single request. It is never returned,
+ *   logged, stored, or sent anywhere else. Refresh tokens are never read.
+ * - No DOM clicks, no fetch hooking, no geolocation, no token refresh, no retry.
  *
  * Keep every helper inside this function: chrome.scripting.executeScript
  * serializes the function without its module scope.
  */
-export async function collectSpotJobsFromPage(options) {
+export async function collectSpotJobsFromPage() {
+  const API_ORIGIN = "https://spotjobs-api.spotapi.jp";
+  const API_HOSTNAME = "spotjobs-api.spotapi.jp";
+  const API_PATH = "/api/v1/rounder/work";
+  const API_METHOD = "GET";
+  const API_QUERY = [["taskStatus", "FINISHED"], ["pageNum", "1"], ["pageSize", "50"]];
+  // Independent literal: the built URL must match it exactly (no lat/lng/workTypes).
+  const ALLOWED_URL = "https://spotjobs-api.spotapi.jp/api/v1/rounder/work?taskStatus=FINISHED&pageNum=1&pageSize=50";
+  const AUTH_DB_NAME = "firebaseLocalStorageDb";
+  const AUTH_STORE_NAME = "firebaseLocalStorage";
+  const AUTH_KEY_PREFIX = "firebase:authUser:";
+  const REQUEST_TIMEOUT_MS = 15_000;
+  const STORAGE_TIMEOUT_MS = 5_000;
+  // A token that expires within this window would almost certainly be rejected
+  // in flight; report it as stale instead of spending the request.
+  const EXPIRY_MARGIN_MS = 30_000;
+
   const page = typeof window === "undefined" ? globalThis : window;
-  const pageSize = Math.min(Math.max(Number(options?.pageSize) || 50, 10), 100);
-  const maxRecords = Math.min(Math.max(Number(options?.maxRecords) || 500, 50), 500);
-  const maxPages = Math.ceil(maxRecords / pageSize);
-  const captureTimeoutMs = Math.min(
-    Math.max(Number(options?.captureTimeoutMs) || 12_000, 500),
-    20_000
-  );
-  const buttonWaitMs = Math.min(
-    Math.max(Number(options?.buttonWaitMs ?? 10_000) || 0, 0),
-    10_000
-  );
+  const pageFetch = page.fetch;
   const collectedAt = () => new Date().toISOString();
-  const originalFetch = page.fetch;
+  const fail = (error) => ({ records: null, collectedAt: collectedAt(), error });
 
   const extractList = (payload) => {
     const queue = [{ value: payload, depth: 0 }];
@@ -47,175 +61,156 @@ export async function collectSpotJobsFromPage(options) {
     return null;
   };
 
-  const errorResult = (error) => ({
-    records: null,
-    collectedAt: collectedAt(),
-    error: error instanceof Error ? error.message : String(error)
-  });
+  // Returns only { accessToken, expirationTime } of the first auth user, or null.
+  const pickCredential = (user) => {
+    const manager = user && typeof user === "object" ? user.stsTokenManager : null;
+    if (!manager || typeof manager !== "object") return null;
+    const accessToken = typeof manager.accessToken === "string" ? manager.accessToken : "";
+    if (!accessToken) return null;
+    return { accessToken, expirationTime: Number(manager.expirationTime) };
+  };
 
-  const historyUrl = (request) => {
+  const readIndexedDbCredential = () => new Promise((resolve) => {
+    const factory = page.indexedDB;
+    if (!factory || typeof factory.open !== "function") {
+      resolve(null);
+      return;
+    }
+    let settled = false;
+    let db = null;
+    const done = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { db?.close(); } catch { /* ignore */ }
+      db = null;
+      resolve(value);
+    };
+    const timer = setTimeout(() => done(null), STORAGE_TIMEOUT_MS);
+    let openRequest;
     try {
-      const url = new URL(request.url);
-      const isOfficialApi = url.protocol === "https:" &&
-        (url.hostname === "spotapi.jp" || url.hostname.endsWith(".spotapi.jp"));
-      return isOfficialApi && request.method === "GET" &&
-        url.pathname === "/api/v1/rounder/work" &&
-        url.searchParams.get("taskStatus") === "FINISHED"
-        ? url
-        : null;
+      openRequest = factory.open(AUTH_DB_NAME);
     } catch {
-      return null;
+      done(null);
+      return;
     }
-  };
-
-  const responseError = (response) => {
-    if (response.status === 401 || response.status === 403) return "SPOTLOG_AUTH_REQUIRED";
-    if (!response.ok) return `SPOTLOG_API_ERROR:${response.status}`;
-    return "";
-  };
-
-  if (typeof originalFetch !== "function" || !page.document) {
-    return errorResult(new Error("SPOTLOG_API_FORMAT_CHANGED"));
-  }
-
-  let resolveFirstCapture;
-  const firstCapturePromise = new Promise((resolve) => {
-    resolveFirstCapture = resolve;
-  });
-  let captured = false;
-  const settleFirstCapture = (value) => {
-    if (captured) return;
-    captured = true;
-    resolveFirstCapture(value);
-  };
-
-  const wrappedFetch = async (...args) => {
-    let request;
-    let matchingUrl = null;
-    try {
-      request = new Request(args[0], args[1]);
-      matchingUrl = historyUrl(request);
-    } catch {
-      // Let the official client handle malformed requests unchanged.
-    }
-
-    let response;
-    try {
-      response = await originalFetch.apply(page, args);
-    } catch (error) {
-      if (matchingUrl) settleFirstCapture({ error: "SPOTLOG_API_ERROR:NETWORK" });
-      throw error;
-    }
-
-    if (matchingUrl && request) {
-      const responseFailure = responseError(response);
-      if (responseFailure) {
-        settleFirstCapture({ error: responseFailure });
-      } else {
-        void response.clone().json().then(
-          (payload) => {
-            const records = extractList(payload);
-            settleFirstCapture(
-              records
-                ? { request, url: matchingUrl }
-                : { error: "SPOTLOG_API_FORMAT_CHANGED" }
-            );
-          },
-          () => settleFirstCapture({ error: "SPOTLOG_API_FORMAT_CHANGED" })
-        );
+    // Never create the official database when it does not exist yet.
+    openRequest.onupgradeneeded = () => {
+      try { openRequest.transaction?.abort(); } catch { /* ignore */ }
+      done(null);
+    };
+    openRequest.onerror = () => done(null);
+    openRequest.onblocked = () => done(null);
+    openRequest.onsuccess = () => {
+      if (settled) {
+        try { openRequest.result?.close(); } catch { /* ignore */ }
+        return;
       }
-    }
-    return response;
-  };
-
-  page.fetch = wrappedFetch;
-  try {
-    const buttonNamed = (label) => [...page.document.querySelectorAll("button")].find(
-      (button) => String(button.textContent || "").replace(/\s+/gu, "") === label
-    );
-    // A freshly opened/reloaded sync tab may not have rendered the official
-    // React tab buttons yet. Poll briefly (bounded) before reporting a layout
-    // change.
-    const buttonDeadline = Date.now() + buttonWaitMs;
-    while (!buttonNamed("完了") && Date.now() < buttonDeadline) {
-      await new Promise((resolve) => page.setTimeout(resolve, 250));
-    }
-    const unfinishedButton = buttonNamed("未完了");
-    if (!buttonNamed("完了")) throw new Error("SPOTLOG_API_FORMAT_CHANGED");
-
-    // Switching away first guarantees a new official request even when the
-    // completed tab was already active during a scheduled sync.
-    unfinishedButton?.click();
-    // React can replace the tab buttons when 未完了 is selected. Yield a task
-    // for that render, then query again: clicking a detached cached button does
-    // not reach the official app. MessageChannel avoids the prolonged timer
-    // throttling of a hidden/background history tab.
-    await new Promise((resolve) => {
-      const Channel = page.MessageChannel || globalThis.MessageChannel;
-      const channel = new Channel();
-      channel.port1.onmessage = () => {
-        channel.port1.close();
-        channel.port2.close();
-        resolve();
-      };
-      channel.port2.postMessage(null);
-    });
-    const finishedButton = buttonNamed("完了");
-    if (!finishedButton) throw new Error("SPOTLOG_API_FORMAT_CHANGED");
-    finishedButton.click();
-
-    let captureTimer;
-    const captureTimeout = new Promise((resolve) => {
-      captureTimer = page.setTimeout(
-        () => resolve({ error: "SPOTLOG_API_CAPTURE_TIMEOUT" }),
-        captureTimeoutMs
-      );
-    });
-    const firstCapture = await Promise.race([firstCapturePromise, captureTimeout]);
-    if (captureTimer !== undefined) {
-      const clearTimer = typeof page.clearTimeout === "function"
-        ? page.clearTimeout.bind(page)
-        : clearTimeout;
-      clearTimer(captureTimer);
-    }
-    if (firstCapture?.error) throw new Error(firstCapture.error);
-    if (!firstCapture?.request || !firstCapture?.url) {
-      throw new Error("SPOTLOG_API_FORMAT_CHANGED");
-    }
-
-    const collected = [];
-    for (let pageNum = 1; pageNum <= maxPages; pageNum += 1) {
-      const url = new URL(firstCapture.url.toString());
-      url.searchParams.set("pageNum", String(pageNum));
-      url.searchParams.set("pageSize", String(pageSize));
-
-      // Passing the captured Request as RequestInit preserves the official
-      // client's ephemeral request context without inspecting header values.
-      const request = new Request(url.toString(), firstCapture.request);
-      const response = await originalFetch.call(page, request);
-      const responseFailure = responseError(response);
-      if (responseFailure) throw new Error(responseFailure);
-
-      let payload;
+      db = openRequest.result;
       try {
-        payload = await response.json();
+        if (!db.objectStoreNames.contains(AUTH_STORE_NAME)) {
+          done(null);
+          return;
+        }
+        const store = db.transaction(AUTH_STORE_NAME, "readonly").objectStore(AUTH_STORE_NAME);
+        const getAll = store.getAll();
+        getAll.onerror = () => done(null);
+        getAll.onsuccess = () => {
+          const rows = Array.isArray(getAll.result) ? getAll.result : [];
+          const row = rows.find((entry) => typeof entry?.fbase_key === "string" &&
+            entry.fbase_key.startsWith(AUTH_KEY_PREFIX));
+          done(row ? pickCredential(row.value) : null);
+        };
       } catch {
-        throw new Error("SPOTLOG_API_FORMAT_CHANGED");
+        done(null);
       }
-      const pageRecords = extractList(payload);
-      if (!pageRecords) throw new Error("SPOTLOG_API_FORMAT_CHANGED");
+    };
+  });
 
-      for (const item of pageRecords) {
-        collected.push(item);
-        if (collected.length >= maxRecords) break;
+  const readLocalStorageCredential = () => {
+    try {
+      const storage = page.localStorage;
+      if (!storage) return null;
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (typeof key !== "string" || !key.startsWith(AUTH_KEY_PREFIX)) continue;
+        const raw = storage.getItem(key);
+        if (!raw) continue;
+        try {
+          const credential = pickCredential(JSON.parse(raw));
+          if (credential) return credential;
+        } catch {
+          // Unparsable record: keep looking.
+        }
       }
-      if (collected.length >= maxRecords || pageRecords.length < pageSize) break;
+    } catch {
+      // Storage unavailable in this context.
     }
+    return null;
+  };
 
-    return { records: collected, collectedAt: collectedAt() };
-  } catch (error) {
-    return errorResult(error);
-  } finally {
-    if (page.fetch === wrappedFetch) page.fetch = originalFetch;
+  // 1. The request is built only from constants and verified before use.
+  let url;
+  try {
+    url = new URL(API_PATH, API_ORIGIN);
+    for (const [name, value] of API_QUERY) url.searchParams.set(name, value);
+  } catch {
+    return fail("SPOTLOG_BLOCKED_REQUEST");
   }
+  if (url.protocol !== "https:" || url.hostname !== API_HOSTNAME || url.port !== "" ||
+    url.pathname !== API_PATH || url.href !== ALLOWED_URL || url.hash !== "" ||
+    url.username !== "" || url.password !== "" || API_METHOD !== "GET") {
+    return fail("SPOTLOG_BLOCKED_REQUEST");
+  }
+  if (typeof pageFetch !== "function") return fail("SPOTLOG_API_FORMAT_CHANGED");
+
+  // 2. The page's current Firebase ID token (never refreshed here).
+  let credential = null;
+  try {
+    credential = await readIndexedDbCredential();
+  } catch {
+    credential = null;
+  }
+  if (!credential) credential = readLocalStorageCredential();
+  if (!credential) return fail("SPOTLOG_AUTH_REQUIRED");
+  const { expirationTime } = credential;
+  if (!Number.isFinite(expirationTime) || expirationTime <= Date.now() + EXPIRY_MARGIN_MS) {
+    credential = null;
+    return fail("SPOTLOG_TOKEN_STALE");
+  }
+
+  // 3. Exactly one request.
+  let response;
+  try {
+    const init = {
+      method: API_METHOD,
+      headers: { Authorization: `Bearer ${credential.accessToken}`, Accept: "application/json" },
+      credentials: "omit",
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+    };
+    credential = null;
+    response = await pageFetch.call(page, url.toString(), init);
+  } catch {
+    return fail("SPOTLOG_API_ERROR:NETWORK");
+  } finally {
+    credential = null;
+  }
+
+  if (response.status === 401 || response.status === 403) return fail("SPOTLOG_AUTH_REQUIRED");
+  if (!response.ok) {
+    const status = Number(response.status);
+    return fail(`SPOTLOG_API_ERROR:${Number.isInteger(status) ? status : "UNKNOWN"}`);
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    return fail("SPOTLOG_API_FORMAT_CHANGED");
+  }
+  const records = extractList(payload);
+  if (!records) return fail("SPOTLOG_API_FORMAT_CHANGED");
+  return { records, collectedAt: collectedAt() };
 }

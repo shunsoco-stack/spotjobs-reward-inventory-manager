@@ -14,9 +14,13 @@ const ALARM_NAME = "spotlog-periodic-sync";
 const REFRESH_ALARM_NAME = "spotlog-remote-refresh";
 const DEFAULT_BRIDGE_URL = "https://spotjobs-reward-inventory-sync.vercel.app";
 const DEFAULT_INTERVAL = 30;
-const SPOTJOBS_URL = "https://app.spot.jobs/user-job-list*";
-const SOURCE_VERSION = "spotlog-edge/0.2.1";
+const SPOTJOBS_PAGE_URL = "https://app.spot.jobs/user-job-list";
+const SOURCE_VERSION = "spotlog-edge/0.2.2";
+const DEDICATED_TAB_KEY = "dedicatedSyncTab";
+const TAB_MAX_AGE_MS = 90 * 60 * 1000;
+const TAB_LOAD_TIMEOUT_MS = 30_000;
 let runningSync = null;
+let dedicatedTabId = null;
 
 async function getState() {
   const stored = await chrome.storage.local.get([
@@ -94,9 +98,139 @@ async function scheduleAlarms(config, reset = false) {
   }
 }
 
-async function findSpotJobsTab() {
-  const tabs = await chrome.tabs.query({ url: SPOTJOBS_URL });
-  return tabs.find((tab) => tab.id && tab.status === "complete") || tabs[0] || null;
+function isSpotJobsListUrl(url) {
+  return typeof url === "string" && url.startsWith(SPOTJOBS_PAGE_URL);
+}
+
+async function readDedicatedTab() {
+  const stored = await chrome.storage.local.get(DEDICATED_TAB_KEY);
+  const record = stored?.[DEDICATED_TAB_KEY];
+  return record && Number.isInteger(record.tabId) ? record : null;
+}
+
+async function forgetDedicatedTab() {
+  dedicatedTabId = null;
+  await chrome.storage.local.remove(DEDICATED_TAB_KEY);
+}
+
+async function rememberDedicatedTab(tabId, windowId) {
+  dedicatedTabId = tabId;
+  const record = { tabId, loadedAt: Date.now() };
+  if (Number.isInteger(windowId)) record.windowId = windowId;
+  await chrome.storage.local.set({ [DEDICATED_TAB_KEY]: record });
+}
+
+/**
+ * Resolves true once the tab reports status "complete" (false on timeout or a
+ * closed tab). Register before triggering a navigation so its completion event
+ * cannot be missed. With acceptCurrent, an already-complete tab also counts.
+ */
+function watchTabLoad(tabId, { acceptCurrent = false } = {}) {
+  let finish;
+  const promise = new Promise((resolve) => {
+    let done = false;
+    let timer;
+    const listener = (updatedId, changeInfo) => {
+      if (updatedId === tabId && changeInfo?.status === "complete") finish(true);
+    };
+    finish = (loaded) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve(loaded);
+    };
+    timer = setTimeout(() => finish(false), TAB_LOAD_TIMEOUT_MS);
+    chrome.tabs.onUpdated.addListener(listener);
+    if (acceptCurrent) {
+      chrome.tabs.get(tabId).then(
+        (tab) => { if (tab?.status === "complete") finish(true); },
+        () => finish(false)
+      );
+    }
+  });
+  return { promise, cancel: () => finish(false) };
+}
+
+async function reloadDedicatedTab(tabId, windowId) {
+  const load = watchTabLoad(tabId);
+  try {
+    await chrome.tabs.reload(tabId);
+  } catch (error) {
+    load.cancel();
+    throw error;
+  }
+  await rememberDedicatedTab(tabId, windowId);
+  await load.promise;
+}
+
+async function openDedicatedTab() {
+  let windows = [];
+  try {
+    windows = await chrome.windows.getAll({ windowTypes: ["normal"] });
+  } catch {
+    windows = [];
+  }
+  const candidates = (windows || []).filter((win) => Number.isInteger(win?.id) && !win.incognito);
+  if (!candidates.length) return null;
+  // Never focus a window or activate a tab: the sync tab opens in the background.
+  const target = candidates.find((win) => win.focused) || candidates[0];
+  let tab;
+  try {
+    tab = await chrome.tabs.create({ url: SPOTJOBS_PAGE_URL, active: false, windowId: target.id });
+  } catch {
+    return null;
+  }
+  if (!Number.isInteger(tab?.id)) return null;
+  await rememberDedicatedTab(tab.id, Number.isInteger(tab.windowId) ? tab.windowId : target.id);
+  try {
+    await chrome.tabs.update(tab.id, { autoDiscardable: false });
+  } catch {
+    // Best effort only; a discarded tab is reloaded before the next collection.
+  }
+  await watchTabLoad(tab.id, { acceptCurrent: true }).promise;
+  return { tabId: tab.id, windowId: tab.windowId, refreshed: true };
+}
+
+/**
+ * Returns the extension-owned sync tab, opening or reloading it at most once.
+ * Tabs the user opened are never selected, reloaded, or otherwise touched.
+ */
+async function prepareDedicatedTab() {
+  const stored = await readDedicatedTab();
+  if (stored) {
+    let tab = null;
+    try {
+      tab = await chrome.tabs.get(stored.tabId);
+    } catch {
+      tab = null;
+    }
+    if (tab && isSpotJobsListUrl(tab.url || tab.pendingUrl)) {
+      dedicatedTabId = tab.id;
+      const age = Date.now() - Number(stored.loadedAt || 0);
+      const stale = !(age >= 0 && age < TAB_MAX_AGE_MS);
+      if (stale || tab.discarded || tab.status !== "complete") {
+        await reloadDedicatedTab(tab.id, tab.windowId ?? stored.windowId);
+        return { tabId: tab.id, windowId: tab.windowId, refreshed: true };
+      }
+      return { tabId: tab.id, windowId: tab.windowId, refreshed: false };
+    }
+    // Closed, or navigated away by the user: forget it without touching it.
+    await forgetDedicatedTab();
+  }
+  return openDedicatedTab();
+}
+
+async function collectWithRecovery(prepared) {
+  try {
+    return await collectFromTab(prepared.tabId);
+  } catch (error) {
+    // A freshly opened/reloaded tab is not retried: at most one open-or-reload
+    // and two collection attempts per sync run.
+    if (prepared.refreshed) throw error;
+    await reloadDedicatedTab(prepared.tabId, prepared.windowId);
+    return collectFromTab(prepared.tabId);
+  }
 }
 
 async function collectFromTab(tabId) {
@@ -198,19 +332,21 @@ async function performSync(trigger = "scheduled", expectedConfig) {
 
   const bridgeUrl = normalizedBridgeUrl(config.bridgeUrl);
   await setStatus("syncing", "SPOTJOBSの完了履歴を確認しています…", { trigger });
-  const tab = await findSpotJobsTab();
-  if (!tab?.id) {
-    const message = "SPOTJOBSのジョブ履歴をEdgeで開いてください。";
-    const status = await setStatus("page-required", message);
-    if (trigger === "manual") await maybeNotifyAuthRequired(message);
-    return status;
-  }
-
   try {
+    const prepared = await prepareDedicatedTab();
+    if (!prepared) {
+      const message = "同期用タブを開けませんでした。Edgeのウィンドウを開いてください。";
+      const status = await setStatus("page-required", message);
+      if (trigger === "manual") await maybeNotifyAuthRequired(message);
+      return status;
+    }
+
     // Always refresh the latest window and merge it with the encrypted remote
     // snapshot. A device-local "known ID" shortcut can lose records after a
     // remote expiry/delete, so correctness takes priority over a few requests.
-    const collected = await collectFromTab(tab.id);
+    // Only collection failures may reload the sync tab; bridge errors below
+    // never cause additional SPOTJOBS access.
+    const collected = await collectWithRecovery(prepared);
     const incoming = normalizeSpotJobsItems(collected.records);
     const secrets = await deriveSyncSecrets(config.syncCode);
     const existing = await fetchRemoteSnapshot(bridgeUrl, secrets);
@@ -234,7 +370,7 @@ async function performSync(trigger = "scheduled", expectedConfig) {
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : String(error);
     if (rawMessage.includes("SPOTLOG_AUTH_REQUIRED")) {
-      const message = "SPOTJOBSへ再ログインし、ジョブ履歴を開いてください。";
+      const message = "EdgeでSPOTJOBSへ再ログインしてください。";
       const status = await setStatus("auth-required", message, { trigger });
       await maybeNotifyAuthRequired(message);
       return status;
@@ -242,7 +378,7 @@ async function performSync(trigger = "scheduled", expectedConfig) {
     const message = rawMessage.includes("SPOTLOG_API_FORMAT_CHANGED")
       ? "SPOTJOBSの画面仕様が変わった可能性があります。拡張機能を更新してください。"
       : rawMessage.includes("SPOTLOG_API_CAPTURE_TIMEOUT")
-        ? "SPOTJOBSの完了履歴を読み込めませんでした。履歴画面を開いたまま再実行してください。"
+        ? "SPOTJOBSの完了履歴を読み込めませんでした。しばらくしてから再実行してください。"
       : rawMessage.replace(/^Error:\s*/u, "");
     return setStatus("error", message, { trigger });
   }
@@ -296,12 +432,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (
-    changeInfo.status === "complete" &&
-    tab.url?.startsWith("https://app.spot.jobs/user-job-list")
-  ) {
-    void runSync("page-opened");
-  }
+  if (changeInfo.status !== "complete" || !isSpotJobsListUrl(tab?.url)) return;
+  // Loads of the extension-owned sync tab are driven by the sync run itself.
+  if (tabId === dedicatedTabId) return;
+  void (async () => {
+    const stored = await readDedicatedTab().catch(() => null);
+    if (stored?.tabId === tabId) return;
+    await runSync("page-opened");
+  })();
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -352,6 +490,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       await chrome.alarms.clear(ALARM_NAME);
       await chrome.alarms.clear(REFRESH_ALARM_NAME);
       await chrome.storage.local.remove("remoteRefreshResult");
+      // Forget (but never close) the sync tab; it is the user's to keep or close.
+      await forgetDedicatedTab();
       sendResponse({ ok: true });
     })();
     return true;

@@ -184,6 +184,55 @@ test("re-queries the completed tab after switching replaces the official button 
   assert.equal(page.fetch, originalFetch);
 });
 
+test("waits for the official buttons to render after a fresh page load", async () => {
+  let activeButtons = [];
+  const originalFetch = async () => jsonResponse([{ rounderWorkId: "late-render" }]);
+  const finished = {
+    textContent: "完了",
+    click() {
+      void globalThis.window.fetch(
+        "https://prod.spotapi.jp/api/v1/rounder/work?taskStatus=FINISHED&pageNum=1&pageSize=10",
+        { headers: { Authorization: "Bearer test-only-token" } }
+      );
+    }
+  };
+  const timers = [];
+  const page = {
+    fetch: originalFetch,
+    setTimeout: (callback, ms) => { timers.push(ms); return setTimeout(callback, 0); },
+    clearTimeout,
+    document: { querySelectorAll: () => activeButtons }
+  };
+  globalThis.window = page;
+  setTimeout(() => { activeButtons = [{ textContent: "未完了", click() {} }, finished]; }, 20);
+
+  const result = await collectSpotJobsFromPage({ pageSize: 10, maxRecords: 50, captureTimeoutMs: 500 });
+
+  assert.equal(result.error, undefined);
+  assert.deepEqual(result.records.map((record) => record.rounderWorkId), ["late-render"]);
+  assert.ok(timers.includes(250), "polls with a 250 ms page timer");
+  assert.equal(page.fetch, originalFetch);
+});
+
+test("reports a changed layout when the buttons never render within the bounded wait", async () => {
+  const originalFetch = async () => jsonResponse([]);
+  const page = {
+    fetch: originalFetch,
+    setTimeout,
+    clearTimeout,
+    document: { querySelectorAll: () => [] }
+  };
+  globalThis.window = page;
+  const startedAt = Date.now();
+
+  const result = await collectSpotJobsFromPage({ buttonWaitMs: 600 });
+
+  assert.equal(result.error, "SPOTLOG_API_FORMAT_CHANGED");
+  assert.ok(Date.now() - startedAt >= 500);
+  assert.ok(Date.now() - startedAt < 3_000);
+  assert.equal(page.fetch, originalFetch);
+});
+
 test("reports a changed layout if the completed tab disappears during the transition", async () => {
   let activeButtons;
   const originalFetch = async () => jsonResponse([]);

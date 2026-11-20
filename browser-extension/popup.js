@@ -19,7 +19,7 @@ const LABELS = {
   success: "同期済み",
   syncing: "同期中",
   "auth-required": "再ログインが必要",
-  "page-required": "履歴画面を開いてください",
+  "page-required": "同期用タブを開けません",
   error: "同期エラー",
   "not-configured": "未接続"
 };

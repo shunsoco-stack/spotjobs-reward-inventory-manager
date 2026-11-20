@@ -16,6 +16,10 @@ export async function collectSpotJobsFromPage(options) {
     Math.max(Number(options?.captureTimeoutMs) || 12_000, 500),
     20_000
   );
+  const buttonWaitMs = Math.min(
+    Math.max(Number(options?.buttonWaitMs ?? 10_000) || 0, 0),
+    10_000
+  );
   const collectedAt = () => new Date().toISOString();
   const originalFetch = page.fetch;
 
@@ -129,6 +133,13 @@ export async function collectSpotJobsFromPage(options) {
     const buttonNamed = (label) => [...page.document.querySelectorAll("button")].find(
       (button) => String(button.textContent || "").replace(/\s+/gu, "") === label
     );
+    // A freshly opened/reloaded sync tab may not have rendered the official
+    // React tab buttons yet. Poll briefly (bounded) before reporting a layout
+    // change.
+    const buttonDeadline = Date.now() + buttonWaitMs;
+    while (!buttonNamed("完了") && Date.now() < buttonDeadline) {
+      await new Promise((resolve) => page.setTimeout(resolve, 250));
+    }
     const unfinishedButton = buttonNamed("未完了");
     if (!buttonNamed("完了")) throw new Error("SPOTLOG_API_FORMAT_CHANGED");
 

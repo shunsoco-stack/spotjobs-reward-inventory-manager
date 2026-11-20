@@ -13,10 +13,18 @@ export interface SpotJobsSyncRecord {
   earlyRefill: boolean | null;
 }
 
+/** Explicit allowlist of collector builds whose v1 snapshot shape has been verified. */
+const SUPPORTED_SOURCE_VERSIONS = ["spotlog-edge/0.1.0", "spotlog-edge/0.2.0", "spotlog-edge/0.2.1", "spotlog-edge/0.3.0"] as const;
+export type SupportedSourceVersion = typeof SUPPORTED_SOURCE_VERSIONS[number];
+
+function isSupportedSourceVersion(value: unknown): value is SupportedSourceVersion {
+  return (SUPPORTED_SOURCE_VERSIONS as readonly unknown[]).includes(value);
+}
+
 export interface SpotJobsSyncSnapshot {
   version: 1;
   collectedAt: string;
-  sourceVersion: "spotlog-edge/0.1.0" | "spotlog-edge/0.2.0" | "spotlog-edge/0.2.1";
+  sourceVersion: SupportedSourceVersion;
   records: SpotJobsSyncRecord[];
 }
 
@@ -46,7 +54,7 @@ export function validateSpotJobsSnapshot(value: unknown): SpotJobsSyncSnapshot {
   if (snapshot.version !== 1) throw new Error("対応していない同期履歴です。");
   const collectedAt = timestamp(snapshot.collectedAt, "取得日時");
   const sourceVersion = snapshot.sourceVersion;
-  if (sourceVersion !== "spotlog-edge/0.1.0" && sourceVersion !== "spotlog-edge/0.2.0" && sourceVersion !== "spotlog-edge/0.2.1") throw new Error("対応していない収集ツールの同期履歴です。");
+  if (!isSupportedSourceVersion(sourceVersion)) throw new Error("対応していない収集ツールの同期履歴です。");
   if (!Array.isArray(snapshot.records) || snapshot.records.length > MAX_RECORDS) throw new Error(`同期履歴は${MAX_RECORDS.toLocaleString("ja-JP")}件以内にしてください。`);
   const externalIds = new Set<string>();
   const records = snapshot.records.map((entry, index): SpotJobsSyncRecord => {

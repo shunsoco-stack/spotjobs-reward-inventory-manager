@@ -195,7 +195,6 @@ test("blocks the request when the serialized constants are tampered with", async
   ];
   for (const [from, to] of tamperings) {
     assert.ok(source.includes(from), `fixture must match: ${from}`);
-    // eslint-disable-next-line no-new-func
     const tampered = new Function(`return (${source.replace(from, to)});`)();
     const { calls, indexedDB } = installPage();
     const result = await tampered();
@@ -313,7 +312,6 @@ test("an expired localStorage token is stale, not sent", async () => {
 });
 
 test("the serialized function is self-contained", async () => {
-  // eslint-disable-next-line no-new-func
   const serialized = new Function(`return (${collectSpotJobsFromPage.toString()});`)();
   const { calls } = installPage();
   const result = await serialized();

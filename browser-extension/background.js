@@ -15,12 +15,33 @@ const REFRESH_ALARM_NAME = "spotlog-remote-refresh";
 const DEFAULT_BRIDGE_URL = "https://spotjobs-reward-inventory-sync.vercel.app";
 const DEFAULT_INTERVAL = 30;
 const SPOTJOBS_PAGE_URL = "https://app.spot.jobs/user-job-list";
-const SOURCE_VERSION = "spotlog-edge/0.2.2";
+const SOURCE_VERSION = "spotlog-edge/0.3.0";
 const DEDICATED_TAB_KEY = "dedicatedSyncTab";
-const TAB_MAX_AGE_MS = 90 * 60 * 1000;
+const DEDICATED_TAB_SESSION_KEY = "dedicatedSyncTabSession";
+const LAST_REQUEST_KEY = "lastSpotJobsRequestAt";
+const MIN_REQUEST_INTERVAL_MS = 60_000;
 const TAB_LOAD_TIMEOUT_MS = 30_000;
 let runningSync = null;
-let dedicatedTabId = null;
+
+// Fixed, user-facing messages. Raw collector or browser error text is never
+// shown, stored, or sent (it could otherwise carry request details).
+const MESSAGES = {
+  authRequired: "SPOTJOBSのログインが切れています。PCのEdgeでSPOTJOBSにログインし直してください。",
+  tokenStale: "SPOTJOBSのログイン情報を更新できませんでした。PCのEdgeでSPOTJOBSを開いたままにして、しばらくしてから再試行してください。",
+  blocked: "安全のため、SPOTJOBSへの通信を中止しました。拡張機能を更新してください。",
+  formatChanged: "SPOTJOBSの仕様が変わった可能性があります。拡張機能を更新してください。",
+  network: "SPOTJOBSに接続できませんでした。通信状態を確認して、しばらくしてから再試行してください。",
+  apiError: (status) => `SPOTJOBSの完了履歴を取得できませんでした（${status}）。しばらくしてから再試行してください。`,
+  tabUnavailable: "同期用タブから履歴を読み取れませんでした。しばらくしてから再試行してください。",
+  tabNotLoaded: "同期用タブの読み込みが完了しませんでした。しばらくしてから再試行してください。"
+};
+
+class CollectionError extends Error {
+  constructor(code) {
+    super(code);
+    this.code = code;
+  }
+}
 
 async function getState() {
   const stored = await chrome.storage.local.get([
@@ -102,38 +123,67 @@ function isSpotJobsListUrl(url) {
   return typeof url === "string" && url.startsWith(SPOTJOBS_PAGE_URL);
 }
 
+// Tab ids are only unique within one browser session. chrome.storage.session
+// is cleared when the browser exits, so a marker there proves the stored id
+// was issued in the current session and cannot belong to a user's tab.
+function sessionArea() {
+  const area = chrome.storage?.session;
+  return area && typeof area.get === "function" ? area : null;
+}
+
+/** Returns true/false for a session marker match, or null if unavailable. */
+async function sessionMarkerMatches(tabId) {
+  const area = sessionArea();
+  if (!area) return null;
+  try {
+    const stored = await area.get(DEDICATED_TAB_SESSION_KEY);
+    return stored?.[DEDICATED_TAB_SESSION_KEY]?.tabId === tabId;
+  } catch {
+    return null;
+  }
+}
+
 async function readDedicatedTab() {
   const stored = await chrome.storage.local.get(DEDICATED_TAB_KEY);
   const record = stored?.[DEDICATED_TAB_KEY];
-  return record && Number.isInteger(record.tabId) ? record : null;
+  if (!record || !Number.isInteger(record.tabId)) return null;
+  // Without session storage, onStartup forgetting the record is the guard.
+  if ((await sessionMarkerMatches(record.tabId)) === false) return null;
+  return record;
 }
 
 async function forgetDedicatedTab() {
-  dedicatedTabId = null;
   await chrome.storage.local.remove(DEDICATED_TAB_KEY);
+  try {
+    await sessionArea()?.remove(DEDICATED_TAB_SESSION_KEY);
+  } catch {
+    // The session marker is cleared with the browser session anyway.
+  }
 }
 
 async function rememberDedicatedTab(tabId, windowId) {
-  dedicatedTabId = tabId;
-  const record = { tabId, loadedAt: Date.now() };
+  const record = { tabId, openedAt: Date.now() };
   if (Number.isInteger(windowId)) record.windowId = windowId;
   await chrome.storage.local.set({ [DEDICATED_TAB_KEY]: record });
+  try {
+    await sessionArea()?.set({ [DEDICATED_TAB_SESSION_KEY]: { tabId } });
+  } catch {
+    // Without a marker the tab is simply not reused; a new one is opened.
+  }
 }
 
 /**
- * Resolves true once the tab reports status "complete" (false on timeout or a
- * closed tab). Register before triggering a navigation so its completion event
- * cannot be missed. With acceptCurrent, an already-complete tab also counts.
+ * Resolves true once a freshly opened tab reports status "complete" (false on
+ * timeout or a closed tab). An already-complete tab also counts.
  */
-function watchTabLoad(tabId, { acceptCurrent = false } = {}) {
-  let finish;
-  const promise = new Promise((resolve) => {
+function watchTabLoad(tabId) {
+  return new Promise((resolve) => {
     let done = false;
     let timer;
     const listener = (updatedId, changeInfo) => {
       if (updatedId === tabId && changeInfo?.status === "complete") finish(true);
     };
-    finish = (loaded) => {
+    const finish = (loaded) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
@@ -142,26 +192,11 @@ function watchTabLoad(tabId, { acceptCurrent = false } = {}) {
     };
     timer = setTimeout(() => finish(false), TAB_LOAD_TIMEOUT_MS);
     chrome.tabs.onUpdated.addListener(listener);
-    if (acceptCurrent) {
-      chrome.tabs.get(tabId).then(
-        (tab) => { if (tab?.status === "complete") finish(true); },
-        () => finish(false)
-      );
-    }
+    chrome.tabs.get(tabId).then(
+      (tab) => { if (tab?.status === "complete") finish(true); },
+      () => finish(false)
+    );
   });
-  return { promise, cancel: () => finish(false) };
-}
-
-async function reloadDedicatedTab(tabId, windowId) {
-  const load = watchTabLoad(tabId);
-  try {
-    await chrome.tabs.reload(tabId);
-  } catch (error) {
-    load.cancel();
-    throw error;
-  }
-  await rememberDedicatedTab(tabId, windowId);
-  await load.promise;
 }
 
 async function openDedicatedTab() {
@@ -186,15 +221,16 @@ async function openDedicatedTab() {
   try {
     await chrome.tabs.update(tab.id, { autoDiscardable: false });
   } catch {
-    // Best effort only; a discarded tab is reloaded before the next collection.
+    // Best effort only; the extension never reloads the tab.
   }
-  await watchTabLoad(tab.id, { acceptCurrent: true }).promise;
-  return { tabId: tab.id, windowId: tab.windowId, refreshed: true };
+  const loaded = await watchTabLoad(tab.id);
+  return { tabId: tab.id, windowId: tab.windowId, loaded };
 }
 
 /**
- * Returns the extension-owned sync tab, opening or reloading it at most once.
- * Tabs the user opened are never selected, reloaded, or otherwise touched.
+ * Returns the extension-owned sync tab, opening it only when it is missing.
+ * The extension never reloads any tab, and tabs the user opened are never
+ * selected, queried, or otherwise touched.
  */
 async function prepareDedicatedTab() {
   const stored = await readDedicatedTab();
@@ -206,14 +242,7 @@ async function prepareDedicatedTab() {
       tab = null;
     }
     if (tab && isSpotJobsListUrl(tab.url || tab.pendingUrl)) {
-      dedicatedTabId = tab.id;
-      const age = Date.now() - Number(stored.loadedAt || 0);
-      const stale = !(age >= 0 && age < TAB_MAX_AGE_MS);
-      if (stale || tab.discarded || tab.status !== "complete") {
-        await reloadDedicatedTab(tab.id, tab.windowId ?? stored.windowId);
-        return { tabId: tab.id, windowId: tab.windowId, refreshed: true };
-      }
-      return { tabId: tab.id, windowId: tab.windowId, refreshed: false };
+      return { tabId: tab.id, windowId: tab.windowId, loaded: true };
     }
     // Closed, or navigated away by the user: forget it without touching it.
     await forgetDedicatedTab();
@@ -221,31 +250,46 @@ async function prepareDedicatedTab() {
   return openDedicatedTab();
 }
 
-async function collectWithRecovery(prepared) {
-  try {
-    return await collectFromTab(prepared.tabId);
-  } catch (error) {
-    // A freshly opened/reloaded tab is not retried: at most one open-or-reload
-    // and two collection attempts per sync run.
-    if (prepared.refreshed) throw error;
-    await reloadDedicatedTab(prepared.tabId, prepared.windowId);
-    return collectFromTab(prepared.tabId);
-  }
+/** Returns true when a SPOTJOBS request was already made within the interval. */
+async function withinMinimumInterval() {
+  const stored = await chrome.storage.local.get(LAST_REQUEST_KEY);
+  const last = Number(stored?.[LAST_REQUEST_KEY]);
+  const now = Date.now();
+  // A stored time in the future (clock changed) never blocks; it is overwritten.
+  return Number.isFinite(last) && last <= now && now - last < MIN_REQUEST_INTERVAL_MS;
 }
 
+/** Executes the page collector once. Throws CollectionError with a fixed code. */
 async function collectFromTab(tabId) {
-  const results = await chrome.scripting.executeScript({
-    target: { tabId },
-    world: "MAIN",
-    func: collectSpotJobsFromPage,
-    args: [{ pageSize: 50, maxRecords: 500 }]
-  });
+  await chrome.storage.local.set({ [LAST_REQUEST_KEY]: Date.now() });
+  let results;
+  try {
+    results = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: collectSpotJobsFromPage
+    });
+  } catch {
+    throw new CollectionError("SPOTLOG_TAB_UNAVAILABLE");
+  }
   const result = results?.[0]?.result;
-  if (result?.error) throw new Error(result.error);
+  if (result?.error) throw new CollectionError(String(result.error));
   if (!result || !Array.isArray(result.records)) {
-    throw new Error("SPOTJOBSの履歴を読み取れませんでした。");
+    throw new CollectionError("SPOTLOG_API_FORMAT_CHANGED");
   }
   return result;
+}
+
+function collectionFailure(code) {
+  if (code === "SPOTLOG_AUTH_REQUIRED") return { state: "auth-required", message: MESSAGES.authRequired };
+  if (code === "SPOTLOG_TOKEN_STALE") return { state: "error", message: MESSAGES.tokenStale };
+  if (code === "SPOTLOG_BLOCKED_REQUEST") return { state: "error", message: MESSAGES.blocked };
+  if (code === "SPOTLOG_API_FORMAT_CHANGED") return { state: "error", message: MESSAGES.formatChanged };
+  if (code === "SPOTLOG_API_ERROR:NETWORK") return { state: "error", message: MESSAGES.network };
+  const apiStatus = /^SPOTLOG_API_ERROR:(\d{3})$/u.exec(code)?.[1];
+  if (apiStatus) return { state: "error", message: MESSAGES.apiError(apiStatus) };
+  if (code === "SPOTLOG_TAB_NOT_LOADED") return { state: "error", message: MESSAGES.tabNotLoaded };
+  return { state: "error", message: MESSAGES.tabUnavailable };
 }
 
 async function fetchRemoteSnapshot(bridgeUrl, secrets) {
@@ -320,7 +364,7 @@ async function maybeNotifyAuthRequired(message) {
 }
 
 async function performSync(trigger = "scheduled", expectedConfig) {
-  const { config } = await getState();
+  const { config, syncStatus: previousStatus } = await getState();
   // A phone request is tied to the channel it arrived on. A configuration
   // change during an awaited read must never upload to a new channel and then
   // acknowledge the old request as successful.
@@ -331,7 +375,12 @@ async function performSync(trigger = "scheduled", expectedConfig) {
   }
 
   const bridgeUrl = normalizedBridgeUrl(config.bridgeUrl);
+  // At most one SPOTJOBS request per minute, whatever the trigger. A sync
+  // started too soon reports the previous result unchanged and uploads nothing.
+  if (await withinMinimumInterval()) return previousStatus;
+
   await setStatus("syncing", "SPOTJOBSの完了履歴を確認しています…", { trigger });
+  let collected;
   try {
     const prepared = await prepareDedicatedTab();
     if (!prepared) {
@@ -340,13 +389,19 @@ async function performSync(trigger = "scheduled", expectedConfig) {
       if (trigger === "manual") await maybeNotifyAuthRequired(message);
       return status;
     }
+    if (!prepared.loaded) throw new CollectionError("SPOTLOG_TAB_NOT_LOADED");
+    // Exactly one collection per run: failures are reported, never retried.
+    collected = await collectFromTab(prepared.tabId);
+  } catch (error) {
+    const failure = collectionFailure(error instanceof CollectionError ? error.code : "");
+    const status = await setStatus(failure.state, failure.message, { trigger });
+    if (failure.state === "auth-required") await maybeNotifyAuthRequired(failure.message);
+    return status;
+  }
 
-    // Always refresh the latest window and merge it with the encrypted remote
-    // snapshot. A device-local "known ID" shortcut can lose records after a
-    // remote expiry/delete, so correctness takes priority over a few requests.
-    // Only collection failures may reload the sync tab; bridge errors below
-    // never cause additional SPOTJOBS access.
-    const collected = await collectWithRecovery(prepared);
+  try {
+    // Merge the latest window with the encrypted remote snapshot. Bridge
+    // errors below never cause additional SPOTJOBS access.
     const incoming = normalizeSpotJobsItems(collected.records);
     const secrets = await deriveSyncSecrets(config.syncCode);
     const existing = await fetchRemoteSnapshot(bridgeUrl, secrets);
@@ -368,19 +423,9 @@ async function performSync(trigger = "scheduled", expectedConfig) {
       }
     );
   } catch (error) {
+    // Bridge/encryption errors carry only this extension's own messages.
     const rawMessage = error instanceof Error ? error.message : String(error);
-    if (rawMessage.includes("SPOTLOG_AUTH_REQUIRED")) {
-      const message = "EdgeでSPOTJOBSへ再ログインしてください。";
-      const status = await setStatus("auth-required", message, { trigger });
-      await maybeNotifyAuthRequired(message);
-      return status;
-    }
-    const message = rawMessage.includes("SPOTLOG_API_FORMAT_CHANGED")
-      ? "SPOTJOBSの画面仕様が変わった可能性があります。拡張機能を更新してください。"
-      : rawMessage.includes("SPOTLOG_API_CAPTURE_TIMEOUT")
-        ? "SPOTJOBSの完了履歴を読み込めませんでした。しばらくしてから再実行してください。"
-      : rawMessage.replace(/^Error:\s*/u, "");
-    return setStatus("error", message, { trigger });
+    return setStatus("error", rawMessage.replace(/^Error:\s*/u, ""), { trigger });
   }
 }
 
@@ -403,7 +448,8 @@ const pollRemoteRefresh = createRemoteRefreshPoller({
   storage: chrome.storage.local,
   synchronize: (_command, requestedConfig) => {
     // A sync already in progress may have captured history before the phone
-    // requested it. Wait, then collect again instead of reporting old data.
+    // requested it. Wait, then collect again; within the minimum request
+    // interval the just-finished result is reported instead.
     return runSync("remote", requestedConfig);
   }
 });
@@ -420,26 +466,19 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  // Tab ids from the previous browser session may now belong to user tabs:
+  // forget the record (without touching any tab) before anything else.
+  await forgetDedicatedTab();
   const { config } = await getState();
   await scheduleAlarms(config, true);
-  const result = await pollRemoteRefresh();
-  if (config.enabled && !result.handled) void runSync("startup");
+  // No immediate collection at startup: SPOTJOBS is only accessed by the
+  // scheduled alarm, a phone request, or the popup.
+  await pollRemoteRefresh();
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) return runSync("scheduled");
   if (alarm.name === REFRESH_ALARM_NAME) return pollRemoteRefresh();
-});
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status !== "complete" || !isSpotJobsListUrl(tab?.url)) return;
-  // Loads of the extension-owned sync tab are driven by the sync run itself.
-  if (tabId === dedicatedTabId) return;
-  void (async () => {
-    const stored = await readDedicatedTab().catch(() => null);
-    if (stored?.tabId === tabId) return;
-    await runSync("page-opened");
-  })();
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/ios-native.yml"
       - "assets/**"
+      - "ios/**"
       - "capacitor.config.ts"
       - "e2e/**"
       - "eslint.config.mjs"
@@ -23,6 +24,7 @@ on:
     paths:
       - ".github/workflows/ios-native.yml"
       - "assets/**"
+      - "ios/**"
       - "capacitor.config.ts"
       - "e2e/**"
       - "eslint.config.mjs"
@@ -63,7 +65,7 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - name: Run the same local release preflight used on the release Mac
-        run: npm run ios:release-preflight -- --ci-ephemeral
+        run: npm run ios:release-preflight
       - name: Publish the preflight evidence
         if: always() && hashFiles('.artifacts/ios-release-preflight.md') != ''
         run: cat .artifacts/ios-release-preflight.md >> "$GITHUB_STEP_SUMMARY"

@@ -17,7 +17,7 @@
 - 技術：Next.js 16.4.2 / React 19 / TypeScript / static export / IndexedDB / Tesseract.js 7 / PWA / Capacitor 8.5.3
 - 現行ビルド：`npm run build` で `out/` を生成する。`next.config.ts` は `output: 'export'`。
 - 準備済み：`capacitor.config.ts`、Capacitor packageとnpm script、native runtime adapter、native時のService Worker停止、外部ブラウザ、共有シート経由のJSON/CSV書出し、custom scheme対応OCR URL、safe area、1024px icon、`/privacy`、`/support`、申請metadata草案。
-- 未生成：`ios/`。Macで`docs/IOS_BUILD.md`を読み、Bundle IDを確認してから生成する。
+- 生成・コミット済み：`ios/`。Macで`docs/IOS_BUILD.md`を読み、既存projectを`npm run ios:release-preflight`で同期・検証する。gitignore対象のWeb bundleとnative設定は同期時に生成する。
 - アプリは個人制作の非公式管理ツールで、SPOTJOBS、ChargeSPOT、株式会社INFORICHの公式サービスではない。公式ロゴや公式素材は使わない。
 
 ## 最初に必ず行うこと

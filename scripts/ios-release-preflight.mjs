@@ -47,7 +47,7 @@ if (planOnly) {
   console.log(`${steps.length + 1}. Lint source and generated Privacy Manifests with plutil`);
   console.log(`${steps.length + 2}. Build an unsigned Debug app for a generic iOS Simulator in a temporary DerivedData directory`);
   console.log(`${steps.length + 3}. Verify App.app contains PrivacyInfo.xcprivacy and write ${display(reportPath)}`);
-  if (!hadNativeProject) console.log('\nA fresh local project also requires --identity-confirmed after the final app name and Bundle ID have been approved. GitHub Actions uses --ci-ephemeral on its disposable checkout.');
+  if (!hadNativeProject) console.log('\nA fresh local project also requires --identity-confirmed after the final app name and Bundle ID have been approved. --ci-ephemeral is only available for CI=true on a disposable checkout without ios/.');
   process.exit(0);
 }
 

@@ -20,8 +20,8 @@
 
 ## Macでbinary生成後に確認する項目
 
-- [ ] 名称・商標の判断後、`origin/main`の最新commitから`ios/`を生成し、最終Bundle IDとSigning Teamを確定する。
-- [ ] 初回は`npm run ios:release-preflight -- --identity-confirmed`、以後は`npm run ios:release-preflight`を成功させ、`.artifacts/ios-release-preflight.md`でWeb品質、local E2E、native audit、SPM解決、署名なしSimulator build、App.app内Privacy Manifestの証跡を確認する。
+- [ ] 名称・商標の判断後、`origin/main`の最新commitにある既存`ios/`のidentityを確認し、最終Bundle IDとSigning Teamを確定する。
+- [ ] 既存`ios/`で`npm run ios:release-preflight`を成功させ、`.artifacts/ios-release-preflight.md`でWeb品質、local E2E、native audit、SPM解決、署名なしSimulator build、App.app内Privacy Manifestの証跡を確認する。`--identity-confirmed`は`ios/`がない初回生成時だけ使う。
 - [ ] ホーム画面表示名を最終App Store名と揃え、Version `1.0.0`、Build `1`から開始する。再upload時はBuildだけを増やす。
 - [ ] v1をiPhone専用にするかiPadにも対応するかをユーザーと確定し、Xcodeの対象device familyへ反映する。iPad対応時はiPad実機QAと提出画像も追加する。
 - [ ] 独自モチーフのLaunch Screenを設定し、Light／Darkの起動時に不自然な白／黒flashや公式サービスと誤認させる表現がないことを確認する。

@@ -32,7 +32,7 @@ describe("performance sharing", () => {
     const text = buildPerformanceShareText({ scope: "today", summary, today });
 
     expect(text).toBe([
-      "今日のSPOTJOBS成績（2026/9/17）",
+      "今日のワークストック成績（2026/9/17）",
       "補充 54本・取出 60本",
       "早期補充 54本",
       "見込み報酬 4,050円",
@@ -44,7 +44,7 @@ describe("performance sharing", () => {
 
   it("formats the seven-day aggregate and next tier", () => {
     expect(buildPerformanceShareText({ scope: "week", summary, today })).toBe([
-      "1週間のSPOTJOBS成績（2026/9/14〜9/20）",
+      "1週間のワークストック成績（2026/9/14〜9/20）",
       "補充 54本・取出 60本",
       "早期補充 54本",
       "見込み報酬 4,050円",
@@ -55,7 +55,7 @@ describe("performance sharing", () => {
 
   it("marks demo results and handles a day outside the supplied week safely", () => {
     const text = buildPerformanceShareText({ scope: "today", summary, today: "2026-09-21", demo: true });
-    expect(text).toContain("【デモ】今日のSPOTJOBS成績");
+    expect(text).toContain("【デモ】今日のワークストック成績");
     expect(text).toContain("補充 0本・取出 0本");
     expect(text).toContain("見込み報酬 0円");
   });

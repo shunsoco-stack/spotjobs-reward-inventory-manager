@@ -39,7 +39,7 @@ interface InstallEvent extends Event { prompt: () => Promise<void>; userChoice: 
 const titles: Record<View, string> = { home: 'ホーム', refill: '補充入力', pickup: '取出入力', history: '履歴', settings: '設定', inventory: '在庫・棚卸', weekly: '週次報酬', simulator: '報酬シミュレーター' };
 const nav = [{ id: 'home', label: 'ホーム', icon: House }, { id: 'refill', label: '補充', icon: ArrowDownToLine }, { id: 'pickup', label: '取出', icon: ArrowUpFromLine }, { id: 'history', label: '履歴', icon: History }, { id: 'settings', label: '設定', icon: Settings2 }] as const;
 
-function Brand() { return <div className="brand"><span className="app-mark" aria-hidden="true"><Image src="/icon.svg" width={42} height={42} alt="" priority/></span><span>SPOTJOBS<small>報酬・在庫管理アプリ</small></span></div>; }
+function Brand() { return <div className="brand"><span className="app-mark" aria-hidden="true"><Image src="/icon.svg" width={42} height={42} alt="" priority/></span><span>ワークストック<small>報酬と在庫</small></span></div>; }
 
 export default function SpotlogApp() {
   const [personal, setPersonal] = useState<AppData>(emptyData);
@@ -353,7 +353,7 @@ export default function SpotlogApp() {
         content: csv ? exportCsv(data.records, data.settings) : serializeBackup(data),
         filename: `spotjobs-${csv ? 'records' : 'backup'}-${today}${demo ? '-demo' : ''}.${csv ? 'csv' : 'json'}`,
         mimeType: csv ? 'text/csv;charset=utf-8' : 'application/json',
-        title: csv ? 'SPOTJOBS記録CSV' : 'SPOTJOBSバックアップ',
+        title: csv ? 'ワークストック記録CSV' : 'ワークストックバックアップ',
         dialogTitle: csv ? 'CSVの保存先を選択' : 'バックアップの保存先を選択',
       });
       if (result.method !== 'cancelled') setNotice({ text: result.method === 'native-share' ? 'ファイルを作成しました。選択した保存先を確認してください。' : 'ファイルを作成しました。ダウンロード先を確認してください。' });
@@ -375,7 +375,7 @@ export default function SpotlogApp() {
   if (!ready) return <div className="loading-screen"><Brand/><p>記録を開いています…</p></div>;
   return <div className="app-shell">
     <aside className="desktop-sidebar"><Brand/><p className="sidebar-caption">日々の活動を、手のひらで。</p><nav aria-label="メインナビゲーション">{nav.map(n => <button key={n.id} aria-current={view === n.id ? 'page' : undefined} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><n.icon size={21}/>{n.label}</button>)}<div className="nav-divider"/>{[{ id: 'inventory' as const, label: '在庫・棚卸', icon: Battery }, { id: 'weekly' as const, label: '週次報酬', icon: History }, { id: 'simulator' as const, label: 'シミュレーター', icon: TrendingUp }].map(n => <button key={n.id} className={`${view === n.id ? 'active' : ''} ${n.id}`} onClick={() => changeView(n.id)}><n.icon size={21}/>{n.label}</button>)}</nav><div className="sidebar-bottom"><ShieldCheck size={23}/><strong>記録はこの端末に。</strong><p>ログイン不要。<br/>電波がなくても、いつも通り。</p><span className="pill">個人制作・非公式ツール</span></div></aside>
-    <div className="main-shell"><header className="app-header"><div className="mobile-brand"><Brand/></div><span className="desktop-header">SPOTJOBSワーカーのための管理ツール</span><div className="header-actions"><span className={`connection-status ${!online ? 'offline' : ''}`}>{online ? <ShieldCheck size={16}/> : <WifiOff size={16}/>}<span>{!online ? 'オフライン' : syncing ? '同期中' : saving ? '保存中' : '端末に保存'}</span></span><a className="official-service-link" href="https://app.spot.jobs/" target="_blank" rel="noopener noreferrer external" aria-label="SPOTJOBSを開く（外部ブラウザ・別タブ）" title="SPOTJOBSを外部ブラウザで開く" onClick={openOfficialService}><span>SPOTJOBSを開く</span><ExternalLink size={16} aria-hidden="true"/></a></div></header>
+    <div className="main-shell"><header className="app-header"><div className="mobile-brand"><Brand/></div><span className="desktop-header">スポットワークの報酬と在庫を、手元で。</span><div className="header-actions"><span className={`connection-status ${!online ? 'offline' : ''}`}>{online ? <ShieldCheck size={16}/> : <WifiOff size={16}/>}<span>{!online ? 'オフライン' : syncing ? '同期中' : saving ? '保存中' : '端末に保存'}</span></span><a className="official-service-link" href="https://app.spot.jobs/" target="_blank" rel="noopener noreferrer external" aria-label="SPOTJOBSを開く（外部ブラウザ・別タブ）" title="SPOTJOBSを外部ブラウザで開く" onClick={openOfficialService}><span>SPOTJOBSを開く</span><ExternalLink size={16} aria-hidden="true"/></a></div></header>
       <main id="main-content">
         {demo && <div className="demo-banner"><div><strong>デモデータでお試し中</strong><span>自分の記録には影響しません</span></div><button onClick={() => switchDemo(false)}>終了<X size={17}/></button></div>}
         {storageError && <div className="warning" role="alert"><div><strong>保存データを開けませんでした</strong><p>{storageError}</p><button className="text-button" onClick={() => changeView('settings')}>設定からバックアップを復元</button></div></div>}

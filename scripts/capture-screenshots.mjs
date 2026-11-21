@@ -54,7 +54,7 @@ async function demoPage(viewport) {
   if (new URL(page.url()).origin !== target.origin) {
     throw new Error('The deployment redirected away from the application. Verify anonymous public access before capturing.');
   }
-  await expect(page).toHaveTitle('SPOTJOBS報酬・在庫管理アプリ');
+  await expect(page).toHaveTitle('ワークストック｜報酬と在庫');
   await page.getByRole('button', { name: 'デモデータで試す', exact: true }).click();
   await expect(page.locator('.demo-banner')).toContainText('デモデータでお試し中');
   const heroValue = page.locator('.hero-amount .kinetic-readable');

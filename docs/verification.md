@@ -2,7 +2,7 @@
 
 最終追記日：2026年11月19日（日本時間）。以下の過去の確認記録は、それぞれ記載日の実装・検証範囲です。
 
-- アプリ名：**SPOTJOBS報酬・在庫管理アプリ**
+- アプリ名：**ワークストック｜報酬と在庫**（ホーム画面：**ワークストック**）
 - Vercel Production：https://spotjobs-reward-inventory-manager.vercel.app
 - GitHub Public：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - 個人制作の非公式管理ツール。公式サービスとの関係はありません。

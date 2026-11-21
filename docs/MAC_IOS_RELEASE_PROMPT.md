@@ -9,7 +9,7 @@
 
 ## 対象
 
-- アプリ名：SPOTJOBS報酬・在庫管理アプリ
+- アプリ名：ワークストック｜報酬と在庫（ホーム画面の表示名：ワークストック）
 - GitHub：https://github.com/shunsoco-stack/spotjobs-reward-inventory-manager
 - Web本番：https://spotjobs-reward-inventory-manager.vercel.app/
 - 現行ブランチ：main（必ず`origin/main`の最新までpullし、Windows側で準備したCapacitor共通層を含むこと）
@@ -175,7 +175,7 @@ App Store record作成前に、Version 1.0を広告SDK・広告枠なしで公�
 
 ## 商標・アプリ名の公開ゲート（最重要）
 
-ユーザーはアプリ名を「SPOTJOBS報酬・在庫管理アプリ」と指定している。開発中に勝手に改名しない。ただしApple Review Guideline 4.1(c)、5.2.1、5.2.2では、権利者の許諾なしに第三者ブランド/製品名をアプリ名やiconへ使うこと、第三者サービスを無許可で収益化することが拒否リスクになる。「非公式」と書くだけでは解消しない。
+ユーザーはアプリ名を「ワークストック｜報酬と在庫」（ホーム画面では「ワークストック」）と指定している。開発中に勝手に改名しない。ただしApple Review Guideline 4.1(c)、5.2.1、5.2.2では、権利者の許諾なしに第三者ブランド/製品名をアプリ名やiconへ使うこと、第三者サービスを無許可で収益化することが拒否リスクになる。「非公式」と書くだけでは解消しない。
 
 - 名称判断前でも、SimulatorとXcodeから直接installした実機での開発・QAは進めてよい。TestFlightは内部配信でも、明示的なApp ID、App Store Connectのアプリレコード、application identifierを含むprovisioning profileが必要になるため、最終identityが未確定のまま暫定候補を登録・uploadしない。
 - Apple Developer PortalへのApp ID登録、App Store Connectのアプリレコード作成、内部／外部TestFlight、Public App Reviewの前に、SPOTJOBS/ChargeSPOT/INFORICH側から名称・商標利用の明示的許諾があるかをユーザーへ1回だけ確認する。暫定候補`com.shunsoco.spotjobsmanager`にも第三者名称が含まれるため、同じ判断を適用する。

@@ -213,7 +213,7 @@ describe("text file export", () => {
       content: "{\"records\":[]}",
       filename: "spotjobs-backup.json",
       mimeType: "application/json",
-      title: "SPOTJOBSバックアップ",
+      title: "ワークストックバックアップ",
     })).resolves.toEqual({
       method: "native-share",
       filename: "spotjobs-backup.json",
@@ -227,7 +227,7 @@ describe("text file export", () => {
       recursive: true,
     });
     expect(share).toHaveBeenCalledWith({
-      title: "SPOTJOBSバックアップ",
+      title: "ワークストックバックアップ",
       files: ["file:///cache/exports/spotjobs-backup.json"],
     });
     expect(deleteFile).toHaveBeenCalledWith({ path: "exports/spotjobs-backup.json", directory: "CACHE" });

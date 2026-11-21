@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calculate, defaultSettings, weekStartFor } from "../core";
 import { parseBackup, serializeBackup, type AppData } from "../storage";
 import {
+  getSyncedRefillReviewSources, markSyncedRefillsReviewed,
   markSyncedRecordReviewed, mergeSpotJobsSnapshot, removeRecordWithSyncTombstone,
   validateSpotJobsSnapshot, type SpotJobsSyncRecord, type SpotJobsSyncSnapshot,
 } from "./import";
@@ -24,6 +25,43 @@ const refill: SpotJobsSyncRecord = {
 };
 
 describe("SPOTJOBS snapshot import", () => {
+  it("bulk review only clears pending refill markers without changing records or other metadata", () => {
+    const data = mergeSpotJobsSnapshot(emptyData(), snapshot([
+      pickup, refill,
+      { ...refill, externalId: "refill-auto", quantity: 7, earlyRefill: null },
+      { ...refill, externalId: "refill-reviewed", earlyRefill: false },
+    ])).data;
+    const sync = data.sync!;
+    sync.recordSources.find(source => source.externalId === pickup.externalId)!.needsReview = true;
+    sync.recordSources.find(source => source.externalId === "refill-reviewed")!.needsReview = false;
+    sync.recordSources.push({ ...sync.recordSources[0], externalId: "orphan", recordId: "missing" });
+    sync.ignoredExternalIds.push("deleted-job");
+    const before = structuredClone(data);
+    const targets = ["refill-1", "refill-auto"];
+    expect(getSyncedRefillReviewSources(data).map(source => source.externalId).sort()).toEqual(targets);
+
+    const reviewed = markSyncedRefillsReviewed(data);
+    const expected = structuredClone(before);
+    expected.sync!.recordSources.forEach(source => {
+      if (targets.includes(source.externalId)) source.needsReview = false;
+    });
+    expect(reviewed).toEqual(expected);
+    expect(reviewed.records).toBe(data.records);
+    expect(reviewed.records).toEqual(before.records);
+    expect(data).toEqual(before);
+    expect(getSyncedRefillReviewSources(reviewed)).toHaveLength(0);
+    expect(markSyncedRefillsReviewed(reviewed)).toBe(reviewed);
+  });
+
+  it("bulk review is a no-op without sync metadata or with only pickup/reviewed sources", () => {
+    const empty = emptyData();
+    expect(markSyncedRefillsReviewed(empty)).toBe(empty);
+    const data = mergeSpotJobsSnapshot(empty, snapshot([pickup, refill])).data;
+    const reviewed = markSyncedRecordReviewed(data, "spotjobs:refill-1");
+    reviewed.sync!.recordSources[0].needsReview = true;
+    expect(markSyncedRefillsReviewed(reviewed)).toBe(reviewed);
+  });
+
   it.each(["spotlog-edge/0.1.0", "spotlog-edge/0.2.0", "spotlog-edge/0.2.1", "spotlog-edge/0.3.0"] as const)("imports and preserves supported collector version %s", sourceVersion => {
     const incoming = { ...snapshot([pickup, refill]), sourceVersion };
     expect(validateSpotJobsSnapshot(incoming).sourceVersion).toBe(sourceVersion);

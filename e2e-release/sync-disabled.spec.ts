@@ -15,6 +15,7 @@ test('release keeps personal sync hidden and makes no sync requests, including w
   await noHorizontalOverflow(page);
   await navigate(page, '設定');
   await expect(page.locator('.auto-sync-panel')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '補充をまとめて確認済みにする', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'バックアップを保存（JSON）', exact: true })).toBeVisible();
   await pickup(page, 1);
   await page.reload();

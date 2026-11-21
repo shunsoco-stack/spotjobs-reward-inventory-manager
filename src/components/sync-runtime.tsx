@@ -9,6 +9,8 @@ import {
   deleteRemoteSpotJobsSnapshot,
   loadSyncPreferences,
   markSyncedRecordReviewed,
+  getSyncedRefillReviewSources,
+  markSyncedRefillsReviewed,
   removeRecordWithSyncTombstone,
   requestPcRefresh,
   saveSyncPreferences,
@@ -87,7 +89,33 @@ export function useSpotJobsSync({
   const syncingRef = useRef(false);
   const syncAbortRef = useRef<AbortController | null>(null);
   const syncPreferencesRef = useRef<SyncLocalPreferences>({ enabled: false });
-  const syncReviewCount = useMemo(() => data.sync?.recordSources.filter(source => source.needsReview).length ?? 0, [data.sync]);
+  const syncReviewCount = useMemo(() => getSyncedRefillReviewSources(data).length, [data]);
+  // The last import message is historical; hide its stale count once all sources are reviewed.
+  const displayPreferences = useMemo(() => data.sync?.recordSources.some(source => source.needsReview)
+    ? syncPreferences
+    : { ...syncPreferences, lastMessage: syncPreferences.lastMessage?.replace(/（要確認 \d+件）/g, '') }, [data.sync, syncPreferences]);
+
+  const reviewAllRefills = useCallback(async () => {
+    if (demo || syncingRef.current || savingRef.current) return;
+    savingRef.current = true;
+    try {
+      const latest = await loadData();
+      const base = latest ?? personalRef.current;
+      const count = getSyncedRefillReviewSources(base).length;
+      if (!count || !window.confirm(`補充 ${count}件をまとめて確認済みにしますか？\n地域・早期対象の値は変わりません。あとから履歴で個別に修正できます。`)) return;
+      const next = markSyncedRefillsReviewed(base);
+      await saveData(next, { expected: latest });
+      personalRef.current = next;
+      persistedRef.current = next;
+      setPersonal(next);
+      setStorageError('');
+      setUndo(null);
+      channel.current?.postMessage('saved');
+      setNotice({ text: `補充 ${count}件を確認済みにしました` });
+    } finally {
+      savingRef.current = false;
+    }
+  }, [channel, demo, personalRef, persistedRef, savingRef, setNotice, setPersonal, setStorageError, setUndo]);
 
   const runSpotJobsSync = useCallback(async (manual = false, refreshPc = false): Promise<boolean> => {
     const preferences = syncPreferencesRef.current;
@@ -282,7 +310,7 @@ export function useSpotJobsSync({
 
   const renderHomeAction = useCallback((onSetup: () => void) => (
     <HomeSyncAction
-      preferences={syncPreferences}
+      preferences={displayPreferences}
       online={online}
       demo={demo}
       syncing={syncing}
@@ -291,16 +319,18 @@ export function useSpotJobsSync({
       onSync={() => { void runSpotJobsSync(true, true); }}
       onSetup={onSetup}
     />
-  ), [demo, online, runSpotJobsSync, saving, syncPhase, syncPreferences, syncing]);
+  ), [demo, displayPreferences, online, runSpotJobsSync, saving, syncPhase, syncing]);
 
   const renderSettingsPanel = useCallback(() => (
     <SyncPanel
-      preferences={syncPreferences}
+      preferences={displayPreferences}
       online={online}
       demo={demo}
       syncing={syncing}
       syncPhase={syncPhase}
       reviewCount={syncReviewCount}
+      recordsSaving={saving}
+      onReviewAll={reviewAllRefills}
       hasExistingRecords={data.records.length > 0}
       incomingSyncCode={incomingSyncCode}
       onConfigure={configureSync}
@@ -310,7 +340,7 @@ export function useSpotJobsSync({
       onDisconnect={disconnectSync}
       onReview={() => setView('history')}
     />
-  ), [backfillSync, configureSync, data.records.length, demo, disconnectSync, incomingSyncCode, online, runSpotJobsSync, setView, syncPhase, syncPreferences, syncReviewCount, syncing, toggleSync]);
+  ), [backfillSync, configureSync, data.records.length, demo, disconnectSync, displayPreferences, incomingSyncCode, online, reviewAllRefills, runSpotJobsSync, saving, setView, syncPhase, syncReviewCount, syncing, toggleSync]);
 
   const homeWelcomeCta = useMemo(() => (
     syncPreferences.syncCode ? null : <HomeSyncWelcome onSetup={() => setView('settings')} />

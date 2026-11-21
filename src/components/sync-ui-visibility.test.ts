@@ -33,6 +33,8 @@ describe("public build hides personal sync UI", () => {
       syncing: false,
       syncPhase: "pulling",
       reviewCount: 2,
+      recordsSaving: false,
+      onReviewAll: async () => {},
       hasExistingRecords: true,
       incomingSyncCode: "dummy-code-should-not-appear",
       onConfigure: async () => {},

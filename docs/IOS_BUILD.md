@@ -75,6 +75,13 @@ that the built `App.app` contains the Privacy Manifest and writes evidence to
 register anything with Apple; it only prevents a persistent local Xcode project
 from being created with an unapproved provisional identity.
 
+The full existing E2E suite includes personal-sync flows, so preflight first
+builds its test fixture with `NEXT_PUBLIC_ENABLE_SYNC=1`. It then rebuilds with
+`NEXT_PUBLIC_ENABLE_SYNC=0` and runs `playwright.release.config.ts` to check
+hidden sync UI, absence of sync requests, and manual entry in all three browsers.
+Only this final sync-off export is copied into the native project. The app's
+default flag remains off; no existing E2E checks are removed or newly skipped.
+
 `--ci-ephemeral` is reserved for `CI=true` on a clean disposable checkout without
 `ios/`. The current GitHub Actions workflow uses the committed project without it.
 Never use it on the release Mac or spoof `CI=true` to bypass the identity guard.

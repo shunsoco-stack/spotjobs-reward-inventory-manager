@@ -294,6 +294,8 @@ Macでの生成・同期手順は[iOS build handoff](docs/IOS_BUILD.md)、TestFl
 
 クリーンcheckoutでは、gitignore対象の`ios/App/App/public`と`capacitor.config.json`はまだありません。`npm run verify:ios`はその欠落をINFOとし、コミット済みのXcode設定・名前・アイコン・Privacy Manifestなどを検証します。生成物があれば内容も検証します。Quality checksではbuild後に`npx cap copy ios`で生成し、`npm run ios:verify-native`（`--require-native`）で欠落と内容の不整合を厳格に検証します。生成物はコミットしません。
 
+release preflightのE2Eでは、同期オンのテスト専用buildで既存スイートを全件実行後、同期オフで再buildし、公開版の同期UI・通信が無効なことと手入力をブラウザで検証します。nativeには最後の同期オフ出力だけを同期します。
+
 開発サーバー：
 
 ```sh

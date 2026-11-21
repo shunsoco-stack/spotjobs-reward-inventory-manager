@@ -125,6 +125,14 @@ describe('iOS readiness on a committed native project', () => {
     expect(result.stdout).toContain('ios:verify-native');
     expect(result.stdout).toContain('Build an unsigned Debug app');
     expect(result.stdout).not.toContain('--ci-ephemeral');
+    const personal = result.stdout.indexOf('NEXT_PUBLIC_ENABLE_SYNC=1');
+    const release = result.stdout.indexOf('NEXT_PUBLIC_ENABLE_SYNC=0');
+    const releaseCheck = result.stdout.indexOf('playwright.release.config.ts');
+    const sync = result.stdout.indexOf('sync ios');
+    expect(personal).toBeGreaterThan(0);
+    expect(release).toBeGreaterThan(personal);
+    expect(releaseCheck).toBeGreaterThan(release);
+    expect(sync).toBeGreaterThan(releaseCheck);
     expect(readFileSync(join(repository, '.github/workflows/ios-native.yml'), 'utf8')).not.toContain('--ci-ephemeral');
   });
 });

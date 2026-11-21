@@ -3,13 +3,22 @@
 ビルド済みの静的プレビューを起動してから実行します。開発サーバーでは Service Worker が登録されないため、オフラインの検証には使いません。
 
 ```powershell
+$env:NEXT_PUBLIC_ENABLE_SYNC = '1'
 npm run build
+Remove-Item Env:NEXT_PUBLIC_ENABLE_SYNC
 npm run preview
 # 別のターミナル
 npm run test:e2e
 ```
 
 既定の対象は `http://localhost:3059` です。別のプレビューを使う場合は `E2E_BASE_URL` を設定してください。
+
+既存スイートは同期UIを含むため、上記はテスト専用の同期オンbuildです。
+リリース用の検証では、プレビューを止めて環境変数を未設定（または`0`）に戻し、
+`npm run build`で同期オフの出力を再生成してプレビューを再起動します。
+`npx playwright test --config playwright.release.config.ts`で、同期UI・同期通信がなく、
+手入力と保存が使えることを3種類のブラウザで確認します。
+macOSの`ios:release-preflight`は両方を順番に実行し、最後の同期オフ出力だけをnativeへ同期します。
 
 検証対象は Desktop Chromium、Pixel 7 の Chromium エミュレーション、iPhone 13 の WebKit エミュレーションです。各テストは新しいブラウザ保存領域で始まり、入力・編集・設定は画面操作、JSON/CSV の取込はファイル選択で行います。テストデータを IndexedDB に直接書き込む処理はありません。
 

@@ -6,13 +6,16 @@ on:
     paths:
       - ".github/workflows/ios-native.yml"
       - "assets/**"
+      - "ios/**"
       - "capacitor.config.ts"
       - "e2e/**"
+      - "e2e-release/**"
       - "eslint.config.mjs"
       - "next.config.ts"
       - "package.json"
       - "package-lock.json"
       - "playwright.config.ts"
+      - "playwright.release.config.ts"
       - "public/**"
       - "scripts/**"
       - "src/**"
@@ -23,13 +26,16 @@ on:
     paths:
       - ".github/workflows/ios-native.yml"
       - "assets/**"
+      - "ios/**"
       - "capacitor.config.ts"
       - "e2e/**"
+      - "e2e-release/**"
       - "eslint.config.mjs"
       - "next.config.ts"
       - "package.json"
       - "package-lock.json"
       - "playwright.config.ts"
+      - "playwright.release.config.ts"
       - "public/**"
       - "scripts/**"
       - "src/**"
@@ -63,7 +69,7 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - name: Run the same local release preflight used on the release Mac
-        run: npm run ios:release-preflight -- --ci-ephemeral
+        run: npm run ios:release-preflight
       - name: Publish the preflight evidence
         if: always() && hashFiles('.artifacts/ios-release-preflight.md') != ''
         run: cat .artifacts/ios-release-preflight.md >> "$GITHUB_STEP_SUMMARY"

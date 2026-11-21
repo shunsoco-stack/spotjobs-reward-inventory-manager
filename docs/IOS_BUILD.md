@@ -2,7 +2,10 @@
 
 The shared Capacitor 8 base is prepared in this repository. The generated
 Next.js static export in `out/` is bundled into the native app; no remote
-`server.url` is configured.
+`server.url` is configured. The Xcode project in `ios/` is committed; use
+`npm run ios:release-preflight` to synchronize and verify this existing project.
+The ignored `ios/App/App/public`, `capacitor.config.json`, and `config.xml`
+are generated locally and must not be committed.
 
 ## Pinned toolchain
 
@@ -72,11 +75,20 @@ that the built `App.app` contains the Privacy Manifest and writes evidence to
 register anything with Apple; it only prevents a persistent local Xcode project
 from being created with an unapproved provisional identity.
 
-`--ci-ephemeral` is reserved for GitHub Actions on a clean disposable checkout.
+The full existing E2E suite includes personal-sync flows, so preflight first
+builds its test fixture with `NEXT_PUBLIC_ENABLE_SYNC=1`. It then rebuilds with
+`NEXT_PUBLIC_ENABLE_SYNC=0` and runs `playwright.release.config.ts` to check
+hidden sync UI, absence of sync requests, and manual entry in all three browsers.
+Only this final sync-off export is copied into the native project. The app's
+default flag remains off; no existing E2E checks are removed or newly skipped.
+
+`--ci-ephemeral` is reserved for `CI=true` on a clean disposable checkout without
+`ios/`. The current GitHub Actions workflow uses the committed project without it.
 Never use it on the release Mac or spoof `CI=true` to bypass the identity guard.
 
-The preflight first rebuilds `out/` and then creates the native project with
-Capacitor 8's default Swift Package Manager template. It then installs
+The preflight first rebuilds `out/` and then synchronizes the existing native
+project (or creates one with Capacitor 8's default Swift Package Manager template
+only when `ios/` is absent and the first-run guard is satisfied). It then installs
 `assets/app-icon-1024.png` and `assets/ios/PrivacyInfo.xcprivacy`, adds the
 privacy file to the App target's Copy Bundle Resources phase, and runs
 `npm run ios:verify-native`. The preparation script is idempotent and fails
@@ -156,11 +168,18 @@ workflow is in `docs/MAC_IOS_RELEASE_PROMPT.md`. Use
 `docs/app-store/screenshots/README.md` for native screenshot capture.
 
 Every relevant push and pull request also runs `.github/workflows/ios-native.yml`
-on GitHub's `macos-26` runner. It generates a clean ephemeral `ios/` project,
+on GitHub's `macos-26` runner. It synchronizes the committed `ios/` project,
 installs the release assets, runs the native verifier, and performs an unsigned
 Debug build for a generic iOS Simulator. This catches Capacitor/SPM/Xcode
 compile regressions without storing signing credentials; it does not replace
 Archive validation, signing, TestFlight, or real-device QA.
+
+Quality checks on Ubuntu runs the readiness audit after the static build, then
+`npx cap copy ios` and `npm run ios:verify-native`. Copy generates the ignored
+web bundle and native config/plugin list without Xcode or CocoaPods. The default
+audit reports missing generated outputs as INFO while checking committed native
+inputs; `--require-native` requires both outputs and validates their contents.
+Existing generated outputs are validated in either mode.
 
 ## Official references
 

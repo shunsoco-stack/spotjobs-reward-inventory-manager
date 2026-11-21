@@ -218,6 +218,15 @@ if (!existsSync(ios)) {
   const nativePublic = join(ios, 'App', 'App', 'public');
   const nativePrivacy = join(ios, 'App', 'App', 'PrivacyInfo.xcprivacy');
   const nativeIcon = join(ios, 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-512@2x.png');
+  // The project is committed, but cap copy/sync outputs are intentionally ignored.
+  // Validate outputs whenever present; only --require-native requires their presence.
+  const checkGenerated = (label, path, action) => {
+    if (!requireNative && !existsSync(path)) {
+      notes.push(`${label}: ${display(path)} is not generated; run npm run ios:sync or the macOS release preflight, then npm run ios:verify-native (--require-native).`);
+    } else {
+      check(label, action);
+    }
+  };
   check('Generated Xcode project', () => {
     assert(nonEmpty(projectPath), `${display(projectPath)} is missing`);
     const project = readText(projectPath);
@@ -235,7 +244,7 @@ if (!existsSync(ios)) {
     assert(xmlText(appName) === xmlText(DISPLAY_NAME), `Capacitor appName ${String(appName)} must stay ${DISPLAY_NAME} so cap sync cannot revert the home screen name`);
     return appName;
   });
-  check('Generated native configuration', () => {
+  checkGenerated('Generated native configuration', nativeConfigPath, () => {
     const nativeConfig = readJson(nativeConfigPath);
     assert(nativeConfig.appId === appId && nativeConfig.appName === appName && nativeConfig.webDir === webDir, 'generated capacitor.config.json is stale');
     assert(!nativeConfig.server?.url, 'generated native config contains a remote server.url');
@@ -248,7 +257,7 @@ if (!existsSync(ios)) {
     assert(sha256(nativeIcon) === sha256(iconSource), 'native AppIcon does not match assets/app-icon-1024.png; run npm run ios:prepare-assets');
     return 'custom icon and PrivacyInfo.xcprivacy installed';
   });
-  check('Synced native web bundle', () => {
+  checkGenerated('Synced native web bundle', nativePublic, () => {
     for (const name of ['index.html', 'privacy.html', 'support.html', 'ocr/worker.min.js', 'ocr/lang/jpn.traineddata.gz', 'ocr/lang/eng.traineddata.gz']) {
       assert(nonEmpty(join(nativePublic, ...name.split('/'))), `${display(join(nativePublic, ...name.split('/')))} is missing; run npm run ios:sync`);
     }

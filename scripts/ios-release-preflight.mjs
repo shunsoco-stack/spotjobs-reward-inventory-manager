@@ -23,19 +23,26 @@ const display = path => relative(root, path).replaceAll('\\', '/');
 const shellLine = (command, args) => [command, ...args].map(value => /\s/.test(value) ? JSON.stringify(value) : value).join(' ');
 
 const steps = [];
-const record = (label, command, args) => steps.push({ label, command, args });
+const record = (label, command, args, env = {}) => {
+  const step = { label, command, args, env };
+  steps.push(step);
+  return step;
+};
 
-record('Web quality and cross-platform readiness', npm, ['run', 'ios:preflight']);
-record('Install Playwright browsers used by release E2E', process.execPath, [playwright, 'install', 'chromium', 'webkit']);
-record('Run release E2E against a local static preview', npm, ['run', 'test:e2e']);
-record(
+const quality = record('Web quality and cross-platform readiness', npm, ['run', 'ios:preflight']);
+const browsers = record('Install Playwright browsers used by release E2E', process.execPath, [playwright, 'install', 'chromium', 'webkit']);
+const personalBuild = record('Build personal-sync fixture for the complete existing E2E suite', npm, ['run', 'build'], { NEXT_PUBLIC_ENABLE_SYNC: '1' });
+const personalE2E = record('Run all existing E2E against the personal-sync fixture', npm, ['run', 'test:e2e']);
+const releaseBuild = record('Rebuild release bundle with personal sync disabled', npm, ['run', 'build'], { NEXT_PUBLIC_ENABLE_SYNC: '0' });
+const releaseE2E = record('Verify release UI and absence of sync requests in browsers', process.execPath, [playwright, 'test', '--config', 'playwright.release.config.ts']);
+const sync = record(
   hadNativeProject ? 'Synchronize existing iOS project' : 'Generate iOS project',
   process.execPath,
   [capacitor, hadNativeProject ? 'sync' : 'add', 'ios'],
 );
-record('Install release assets', npm, ['run', 'ios:prepare-assets']);
-record('Verify generated native project', npm, ['run', 'ios:verify-native']);
-record('Resolve Swift Package Manager dependencies', 'xcodebuild', [
+const assets = record('Install release assets', npm, ['run', 'ios:prepare-assets']);
+const nativeVerify = record('Verify generated native project', npm, ['run', 'ios:verify-native']);
+const packages = record('Resolve Swift Package Manager dependencies', 'xcodebuild', [
   '-project', projectPath,
   '-scheme', scheme,
   '-resolvePackageDependencies',
@@ -43,11 +50,11 @@ record('Resolve Swift Package Manager dependencies', 'xcodebuild', [
 
 if (planOnly) {
   console.log('iOS local release preflight plan (no commands were run)\n');
-  for (const [index, step] of steps.entries()) console.log(`${index + 1}. ${step.label}\n   ${shellLine(step.command, step.args)}`);
+  for (const [index, step] of steps.entries()) console.log(`${index + 1}. ${step.label}\n   ${Object.entries(step.env).map(([name, value]) => `${name}=${value} `).join('')}${shellLine(step.command, step.args)}`);
   console.log(`${steps.length + 1}. Lint source and generated Privacy Manifests with plutil`);
   console.log(`${steps.length + 2}. Build an unsigned Debug app for a generic iOS Simulator in a temporary DerivedData directory`);
   console.log(`${steps.length + 3}. Verify App.app contains PrivacyInfo.xcprivacy and write ${display(reportPath)}`);
-  if (!hadNativeProject) console.log('\nA fresh local project also requires --identity-confirmed after the final app name and Bundle ID have been approved. GitHub Actions uses --ci-ephemeral on its disposable checkout.');
+  if (!hadNativeProject) console.log('\nA fresh local project also requires --identity-confirmed after the final app name and Bundle ID have been approved. --ci-ephemeral is only available for CI=true on a disposable checkout without ios/.');
   process.exit(0);
 }
 
@@ -91,6 +98,7 @@ const run = (label, command, args, options = {}) => {
 };
 
 const capture = (command, args) => run(shellLine(command, args), command, args, { capture: true });
+const runStep = step => run(step.label, step.command, step.args, { env: step.env });
 
 const reservePort = () => new Promise((resolvePort, reject) => {
   const server = createServer();
@@ -160,24 +168,28 @@ let derivedData;
 let previewProcess;
 let primaryError;
 try {
-  run(steps[0].label, steps[0].command, steps[0].args);
-  run(steps[1].label, steps[1].command, steps[1].args);
+  runStep(quality);
+  runStep(browsers);
 
-  const previewPort = await reservePort();
-  const previewUrl = `http://127.0.0.1:${previewPort}`;
-  previewProcess = spawn(process.execPath, ['scripts/preview.mjs'], {
-    cwd: root,
-    env: { ...process.env, PREVIEW_HOST: '127.0.0.1', PREVIEW_PORT: String(previewPort) },
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
-  await waitForPreview(previewUrl, previewProcess);
-  run(steps[2].label, steps[2].command, steps[2].args, { env: { E2E_BASE_URL: previewUrl } });
-  await stopPreview();
+  for (const [build, e2e] of [[personalBuild, personalE2E], [releaseBuild, releaseE2E]]) {
+    runStep(build);
+    const previewPort = await reservePort();
+    const previewUrl = `http://127.0.0.1:${previewPort}`;
+    previewProcess = spawn(process.execPath, ['scripts/preview.mjs'], {
+      cwd: root,
+      env: { ...process.env, PREVIEW_HOST: '127.0.0.1', PREVIEW_PORT: String(previewPort) },
+      stdio: ['ignore', 'inherit', 'inherit'],
+    });
+    await waitForPreview(previewUrl, previewProcess);
+    run(e2e.label, e2e.command, e2e.args, { env: { E2E_BASE_URL: previewUrl } });
+    await stopPreview();
+  }
 
-  for (const step of steps.slice(3, 6)) run(step.label, step.command, step.args);
+  // Only the freshly rebuilt, browser-verified sync-off export reaches native sync.
+  for (const step of [sync, assets, nativeVerify]) runStep(step);
 
   if (!existsSync(projectPath)) throw new Error(`${display(projectPath)} was not generated.`);
-  run(steps[6].label, steps[6].command, steps[6].args);
+  runStep(packages);
   run('Lint source and generated Privacy Manifests', 'plutil', [
     '-lint',
     join(root, 'assets', 'ios', 'PrivacyInfo.xcprivacy'),
@@ -239,6 +251,7 @@ try {
     `- Development Team: \`${setting('DEVELOPMENT_TEAM')}\`\n\n` +
     `## Verified\n\n` +
     `- lint, typecheck, unit tests, static export, local production E2E, and cross-platform iOS readiness\n` +
+    `- full existing E2E on a personal-sync fixture, then rebuilt sync-off release UI and network checks\n` +
     `- Capacitor add or sync and idempotent native asset preparation\n` +
     `- native display name, Bundle ID, plugins, Privacy Manifest, AppIcon, legal pages, and bundled OCR assets\n` +
     `- Swift Package Manager resolution\n` +

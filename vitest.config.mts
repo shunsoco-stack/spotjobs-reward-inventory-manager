@@ -6,5 +6,5 @@ const root = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   resolve: { alias: { '@': resolve(root, 'src') } },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: { environment: 'node', include: ['src/**/*.test.ts', 'scripts/**/*.test.mjs'] },
 });

@@ -199,6 +199,25 @@ export function ignoreExternalSpotJobsRecord(data: AppData, externalId: string):
   return { ...data, sync };
 }
 
+/** Pending sources linked to existing refill records, excluding pickups and orphan sources. */
+export function getSyncedRefillReviewSources(data: AppData): SpotJobsRecordSource[] {
+  const refillIds = new Set(data.records.filter(record => record.type === "refill").map(record => record.id));
+  return data.sync?.recordSources.filter(source => source.needsReview === true && refillIds.has(source.recordId)) ?? [];
+}
+
+/** Only clears pending refill source markers; records and deletion metadata stay intact. */
+export function markSyncedRefillsReviewed(data: AppData): AppData {
+  const sources = new Set(getSyncedRefillReviewSources(data));
+  if (!data.sync || sources.size === 0) return data;
+  return {
+    ...data,
+    sync: {
+      ...data.sync,
+      recordSources: data.sync.recordSources.map(source => sources.has(source) ? { ...source, needsReview: false } : source),
+    },
+  };
+}
+
 /** Clears the review marker after the user confirms region/early-refill values. */
 export function markSyncedRecordReviewed(data: AppData, recordId: string): AppData {
   if (!data.sync?.recordSources.some(source => source.recordId === recordId && source.needsReview)) return data;

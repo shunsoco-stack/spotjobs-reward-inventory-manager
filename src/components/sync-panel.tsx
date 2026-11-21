@@ -29,6 +29,8 @@ export interface SyncPanelProps {
   syncing: boolean;
   syncPhase: SyncPhase;
   reviewCount: number;
+  recordsSaving: boolean;
+  onReviewAll: () => Promise<void>;
   hasExistingRecords: boolean;
   incomingSyncCode?: string;
   onConfigure: (syncCode: string, importMode: SyncImportMode) => Promise<void>;
@@ -112,6 +114,8 @@ export default function SyncPanel({
   syncing,
   syncPhase,
   reviewCount,
+  recordsSaving,
+  onReviewAll,
   hasExistingRecords,
   incomingSyncCode,
   onConfigure,
@@ -184,6 +188,19 @@ export default function SyncPanel({
       setBackfillConfirm(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "過去履歴を取り込めませんでした。");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reviewAll() {
+    if (saving || recordsSaving || syncing || demo) return;
+    setError("");
+    setSaving(true);
+    try {
+      await onReviewAll();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "確認済みにできませんでした。もう一度お試しください。");
     } finally {
       setSaving(false);
     }
@@ -310,10 +327,15 @@ export default function SyncPanel({
           </div>}
 
           {reviewCount > 0 && (
-            <button className="sync-review" type="button" onClick={onReview}>
-              <AlertTriangle size={20} aria-hidden="true" />
-              <span><strong>補充 {reviewCount}件の地域・早期対象を確認</strong><small>履歴から編集すると確認済みになります</small></span>
-            </button>
+            <div>
+              <button className="sync-review" type="button" onClick={onReview}>
+                <AlertTriangle size={20} aria-hidden="true" />
+                <span><strong>補充 {reviewCount}件の地域・早期対象を確認</strong><small>履歴から編集すると確認済みになります</small></span>
+              </button>
+              <button className="button button-secondary" type="button" disabled={saving || recordsSaving || syncing || demo} onClick={() => void reviewAll()}>
+                補充をまとめて確認済みにする
+              </button>
+            </div>
           )}
 
           <div className="sync-actions">
